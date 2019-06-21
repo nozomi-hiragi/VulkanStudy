@@ -30,6 +30,9 @@
     <ClCompile Include="PhysicalDevice.cpp">
       <Filter>source</Filter>
     </ClCompile>
+    <ClCompile Include="Surface.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="WindowManager.h">
@@ -42,6 +45,9 @@
       <Filter>header</Filter>
     </ClInclude>
     <ClInclude Include="PhysicalDevice.h">
+      <Filter>header</Filter>
+    </ClInclude>
+    <ClInclude Include="Surface.h">
       <Filter>header</Filter>
     </ClInclude>
   </ItemGroup>

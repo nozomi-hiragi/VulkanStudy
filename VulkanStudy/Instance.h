@@ -5,6 +5,7 @@
 #include <vulkan/vulkan.hpp>
 
 #include "PhysicalDevice.h"
+#include "Surface.h"
 
 constexpr auto ENGINE_NAME = "Speell";
 constexpr auto ENGINE_VERSION = 0;
@@ -74,15 +75,17 @@ public:
     _instance = nullptr;
   }
 
-  vk::SurfaceKHR createSurface(HINSTANCE hinstance, HWND hwnd) {
-    return _instance.createWin32SurfaceKHR(vk::Win32SurfaceCreateInfoKHR()
+  Surface createSurface(HINSTANCE hinstance, HWND hwnd) {
+    return Surface(_instance.createWin32SurfaceKHR(vk::Win32SurfaceCreateInfoKHR()
       .setHinstance(hinstance)
-      .setHwnd(hwnd));
+      .setHwnd(hwnd)));
   }
 
-  void destroySurface(vk::SurfaceKHR surface) {
-    if (!surface) { return; }
-    _instance.destroySurfaceKHR(surface);
+  void destroySurface(Surface& surface) {
+    auto vk_surface = surface.getVkSurface();
+    if (!vk_surface) { return; }
+    _instance.destroySurfaceKHR(vk_surface);
+    surface.setVkSurface(nullptr);
   }
 
   PhysicalDevice getPhysicalDevice(size_t index) {

@@ -2,6 +2,8 @@
 
 #include <vulkan/vulkan.hpp>
 
+#include "Surface.h"
+
 class PhysicalDevice {
 public:
   PhysicalDevice() : _physical_device(nullptr) {
@@ -23,17 +25,17 @@ public:
     return _physical_device.getQueueFamilyProperties();
   }
 
-  bool getSurfaceSupport(uint32_t index, vk::SurfaceKHR surface) {
-    return _physical_device.getSurfaceSupportKHR(index, surface) == VK_TRUE;
+  bool getSurfaceSupport(uint32_t index, Surface& surface) {
+    return _physical_device.getSurfaceSupportKHR(index, surface.getVkSurface()) == VK_TRUE;
   }
 
   // for swapchain
-  vk::SurfaceCapabilitiesKHR getSurfaceCapabilities(vk::SurfaceKHR surface) {
-    return _physical_device.getSurfaceCapabilitiesKHR(surface);
+  vk::SurfaceCapabilitiesKHR getSurfaceCapabilities(Surface& surface) {
+    return _physical_device.getSurfaceCapabilitiesKHR(surface.getVkSurface());
   }
 
-  std::vector<vk::SurfaceFormatKHR> getSurfaceFormats(vk::SurfaceKHR surface) {
-    return _physical_device.getSurfaceFormatsKHR(surface);
+  std::vector<vk::SurfaceFormatKHR> getSurfaceFormats(Surface& surface) {
+    return _physical_device.getSurfaceFormatsKHR(surface.getVkSurface());
   }
 
   // create device

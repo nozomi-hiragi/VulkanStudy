@@ -12,14 +12,15 @@
 
 #include "Instance.h"
 #include "PhysicalDevice.h"
+#include "Surface.h"
 
 const char* const APP_NAME = "VulkanStudy";
 const uint32_t APP_VERSION = 0;
 
 Instance myInstance;
 PhysicalDevice myPhysicalDevice;
-vk::PhysicalDeviceMemoryProperties g_physical_device_memoryproperties;
-vk::SurfaceKHR g_surface = nullptr;
+vk::PhysicalDeviceMemoryProperties g_physical_device_memoryproperties; // ÉÅÉÇÉää÷åWÇ…Ç‹Ç∆ÇﬂÇÁÇÍÇªÇ§
+Surface mySurface;
 uint32_t g_graphics_queue_family_index = UINT32_MAX;
 uint32_t g_present_queue_family_index = UINT32_MAX;
 vk::Device g_device = nullptr;
@@ -82,11 +83,9 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
   }
 
   // Create Surface
-  {
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
-    g_surface = myInstance.createSurface(hinstance, hwnd);
+  mySurface = myInstance.createSurface(hinstance, hwnd);
 #endif
-  }
 
   // Create Device
   {
@@ -99,7 +98,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
         && queue_family_properties[i].queueFlags & vk::QueueFlagBits::eGraphics) {
         g_graphics_queue_family_index = i;
       }
-      if (g_present_queue_family_index == UINT32_MAX && myPhysicalDevice.getSurfaceSupport(i, g_surface)) {
+      if (g_present_queue_family_index == UINT32_MAX && myPhysicalDevice.getSurfaceSupport(i, mySurface)) {
         g_present_queue_family_index = i;
       }
       if (g_graphics_queue_family_index != UINT32_MAX && g_present_queue_family_index != UINT32_MAX) {
@@ -138,9 +137,9 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
 
   // Create Swapchain
   {
-    auto surface_capabilities = myPhysicalDevice.getSurfaceCapabilities(g_surface);
+    auto surface_capabilities = myPhysicalDevice.getSurfaceCapabilities(mySurface);
 
-    auto surface_formats = myPhysicalDevice.getSurfaceFormats(g_surface);
+    auto surface_formats = myPhysicalDevice.getSurfaceFormats(mySurface);
     g_surface_format = surface_formats[0].format;
     if (surface_formats.size() == 1 && g_surface_format == vk::Format::eUndefined) {
       g_surface_format = vk::Format::eB8G8R8A8Unorm;
@@ -170,7 +169,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
     }
 
     auto swapchain_info = vk::SwapchainCreateInfoKHR()
-      .setSurface(g_surface)
+      .setSurface(mySurface.getVkSurface())
       .setMinImageCount(surface_capabilities.minImageCount)
       .setImageFormat(g_surface_format)
       .setImageColorSpace(surface_color_space)
@@ -875,10 +874,7 @@ void uninitVulkan() {
     g_device = nullptr;
   }
 
-  if (g_surface) {
-    myInstance.destroySurface(g_surface);
-    g_surface = nullptr;
-  }
+  myInstance.destroySurface(mySurface);
 
   myInstance.destroyInstance();
 }
