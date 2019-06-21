@@ -4,6 +4,8 @@
 #define VK_USE_PLATFORM_WIN32_KHR
 #include <vulkan/vulkan.hpp>
 
+#include "PhysicalDevice.h"
+
 constexpr auto ENGINE_NAME = "Speell";
 constexpr auto ENGINE_VERSION = 0;
 
@@ -83,12 +85,16 @@ public:
     _instance.destroySurfaceKHR(surface);
   }
 
-  std::vector<vk::PhysicalDevice> getPhysicalDevices() {
-    return _instance.enumeratePhysicalDevices();
+  PhysicalDevice getPhysicalDevice(size_t index) {
+    if (_physical_devices.size() <= 0) {
+      _physical_devices = std::move(_instance.enumeratePhysicalDevices());
+    }
+    return PhysicalDevice(_physical_devices[index]);
   }
 
 protected:
 
 private:
   vk::Instance _instance;
+  std::vector<vk::PhysicalDevice> _physical_devices;
 };

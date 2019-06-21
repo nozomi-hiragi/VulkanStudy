@@ -11,12 +11,13 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include "Instance.h"
+#include "PhysicalDevice.h"
 
 const char* const APP_NAME = "VulkanStudy";
 const uint32_t APP_VERSION = 0;
 
 Instance myInstance;
-vk::PhysicalDevice g_primaly_physical_device = nullptr;
+PhysicalDevice myPhysicalDevice;
 vk::PhysicalDeviceMemoryProperties g_physical_device_memoryproperties;
 vk::SurfaceKHR g_surface = nullptr;
 uint32_t g_graphics_queue_family_index = UINT32_MAX;
@@ -76,9 +77,8 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
 
   // Get Physical Device
   {
-    auto physical_devices = myInstance.getPhysicalDevices();
-    g_primaly_physical_device = physical_devices[0];
-    g_physical_device_memoryproperties = g_primaly_physical_device.getMemoryProperties();
+    myPhysicalDevice = myInstance.getPhysicalDevice(0);
+    g_physical_device_memoryproperties = myPhysicalDevice.getMemoryProperties();
   }
 
   // Create Surface
@@ -90,7 +90,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
 
   // Create Device
   {
-    auto queue_family_properties = g_primaly_physical_device.getQueueFamilyProperties();
+    auto queue_family_properties = myPhysicalDevice.getQueueFamilyProperties();
 
     g_graphics_queue_family_index = UINT32_MAX;
     g_present_queue_family_index = UINT32_MAX;
@@ -99,26 +99,11 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
         && queue_family_properties[i].queueFlags & vk::QueueFlagBits::eGraphics) {
         g_graphics_queue_family_index = i;
       }
-      if (g_present_queue_family_index == UINT32_MAX
-        && g_primaly_physical_device.getSurfaceSupportKHR(i, g_surface) == VK_TRUE) {
+      if (g_present_queue_family_index == UINT32_MAX && myPhysicalDevice.getSurfaceSupport(i, g_surface)) {
         g_present_queue_family_index = i;
       }
       if (g_graphics_queue_family_index != UINT32_MAX && g_present_queue_family_index != UINT32_MAX) {
         break;
-      }
-    }
-
-    // Extensions verification
-    std::vector<const char*> required_device_extensions;
-    required_device_extensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
-    std::vector<const char*> enabled_device_extensions;
-    auto allowed_device_extensions = g_primaly_physical_device.enumerateDeviceExtensionProperties();
-    for (auto required : required_device_extensions) {
-      for (auto allowed : allowed_device_extensions) {
-        if (strcmp(required, allowed.extensionName) == 0) {
-          enabled_device_extensions.push_back(required);
-          break;
-        }
       }
     }
 
@@ -128,16 +113,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
     queue.setQueueFamilyIndex(g_graphics_queue_family_index);
     queue.setPQueuePriorities(&queue_prioritie);
 
-    auto device_info = vk::DeviceCreateInfo()
-      .setQueueCreateInfoCount(1)
-      .setPQueueCreateInfos(&queue)
-      .setEnabledLayerCount(0)
-      .setPpEnabledLayerNames(nullptr)
-      .setEnabledExtensionCount(static_cast<uint32_t>(enabled_device_extensions.size()))
-      .setPpEnabledExtensionNames(enabled_device_extensions.data())
-      .setPEnabledFeatures(nullptr);
-
-    g_device = g_primaly_physical_device.createDevice(device_info);
+    g_device = myPhysicalDevice.createDevice(queue);
   }
 
   // Create Command pool
@@ -162,9 +138,9 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
 
   // Create Swapchain
   {
-    auto surface_capabilities = g_primaly_physical_device.getSurfaceCapabilitiesKHR(g_surface);
+    auto surface_capabilities = myPhysicalDevice.getSurfaceCapabilities(g_surface);
 
-    auto surface_formats = g_primaly_physical_device.getSurfaceFormatsKHR(g_surface);
+    auto surface_formats = myPhysicalDevice.getSurfaceFormats(g_surface);
     g_surface_format = surface_formats[0].format;
     if (surface_formats.size() == 1 && g_surface_format == vk::Format::eUndefined) {
       g_surface_format = vk::Format::eB8G8R8A8Unorm;
