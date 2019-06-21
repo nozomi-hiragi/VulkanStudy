@@ -13,6 +13,7 @@
 #include "Instance.h"
 #include "PhysicalDevice.h"
 #include "Surface.h"
+#include "Device.h"
 
 const char* const APP_NAME = "VulkanStudy";
 const uint32_t APP_VERSION = 0;
@@ -23,7 +24,7 @@ vk::PhysicalDeviceMemoryProperties g_physical_device_memoryproperties; // ÉÅÉÇÉä
 Surface mySurface;
 uint32_t g_graphics_queue_family_index = UINT32_MAX;
 uint32_t g_present_queue_family_index = UINT32_MAX;
-vk::Device g_device = nullptr;
+Device myDevice;
 vk::CommandPool g_command_pool = nullptr;
 vk::CommandBuffer g_primaly_command_buffer = nullptr;
 vk::Queue g_graphyc_queue = nullptr;
@@ -112,28 +113,18 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
     queue.setQueueFamilyIndex(g_graphics_queue_family_index);
     queue.setPQueuePriorities(&queue_prioritie);
 
-    g_device = myPhysicalDevice.createDevice(queue);
+    myDevice = myPhysicalDevice.createDevice(queue);
   }
 
   // Create Command pool
-  {
-    auto const command_pool_info = vk::CommandPoolCreateInfo()
-      .setQueueFamilyIndex(g_graphics_queue_family_index);
-    g_command_pool = g_device.createCommandPool(command_pool_info);
-  }
+  g_command_pool = myDevice.createCommandPool(g_graphics_queue_family_index);
 
   // Create primaly Command buffer
-  {
-    auto const command_buffer_info = vk::CommandBufferAllocateInfo()
-      .setCommandPool(g_command_pool)
-      .setLevel(vk::CommandBufferLevel::ePrimary)
-      .setCommandBufferCount(1);
-    g_primaly_command_buffer = g_device.allocateCommandBuffers(command_buffer_info)[0];
-  }
+  g_primaly_command_buffer = myDevice.allocateCommandBuffer(g_command_pool);
 
   //
 
-  g_graphyc_queue = g_device.getQueue(g_graphics_queue_family_index, 0);
+  g_graphyc_queue = myDevice.getQueue(g_graphics_queue_family_index, 0);
 
   // Create Swapchain
   {
@@ -185,9 +176,9 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
       .setClipped(true)
       .setOldSwapchain(nullptr);
 
-    g_swapchain = g_device.createSwapchainKHR(swapchain_info);
+    g_swapchain = myDevice.createSwapchain(swapchain_info);
 
-    g_swapchain_images = g_device.getSwapchainImagesKHR(g_swapchain);
+    g_swapchain_images = myDevice.getSwapchainImages(g_swapchain);
   }
 
   // Create Swapchain image view
@@ -202,7 +193,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
         .setSubresourceRange(vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1))
         .setImage(image);
 
-      g_swapchain_image_views.push_back(g_device.createImageView(color_image_view));
+      g_swapchain_image_views.push_back(myDevice.createImageView(color_image_view));
     }
   }
 
@@ -223,12 +214,12 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
       .setPQueueFamilyIndices(nullptr)
       .setInitialLayout(vk::ImageLayout::eUndefined);
 
-    g_depth_image = g_device.createImage(depth_image_info);
+    g_depth_image = myDevice.createImage(depth_image_info);
   }
 
   // Allocate depth memory
   {
-    auto depth_image_memory_requirements = g_device.getImageMemoryRequirements(g_depth_image);
+    auto depth_image_memory_requirements = myDevice.getImageMemoryRequirements(g_depth_image);
 
     auto memory_type_bits = depth_image_memory_requirements.memoryTypeBits;
     auto memory_property_bits = vk::MemoryPropertyFlagBits::eDeviceLocal;
@@ -248,12 +239,12 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
       .setAllocationSize(depth_image_memory_requirements.size)
       .setMemoryTypeIndex(memory_type_index);
 
-    g_depth_memory = g_device.allocateMemory(depth_memory_info);
+    g_depth_memory = myDevice.allocateMemory(depth_memory_info);
   }
 
   // Bind memory to depth image
   {
-    g_device.bindImageMemory(g_depth_image, g_depth_memory, 0);
+    myDevice.bindImageMemory(g_depth_image, g_depth_memory, 0);
   }
 
   // Create depth image view
@@ -264,7 +255,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
       .setFormat(g_depth_format)
       .setSubresourceRange(vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eDepth, 0, 1, 0, 1));
 
-    g_depth_image_view = g_device.createImageView(depth_image_view_info);
+    g_depth_image_view = myDevice.createImageView(depth_image_view_info);
   }
 
   // Create matrix
@@ -281,12 +272,12 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
       .setSize(sizeof(g_mvp))
       .setUsage(vk::BufferUsageFlagBits::eUniformBuffer);
 
-    g_uniform_buffer = g_device.createBuffer(uniform_buffer_info);
+    g_uniform_buffer = myDevice.createBuffer(uniform_buffer_info);
   }
 
   // Allocate uniform memory
   {
-    g_uniform_buffer_memory_requirements = g_device.getBufferMemoryRequirements(g_uniform_buffer);
+    g_uniform_buffer_memory_requirements = myDevice.getBufferMemoryRequirements(g_uniform_buffer);
 
     auto memory_type_bits = g_uniform_buffer_memory_requirements.memoryTypeBits;
     auto memory_property_bits = vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent;
@@ -306,21 +297,21 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
       .setAllocationSize(g_uniform_buffer_memory_requirements.size)
       .setMemoryTypeIndex(memory_type_index);
 
-    g_uniform_memory = g_device.allocateMemory(uniform_memory_info);
+    g_uniform_memory = myDevice.allocateMemory(uniform_memory_info);
   }
 
   // Wrinte to memory
   {
-    auto data = g_device.mapMemory(g_uniform_memory, 0, g_uniform_buffer_memory_requirements.size);
+    auto data = myDevice.mapMemory(g_uniform_memory, 0, g_uniform_buffer_memory_requirements.size);
 
     memcpy(data, &g_mvp, sizeof(g_mvp));
 
-    g_device.unmapMemory(g_uniform_memory);
+    myDevice.unmapMemory(g_uniform_memory);
   }
 
   // Bind memory to buffer
   {
-    g_device.bindBufferMemory(g_uniform_buffer, g_uniform_memory, 0);
+    myDevice.bindBufferMemory(g_uniform_buffer, g_uniform_memory, 0);
   }
 
   // Create descriptor set layout
@@ -336,7 +327,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
       .setBindingCount(1)
       .setPBindings(&descriptor_set_layout_binding);
 
-    g_descriptor_set_layout = g_device.createDescriptorSetLayout(descriptor_set_layout_info);
+    g_descriptor_set_layout = myDevice.createDescriptorSetLayout(descriptor_set_layout_info);
   }
 
   // Create Pipeline layout
@@ -345,7 +336,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
       .setSetLayoutCount(1)
       .setPSetLayouts(&g_descriptor_set_layout);
 
-    g_pipeline_layout = g_device.createPipelineLayout(pipeline_layout_info);
+    g_pipeline_layout = myDevice.createPipelineLayout(pipeline_layout_info);
   }
 
   // Crearte descripter pool
@@ -361,7 +352,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
     .setPoolSizeCount(1)
     .setPPoolSizes(pool_sizes);
 
-  g_descriptor_pool = g_device.createDescriptorPool(descriptor_pool_info);
+  g_descriptor_pool = myDevice.createDescriptorPool(descriptor_pool_info);
 
   // Allocarte descriptor set
 
@@ -370,7 +361,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
     .setDescriptorSetCount(1)
     .setPSetLayouts(&g_descriptor_set_layout);
 
-  g_descriptor_set = g_device.allocateDescriptorSets(descriptor_set_info)[0]; // äJï˙Ç¢ÇÁÇ»Ç¢ÅH
+  g_descriptor_set = myDevice.allocateDescriptorSets(descriptor_set_info)[0];
 
   // Update descriptor sets
 
@@ -387,7 +378,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
     .setDstSet(g_descriptor_set)
   };
 
-  g_device.updateDescriptorSets(1, write_descriptor_sets, 0, nullptr);
+  myDevice.updateDescriptorSets(1, write_descriptor_sets, 0, nullptr);
 
   // Create render pass
 
@@ -440,7 +431,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
     .setDependencyCount(0)
     .setPDependencies(nullptr);
 
-  g_render_pass = g_device.createRenderPass(render_pass_info);
+  g_render_pass = myDevice.createRenderPass(render_pass_info);
 
   // Create shader module
 
@@ -463,7 +454,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
     .setCodeSize(vs_bin.second)
     .setPCode(reinterpret_cast<uint32_t*>(vs_bin.first.get()));
 
-  g_vs = g_device.createShaderModule(vs_info);
+  g_vs = myDevice.createShaderModule(vs_info);
 
   auto ps_bin = get_binary(L"ps.frag.spv");
 
@@ -471,7 +462,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
     .setCodeSize(ps_bin.second)
     .setPCode(reinterpret_cast<uint32_t*>(ps_bin.first.get()));
 
-  g_ps = g_device.createShaderModule(ps_info);
+  g_ps = myDevice.createShaderModule(ps_info);
 
   vk::PipelineShaderStageCreateInfo shader_stage_info[] = {
     vk::PipelineShaderStageCreateInfo()
@@ -502,7 +493,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
 
   for (uint32_t i = 0; i < g_swapchain_images.size(); i++) {
     attachments[0] = g_swapchain_image_views[i];
-    g_frame_buffers.push_back(g_device.createFramebuffer(frame_buffer_info));
+    g_frame_buffers.push_back(myDevice.createFramebuffer(frame_buffer_info));
   }
 
   // Create Vertex buffer
@@ -512,11 +503,11 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
     .setSize(sizeof(poly))
     .setSharingMode(vk::SharingMode::eExclusive);
 
-  g_vertex_buffer = g_device.createBuffer(vertex_buffer_info);
+  g_vertex_buffer = myDevice.createBuffer(vertex_buffer_info);
 
   // Allocate vertex buffer memory
 
-  auto vertex_buffer_memory_requirements = g_device.getBufferMemoryRequirements(g_vertex_buffer);
+  auto vertex_buffer_memory_requirements = myDevice.getBufferMemoryRequirements(g_vertex_buffer);
 
   auto memory_type_bits = vertex_buffer_memory_requirements.memoryTypeBits;
   auto memory_property_bits = vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent;
@@ -536,17 +527,17 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
     .setAllocationSize(vertex_buffer_memory_requirements.size)
     .setMemoryTypeIndex(memory_type_index);
 
-  g_vertex_memory = g_device.allocateMemory(vertex_memory_info);
+  g_vertex_memory = myDevice.allocateMemory(vertex_memory_info);
 
   // Store vertex buffer
 
-  auto vertex_map = g_device.mapMemory(g_vertex_memory, 0, vertex_buffer_memory_requirements.size);
+  auto vertex_map = myDevice.mapMemory(g_vertex_memory, 0, vertex_buffer_memory_requirements.size);
 
   memcpy(vertex_map, &poly, sizeof(poly));
 
-  g_device.unmapMemory(g_vertex_memory);
+  myDevice.unmapMemory(g_vertex_memory);
 
-  g_device.bindBufferMemory(g_vertex_buffer, g_vertex_memory, 0);
+  myDevice.bindBufferMemory(g_vertex_buffer, g_vertex_memory, 0);
 
   // Description
 
@@ -571,9 +562,9 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
 
   // Create semaphore
 
-  g_image_semaphore = g_device.createSemaphore(vk::SemaphoreCreateInfo());
+  g_image_semaphore = myDevice.createSemaphore(vk::SemaphoreCreateInfo());
 
-  g_device.acquireNextImageKHR(g_swapchain, UINT64_MAX, g_image_semaphore, nullptr, &g_current_buffer);
+  myDevice.acquireNextImage(g_swapchain, UINT64_MAX, g_image_semaphore, nullptr, &g_current_buffer);
 
   // Create pipeline
 
@@ -647,7 +638,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
     .setLayout(g_pipeline_layout)
     .setRenderPass(g_render_pass);
 
-  g_pipeline = g_device.createGraphicsPipelines(nullptr, pipeline_info)[0];
+  g_pipeline = myDevice.createGraphicsPipeline(nullptr, pipeline_info);
 
   // Begin command
 
@@ -721,7 +712,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
 
   auto fence_info = vk::FenceCreateInfo();
 
-  g_fence = g_device.createFence(fence_info);
+  g_fence = myDevice.createFence(fence_info);
 
   //
 
@@ -742,7 +733,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
   vk::Result res;
 
   do {
-    res = g_device.waitForFences(1, &g_fence, VK_TRUE, UINT64_MAX);
+    res = myDevice.waitForFences(1, &g_fence, true, UINT64_MAX);
   } while (res == vk::Result::eTimeout);
 
   //
@@ -762,117 +753,113 @@ void updateVulkan() {
 void uninitVulkan() {
 
   if (g_fence) {
-    g_device.destroyFence(g_fence);
+    myDevice.destroyFence(g_fence);
     g_fence = nullptr;
   }
 
   if (g_pipeline) {
-    g_device.destroyPipeline(g_pipeline);
+    myDevice.destroyPipeline(g_pipeline);
     g_pipeline = nullptr;
   }
 
   if (g_image_semaphore) {
-    g_device.destroySemaphore(g_image_semaphore);
+    myDevice.destroySemaphore(g_image_semaphore);
     g_image_semaphore = nullptr;
   }
 
   if (g_vertex_memory) {
-    g_device.freeMemory(g_vertex_memory);
+    myDevice.freeMemory(g_vertex_memory);
     g_vertex_memory = nullptr;
   }
 
   if (g_vertex_buffer) {
-    g_device.destroyBuffer(g_vertex_buffer);
+    myDevice.destroyBuffer(g_vertex_buffer);
     g_vertex_buffer = nullptr;
   }
 
   for (auto frame_buffer : g_frame_buffers) {
-    g_device.destroyFramebuffer(frame_buffer);
+    myDevice.destroyFramebuffer(frame_buffer);
   }
   g_frame_buffers.clear();
 
   if (g_ps) {
-    g_device.destroyShaderModule(g_ps);
+    myDevice.destroyShaderModule(g_ps);
     g_ps = nullptr;
   }
 
   if (g_vs) {
-    g_device.destroyShaderModule(g_vs);
+    myDevice.destroyShaderModule(g_vs);
     g_vs = nullptr;
   }
 
   if (g_render_pass) {
-    g_device.destroyRenderPass(g_render_pass);
+    myDevice.destroyRenderPass(g_render_pass);
     g_render_pass = nullptr;
   }
 
   if (g_descriptor_pool) {
-    g_device.destroyDescriptorPool(g_descriptor_pool);
+    myDevice.destroyDescriptorPool(g_descriptor_pool);
     g_descriptor_pool = nullptr;
   }
 
   if (g_pipeline_layout) {
-    g_device.destroyPipelineLayout(g_pipeline_layout);
+    myDevice.destroyPipelineLayout(g_pipeline_layout);
     g_pipeline_layout = nullptr;
   }
 
   if (g_descriptor_set_layout) {
-    g_device.destroyDescriptorSetLayout(g_descriptor_set_layout);
+    myDevice.destroyDescriptorSetLayout(g_descriptor_set_layout);
     g_descriptor_set_layout = nullptr;
   }
 
   if (g_uniform_memory) {
-    g_device.freeMemory(g_uniform_memory);
+    myDevice.freeMemory(g_uniform_memory);
     g_uniform_memory = nullptr;
   }
 
   if (g_uniform_buffer) {
-    g_device.destroyBuffer(g_uniform_buffer);
+    myDevice.destroyBuffer(g_uniform_buffer);
     g_uniform_buffer = nullptr;
   }
 
   if (g_depth_image_view) {
-    g_device.destroyImageView(g_depth_image_view);
+    myDevice.destroyImageView(g_depth_image_view);
     g_depth_image_view = nullptr;
   }
 
   if (g_depth_memory) {
-    g_device.freeMemory(g_depth_memory);
+    myDevice.freeMemory(g_depth_memory);
     g_depth_memory = nullptr;
   }
 
   if (g_depth_image) {
-    g_device.destroyImage(g_depth_image);
+    myDevice.destroyImage(g_depth_image);
     g_depth_image = nullptr;
   }
 
   if (g_primaly_command_buffer) {
-    g_device.freeCommandBuffers(g_command_pool, g_primaly_command_buffer);
+    myDevice.freeCommandBuffers(g_command_pool, g_primaly_command_buffer);
     g_primaly_command_buffer = nullptr;
   }
 
   if (g_command_pool) {
-    g_device.destroyCommandPool(g_command_pool);
+    myDevice.destroyCommandPool(g_command_pool);
     g_command_pool = nullptr;
   }
 
   for (auto image_view : g_swapchain_image_views) {
-    g_device.destroyImageView(image_view);
+    myDevice.destroyImageView(image_view);
   }
   g_swapchain_image_views.clear();
 
   g_swapchain_images.clear();
 
   if (g_swapchain) {
-    g_device.destroySwapchainKHR(g_swapchain);
+    myDevice.destroySwapchain(g_swapchain);
     g_swapchain = nullptr;
   }
 
-  if (g_device) {
-    g_device.waitIdle();
-    g_device.destroy();
-    g_device = nullptr;
-  }
+  myDevice.destroy();
 
   myInstance.destroySurface(mySurface);
 

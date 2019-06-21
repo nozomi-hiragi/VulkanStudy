@@ -3,6 +3,7 @@
 #include <vulkan/vulkan.hpp>
 
 #include "Surface.h"
+#include "Device.h"
 
 class PhysicalDevice {
 public:
@@ -25,7 +26,7 @@ public:
     return _physical_device.getQueueFamilyProperties();
   }
 
-  bool getSurfaceSupport(uint32_t index, Surface& surface) {
+  bool getSurfaceSupport(const uint32_t index, Surface& surface) {
     return _physical_device.getSurfaceSupportKHR(index, surface.getVkSurface()) == VK_TRUE;
   }
 
@@ -39,7 +40,7 @@ public:
   }
 
   // create device
-  vk::Device createDevice(vk::DeviceQueueCreateInfo& queue_info) {
+  Device createDevice(const vk::DeviceQueueCreateInfo& queue_info) {
     // Extensions verification
     std::vector<const char*> required_device_extensions;
     required_device_extensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
@@ -63,7 +64,7 @@ public:
       .setPpEnabledExtensionNames(enabled_device_extensions.data())
       .setPEnabledFeatures(nullptr);
 
-    return _physical_device.createDevice(device_info);
+    return Device(_physical_device.createDevice(device_info));
   }
 
 protected:

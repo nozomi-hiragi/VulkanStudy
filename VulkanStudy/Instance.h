@@ -18,7 +18,7 @@ public:
   ~Instance() {
   }
 
-  void createInstance(const char* app_name, uint32_t app_version) {
+  void createInstance(const char* app_name, const uint32_t app_version) {
     const auto app_info = vk::ApplicationInfo()
       .setPApplicationName(app_name)
       .setApplicationVersion(app_version)
@@ -75,7 +75,7 @@ public:
     _instance = nullptr;
   }
 
-  Surface createSurface(HINSTANCE hinstance, HWND hwnd) {
+  Surface createSurface(const HINSTANCE hinstance, const HWND hwnd) {
     return Surface(_instance.createWin32SurfaceKHR(vk::Win32SurfaceCreateInfoKHR()
       .setHinstance(hinstance)
       .setHwnd(hwnd)));
@@ -88,7 +88,7 @@ public:
     surface.setVkSurface(nullptr);
   }
 
-  PhysicalDevice getPhysicalDevice(size_t index) {
+  PhysicalDevice getPhysicalDevice(const size_t index) {
     if (_physical_devices.size() <= 0) {
       _physical_devices = std::move(_instance.enumeratePhysicalDevices());
     }
