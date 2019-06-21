@@ -24,12 +24,18 @@
     <ClCompile Include="VulkanFunction.cpp">
       <Filter>source</Filter>
     </ClCompile>
+    <ClCompile Include="Instance.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="WindowManager.h">
       <Filter>header</Filter>
     </ClInclude>
     <ClInclude Include="VulkanFunction.h">
+      <Filter>header</Filter>
+    </ClInclude>
+    <ClInclude Include="Instance.h">
       <Filter>header</Filter>
     </ClInclude>
   </ItemGroup>

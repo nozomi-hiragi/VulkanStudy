@@ -78,11 +78,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Instance.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="VulkanFunction.cpp" />
     <ClCompile Include="WindowManager.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Instance.h" />
     <ClInclude Include="VulkanFunction.h" />
     <ClInclude Include="WindowManager.h" />
   </ItemGroup>

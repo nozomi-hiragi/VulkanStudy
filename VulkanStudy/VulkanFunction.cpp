@@ -10,12 +10,12 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-const char* const ENGINE_NAME = "Speell";
-const uint32_t ENGINE_VERSION = 0;
+#include "Instance.h"
+
 const char* const APP_NAME = "VulkanStudy";
 const uint32_t APP_VERSION = 0;
 
-vk::Instance g_instance = nullptr;
+Instance myInstance;
 vk::PhysicalDevice g_primaly_physical_device = nullptr;
 vk::PhysicalDeviceMemoryProperties g_physical_device_memoryproperties;
 vk::SurfaceKHR g_surface = nullptr;
@@ -72,60 +72,11 @@ Vertex poly[] = {
 void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height) {
 
   // Create Instance
-  {
-    // Layers verification
-    std::vector<const char*> required_instance_layers;
-#ifdef _DEBUG
-    required_instance_layers.push_back("VK_LAYER_LUNARG_standard_validation");
-#endif // DEBUG
-    std::vector<const char*> enabled_instance_layers;
-    auto allowed_instance_layers = vk::enumerateInstanceLayerProperties();
-    for (auto required : required_instance_layers) {
-      for (auto allowed : allowed_instance_layers) {
-        if (strcmp(required, allowed.layerName) == 0) {
-          enabled_instance_layers.push_back(required);
-          break;
-        }
-      }
-    }
-
-    // Extensions verification
-    std::vector<const char*> required_instance_extensions;
-    required_instance_extensions.push_back(VK_KHR_SURFACE_EXTENSION_NAME);
-#if defined(VK_USE_PLATFORM_WIN32_KHR)
-    required_instance_extensions.push_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
-#endif
-    std::vector<const char*> enabled_instance_extensions;
-    auto allowed_instance_extensions = vk::enumerateInstanceExtensionProperties();
-    for (auto required : required_instance_extensions) {
-      for (auto allowed : allowed_instance_extensions) {
-        if (strcmp(required, allowed.extensionName) == 0) {
-          enabled_instance_extensions.push_back(required);
-          break;
-        }
-      }
-    }
-
-    const auto app_info = vk::ApplicationInfo()
-      .setPApplicationName(APP_NAME)
-      .setApplicationVersion(APP_VERSION)
-      .setPEngineName(ENGINE_NAME)
-      .setEngineVersion(ENGINE_VERSION)
-      .setApiVersion(VK_API_VERSION_1_0);
-
-    const auto inst_info = vk::InstanceCreateInfo()
-      .setPApplicationInfo(&app_info)
-      .setEnabledLayerCount(static_cast<uint32_t>(enabled_instance_layers.size()))
-      .setPpEnabledLayerNames(enabled_instance_layers.data())
-      .setEnabledExtensionCount(static_cast<uint32_t>(enabled_instance_extensions.size()))
-      .setPpEnabledExtensionNames(enabled_instance_extensions.data());
-
-    g_instance = vk::createInstance(inst_info);
-  }
+  myInstance.createInstance(APP_NAME, APP_VERSION);
 
   // Get Physical Device
   {
-    auto physical_devices = g_instance.enumeratePhysicalDevices();
+    auto physical_devices = myInstance.getPhysicalDevices();
     g_primaly_physical_device = physical_devices[0];
     g_physical_device_memoryproperties = g_primaly_physical_device.getMemoryProperties();
   }
@@ -133,10 +84,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
   // Create Surface
   {
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
-    auto surface_info = vk::Win32SurfaceCreateInfoKHR()
-      .setHinstance(hinstance)
-      .setHwnd(hwnd);
-    g_surface = g_instance.createWin32SurfaceKHR(surface_info);
+    g_surface = myInstance.createSurface(hinstance, hwnd);
 #endif
   }
 
@@ -952,12 +900,9 @@ void uninitVulkan() {
   }
 
   if (g_surface) {
-    g_instance.destroySurfaceKHR(g_surface);
+    myInstance.destroySurface(g_surface);
     g_surface = nullptr;
   }
 
-  if (g_instance) {
-    g_instance.destroy();
-    g_instance = nullptr;
-  }
+  myInstance.destroyInstance();
 }
