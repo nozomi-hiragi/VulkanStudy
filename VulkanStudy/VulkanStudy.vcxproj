@@ -82,6 +82,7 @@
     <ClCompile Include="Instance.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="PhysicalDevice.cpp" />
+    <ClCompile Include="Queue.cpp" />
     <ClCompile Include="Surface.cpp" />
     <ClCompile Include="VulkanFunction.cpp" />
     <ClCompile Include="WindowManager.cpp" />
@@ -90,6 +91,7 @@
     <ClInclude Include="Device.h" />
     <ClInclude Include="Instance.h" />
     <ClInclude Include="PhysicalDevice.h" />
+    <ClInclude Include="Queue.h" />
     <ClInclude Include="Surface.h" />
     <ClInclude Include="VulkanFunction.h" />
     <ClInclude Include="WindowManager.h" />

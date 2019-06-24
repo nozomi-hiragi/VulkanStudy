@@ -14,6 +14,7 @@
 #include "PhysicalDevice.h"
 #include "Surface.h"
 #include "Device.h"
+#include "Queue.h"
 
 const char* const APP_NAME = "VulkanStudy";
 const uint32_t APP_VERSION = 0;
@@ -27,7 +28,7 @@ uint32_t g_present_queue_family_index = UINT32_MAX;
 Device myDevice;
 vk::CommandPool g_command_pool = nullptr;
 vk::CommandBuffer g_primaly_command_buffer = nullptr;
-vk::Queue g_graphyc_queue = nullptr;
+Queue myQueue;
 vk::SwapchainKHR g_swapchain = nullptr;
 vk::Format g_surface_format;
 std::vector<vk::Image> g_swapchain_images;
@@ -124,7 +125,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
 
   //
 
-  g_graphyc_queue = myDevice.getQueue(g_graphics_queue_family_index, 0);
+  myQueue = myDevice.getQueue(g_graphics_queue_family_index, 0);
 
   // Create Swapchain
   {
@@ -726,7 +727,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
     .setPWaitSemaphores(&g_image_semaphore)
     .setPWaitDstStageMask(&pipe_stage_flags);
 
-  g_graphyc_queue.submit(submit_info, g_fence);
+  myQueue.submit(submit_info, g_fence);
 
   //
 
@@ -743,7 +744,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
     .setPSwapchains(&g_swapchain)
     .setPImageIndices(&g_current_buffer);
 
-  g_graphyc_queue.presentKHR(present_info);
+  myQueue.present(present_info);
 
 }
 

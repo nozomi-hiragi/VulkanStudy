@@ -36,6 +36,9 @@
     <ClCompile Include="Device.cpp">
       <Filter>source</Filter>
     </ClCompile>
+    <ClCompile Include="Queue.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="WindowManager.h">
@@ -54,6 +57,9 @@
       <Filter>header</Filter>
     </ClInclude>
     <ClInclude Include="Device.h">
+      <Filter>header</Filter>
+    </ClInclude>
+    <ClInclude Include="Queue.h">
       <Filter>header</Filter>
     </ClInclude>
   </ItemGroup>

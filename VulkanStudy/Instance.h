@@ -12,7 +12,7 @@ constexpr auto ENGINE_VERSION = 0;
 
 class Instance {
 public:
-  Instance() : _instance(nullptr) {
+  Instance(): _instance(nullptr) {
   }
 
   ~Instance() {

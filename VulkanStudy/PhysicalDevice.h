@@ -7,10 +7,10 @@
 
 class PhysicalDevice {
 public:
-  PhysicalDevice() : _physical_device(nullptr) {
+  PhysicalDevice(): _physical_device(nullptr) {
   }
 
-  PhysicalDevice(vk::PhysicalDevice physical_device) : _physical_device(physical_device) {
+  PhysicalDevice(vk::PhysicalDevice physical_device): _physical_device(physical_device) {
   }
 
   ~PhysicalDevice() {

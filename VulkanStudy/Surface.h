@@ -4,10 +4,10 @@
 
 class Surface {
 public:
-  Surface() : _surface(nullptr) {
+  Surface(): _surface(nullptr) {
   }
 
-  Surface(vk::SurfaceKHR surface) : _surface(surface) {
+  Surface(vk::SurfaceKHR surface): _surface(surface) {
   }
 
   ~Surface() {

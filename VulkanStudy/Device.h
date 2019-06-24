@@ -2,9 +2,11 @@
 
 #include <vulkan/vulkan.hpp>
 
+#include "Queue.h"
+
 class Device {
 public:
-  Device() : _device(nullptr) {
+  Device(): _device(nullptr) {
   }
 
   Device(vk::Device device) : _device(device) {
@@ -21,8 +23,8 @@ public:
   }
 
   // for queue
-  vk::Queue getQueue(const uint32_t queu_family_index, const uint32_t queue_index) {
-    return _device.getQueue(queu_family_index, queue_index);
+  Queue getQueue(const uint32_t queu_family_index, const uint32_t queue_index) {
+    return Queue(_device.getQueue(queu_family_index, queue_index));
   }
 
   // for command buffer
