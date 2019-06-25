@@ -3,13 +3,14 @@
 #include <vulkan/vulkan.hpp>
 
 #include "Queue.h"
+#include "CommandPool.h"
 
 class Device {
 public:
   Device(): _device(nullptr) {
   }
 
-  Device(vk::Device device) : _device(device) {
+  Device(const vk::Device device) : _device(device) {
   }
 
   ~Device() {
@@ -28,24 +29,27 @@ public:
   }
 
   // for command buffer
-  vk::CommandPool createCommandPool(const uint32_t queue_family_index) {
-    return _device.createCommandPool(vk::CommandPoolCreateInfo()
-      .setQueueFamilyIndex(queue_family_index));
+  CommandPool createCommandPool(const uint32_t queue_family_index) {
+    return CommandPool(_device.createCommandPool(vk::CommandPoolCreateInfo()
+      .setQueueFamilyIndex(queue_family_index)));
   }
 
-  void destroyCommandPool(const vk::CommandPool command_pool) {
-    _device.destroyCommandPool(command_pool);
+  void destroyCommandPool(CommandPool& command_pool) {
+    auto vk_command_pool = command_pool.getVkCommandPool();
+    if (!vk_command_pool) { return; }
+    _device.destroyCommandPool(vk_command_pool);
+    command_pool.setVkCommandPool(nullptr);
   }
 
-  vk::CommandBuffer allocateCommandBuffer(const vk::CommandPool command_pool) {
+  vk::CommandBuffer allocateCommandBuffer(CommandPool& command_pool) {
     return _device.allocateCommandBuffers(vk::CommandBufferAllocateInfo()
-      .setCommandPool(command_pool)
+      .setCommandPool(command_pool.getVkCommandPool())
       .setLevel(vk::CommandBufferLevel::ePrimary)
       .setCommandBufferCount(1))[0];
   }
 
-  void freeCommandBuffers(const vk::CommandPool command_pool, const vk::CommandBuffer command_buffer) {
-    _device.freeCommandBuffers(command_pool, command_buffer);
+  void freeCommandBuffers(CommandPool& command_pool, const vk::CommandBuffer command_buffer) {
+    _device.freeCommandBuffers(command_pool.getVkCommandPool(), command_buffer);
   }
 
   // for fence

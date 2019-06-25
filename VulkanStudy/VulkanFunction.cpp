@@ -15,6 +15,7 @@
 #include "Surface.h"
 #include "Device.h"
 #include "Queue.h"
+#include "CommandPool.h"
 
 const char* const APP_NAME = "VulkanStudy";
 const uint32_t APP_VERSION = 0;
@@ -26,7 +27,7 @@ Surface mySurface;
 uint32_t g_graphics_queue_family_index = UINT32_MAX;
 uint32_t g_present_queue_family_index = UINT32_MAX;
 Device myDevice;
-vk::CommandPool g_command_pool = nullptr;
+CommandPool myCommandPool;
 vk::CommandBuffer g_primaly_command_buffer = nullptr;
 Queue myQueue;
 vk::SwapchainKHR g_swapchain = nullptr;
@@ -118,10 +119,10 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
   }
 
   // Create Command pool
-  g_command_pool = myDevice.createCommandPool(g_graphics_queue_family_index);
+  myCommandPool = myDevice.createCommandPool(g_graphics_queue_family_index);
 
   // Create primaly Command buffer
-  g_primaly_command_buffer = myDevice.allocateCommandBuffer(g_command_pool);
+  g_primaly_command_buffer = myDevice.allocateCommandBuffer(myCommandPool);
 
   //
 
@@ -839,14 +840,11 @@ void uninitVulkan() {
   }
 
   if (g_primaly_command_buffer) {
-    myDevice.freeCommandBuffers(g_command_pool, g_primaly_command_buffer);
+    myDevice.freeCommandBuffers(myCommandPool, g_primaly_command_buffer);
     g_primaly_command_buffer = nullptr;
   }
 
-  if (g_command_pool) {
-    myDevice.destroyCommandPool(g_command_pool);
-    g_command_pool = nullptr;
-  }
+  myDevice.destroyCommandPool(myCommandPool);
 
   for (auto image_view : g_swapchain_image_views) {
     myDevice.destroyImageView(image_view);

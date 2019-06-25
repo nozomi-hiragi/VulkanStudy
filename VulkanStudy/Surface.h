@@ -7,13 +7,13 @@ public:
   Surface(): _surface(nullptr) {
   }
 
-  Surface(vk::SurfaceKHR surface): _surface(surface) {
+  Surface(const vk::SurfaceKHR surface): _surface(surface) {
   }
 
   ~Surface() {
   }
 
-  void setVkSurface(vk::SurfaceKHR surface) {
+  void setVkSurface(const vk::SurfaceKHR surface) {
     _surface = surface;
   }
 

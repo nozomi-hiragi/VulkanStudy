@@ -10,7 +10,7 @@ public:
   PhysicalDevice(): _physical_device(nullptr) {
   }
 
-  PhysicalDevice(vk::PhysicalDevice physical_device): _physical_device(physical_device) {
+  PhysicalDevice(const vk::PhysicalDevice physical_device): _physical_device(physical_device) {
   }
 
   ~PhysicalDevice() {
