@@ -4,6 +4,7 @@
 
 #include "Queue.h"
 #include "CommandPool.h"
+#include "CommandBuffer.h"
 
 class Device {
 public:
@@ -41,15 +42,18 @@ public:
     command_pool.setVkCommandPool(nullptr);
   }
 
-  vk::CommandBuffer allocateCommandBuffer(CommandPool& command_pool) {
-    return _device.allocateCommandBuffers(vk::CommandBufferAllocateInfo()
+  CommandBuffer allocateCommandBuffer(CommandPool& command_pool) {
+    return CommandBuffer(_device.allocateCommandBuffers(vk::CommandBufferAllocateInfo()
       .setCommandPool(command_pool.getVkCommandPool())
       .setLevel(vk::CommandBufferLevel::ePrimary)
-      .setCommandBufferCount(1))[0];
+      .setCommandBufferCount(1))[0]);
   }
 
-  void freeCommandBuffers(CommandPool& command_pool, const vk::CommandBuffer command_buffer) {
-    _device.freeCommandBuffers(command_pool.getVkCommandPool(), command_buffer);
+  void freeCommandBuffers(CommandPool& command_pool, CommandBuffer command_buffer) {
+    auto vk_command_buffer = command_buffer.getVkCommandBuffer();
+    if (!vk_command_buffer) { return; }
+    _device.freeCommandBuffers(command_pool.getVkCommandPool(), vk_command_buffer);
+    command_buffer.setVkCommandBuffer(nullptr);
   }
 
   // for fence

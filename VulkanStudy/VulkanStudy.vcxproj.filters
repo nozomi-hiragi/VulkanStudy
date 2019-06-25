@@ -42,6 +42,9 @@
     <ClCompile Include="CommandPool.cpp">
       <Filter>source</Filter>
     </ClCompile>
+    <ClCompile Include="CommandBuffer.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="WindowManager.h">
@@ -66,6 +69,9 @@
       <Filter>header</Filter>
     </ClInclude>
     <ClInclude Include="CommandPool.h">
+      <Filter>header</Filter>
+    </ClInclude>
+    <ClInclude Include="CommandBuffer.h">
       <Filter>header</Filter>
     </ClInclude>
   </ItemGroup>

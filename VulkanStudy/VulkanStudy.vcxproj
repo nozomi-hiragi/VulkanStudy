@@ -78,6 +78,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="CommandBuffer.cpp" />
     <ClCompile Include="CommandPool.cpp" />
     <ClCompile Include="Device.cpp" />
     <ClCompile Include="Instance.cpp" />
@@ -89,6 +90,7 @@
     <ClCompile Include="WindowManager.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="CommandBuffer.h" />
     <ClInclude Include="CommandPool.h" />
     <ClInclude Include="Device.h" />
     <ClInclude Include="Instance.h" />

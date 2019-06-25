@@ -16,6 +16,7 @@
 #include "Device.h"
 #include "Queue.h"
 #include "CommandPool.h"
+#include "CommandBuffer.h"
 
 const char* const APP_NAME = "VulkanStudy";
 const uint32_t APP_VERSION = 0;
@@ -28,7 +29,7 @@ uint32_t g_graphics_queue_family_index = UINT32_MAX;
 uint32_t g_present_queue_family_index = UINT32_MAX;
 Device myDevice;
 CommandPool myCommandPool;
-vk::CommandBuffer g_primaly_command_buffer = nullptr;
+CommandBuffer myCommandBuffer;
 Queue myQueue;
 vk::SwapchainKHR g_swapchain = nullptr;
 vk::Format g_surface_format;
@@ -122,7 +123,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
   myCommandPool = myDevice.createCommandPool(g_graphics_queue_family_index);
 
   // Create primaly Command buffer
-  g_primaly_command_buffer = myDevice.allocateCommandBuffer(myCommandPool);
+  myCommandBuffer = myDevice.allocateCommandBuffer(myCommandPool);
 
   //
 
@@ -644,10 +645,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
 
   // Begin command
 
-  auto command_begin_info = vk::CommandBufferBeginInfo()
-    .setFlags(vk::CommandBufferUsageFlagBits::eSimultaneousUse);
-
-  g_primaly_command_buffer.begin(command_begin_info);
+  myCommandBuffer.begin();
 
   // Begin render pass
 
@@ -663,15 +661,15 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
     .setClearValueCount(2)
     .setPClearValues(clear_values);
 
-  g_primaly_command_buffer.beginRenderPass(render_begin_info, vk::SubpassContents::eInline);
+  myCommandBuffer.beginRenderPass(render_begin_info, vk::SubpassContents::eInline);
 
   //
 
-  g_primaly_command_buffer.bindPipeline(vk::PipelineBindPoint::eGraphics, g_pipeline);
+  myCommandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, g_pipeline);
 
   //
 
-  g_primaly_command_buffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, g_pipeline_layout, 0, 1, &g_descriptor_set, 0, nullptr);
+  myCommandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, g_pipeline_layout, 0, 1, &g_descriptor_set, 0, nullptr);
 
   //
 
@@ -681,17 +679,17 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
     .setMinDepth((float)0.0f)
     .setMaxDepth((float)1.0f);
 
-  g_primaly_command_buffer.setViewport(0, 1, &viewport);
+  myCommandBuffer.setViewport(0, 1, &viewport);
 
   // Bind vertex buffer
 
   vk::DeviceSize vertex_offset = 0;
-  g_primaly_command_buffer.bindVertexBuffers(0, g_vertex_buffer, vertex_offset);
+  myCommandBuffer.bindVertexBuffers(0, g_vertex_buffer, vertex_offset);
 
   //
 
   vk::Rect2D scissor(vk::Offset2D(0, 0), vk::Extent2D(width, height));
-  g_primaly_command_buffer.setScissor(0, scissor);
+  myCommandBuffer.setScissor(0, scissor);
 
   //
 
@@ -700,15 +698,15 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
   uint32_t first_vertex = 0;
   uint32_t first_instance = 0;
 
-  g_primaly_command_buffer.draw(vertex_count, instance_count, first_vertex, first_instance);
+  myCommandBuffer.draw(vertex_count, instance_count, first_vertex, first_instance);
 
   // End render pass
 
-  g_primaly_command_buffer.endRenderPass();
+  myCommandBuffer.endRenderPass();
 
   // End command
 
-  g_primaly_command_buffer.end();
+  myCommandBuffer.end();
 
   //
 
@@ -719,7 +717,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
   //
 
   vk::PipelineStageFlags pipe_stage_flags = vk::PipelineStageFlagBits::eColorAttachmentOutput;
-  vk::CommandBuffer command_buffers[] = { g_primaly_command_buffer };
+  vk::CommandBuffer command_buffers[] = { myCommandBuffer.getVkCommandBuffer() };
   auto submit_info = vk::SubmitInfo()
     .setCommandBufferCount(1)
     .setPCommandBuffers(command_buffers)
@@ -839,10 +837,7 @@ void uninitVulkan() {
     g_depth_image = nullptr;
   }
 
-  if (g_primaly_command_buffer) {
-    myDevice.freeCommandBuffers(myCommandPool, g_primaly_command_buffer);
-    g_primaly_command_buffer = nullptr;
-  }
+  myDevice.freeCommandBuffers(myCommandPool, myCommandBuffer);
 
   myDevice.destroyCommandPool(myCommandPool);
 
