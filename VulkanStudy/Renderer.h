@@ -27,12 +27,12 @@ public:
     _instance_factory.destroyInstance(_instance_obj);
   }
 
-  void initPhysicalDevice() {
+  void createPhysicalDevice() {
     _physical_device_object = _physical_device_factory.createPhysicalDevice(_instance_obj, PRIMALY_PHYSICAL_DEVICE_INDEX);
-    _memory_properties = _physical_device_object->_memory_properties;
   }
 
-  void uninitPhysicalDevice() {
+  void destroyPhysicalDevice() {
+    _physical_device_factory.destroyPhysicalDevice(_physical_device_object);
   }
 
   void createSurface(HINSTANCE hinstance, HWND hwnd) {
@@ -52,17 +52,17 @@ public:
     _device.destroy();
   }
 
-  //PhysicalDevice _physical_device;
+  auto getMemoryProperties() {
+    return _physical_device_object->_memory_properties;
+  }
 
-  PhysicalDeviceFactory _physical_device_factory;
-  std::shared_ptr<PhysicalDeviceObject> _physical_device_object;
-
-
-  VkPhysicalDeviceMemoryProperties _memory_properties;
   Surface _surface;
   Device _device;
 protected:
 private:
   InstanceFactory _instance_factory;
   std::shared_ptr<InstanceObject> _instance_obj;
+
+  PhysicalDeviceFactory _physical_device_factory;
+  std::shared_ptr<PhysicalDeviceObject> _physical_device_object;
 };

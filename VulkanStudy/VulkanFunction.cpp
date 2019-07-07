@@ -91,7 +91,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
   // init
   g_renderer.createInstance(APP_NAME, APP_VERSION);
 
-  g_renderer.initPhysicalDevice();
+  g_renderer.createPhysicalDevice();
 
   // Create Surface
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
@@ -161,7 +161,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
 
     auto memory_type_bits = depth_image_memory_requirements.memoryTypeBits;
     auto memory_property_bits = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
-    auto memory_types = g_renderer._memory_properties.memoryTypes;
+    auto memory_types = g_renderer.getMemoryProperties().memoryTypes;
     auto memory_type_index = 0;
     for (uint32_t i = 0; i < VK_MAX_MEMORY_TYPES; i++) {
       if (memory_type_bits & 1) {
@@ -219,7 +219,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
 
     auto memory_type_bits = g_uniform_buffer_memory_requirements.memoryTypeBits;
     auto memory_property_bits = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-    auto memory_types = g_renderer._memory_properties.memoryTypes;
+    auto memory_types = g_renderer.getMemoryProperties().memoryTypes;
     auto memory_type_index = 0;
     for (uint32_t i = 0; i < VK_MAX_MEMORY_TYPES; i++) {
       if (memory_type_bits & 1) {
@@ -459,7 +459,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
 
   auto memory_type_bits = vertex_buffer_memory_requirements.memoryTypeBits;
   auto memory_property_bits = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-  auto memory_types = g_renderer._memory_properties.memoryTypes;
+  auto memory_types = g_renderer.getMemoryProperties().memoryTypes;
   auto memory_type_index = 0;
   for (uint32_t i = 0; i < VK_MAX_MEMORY_TYPES; i++) {
     if (memory_type_bits & 1) {
@@ -886,7 +886,7 @@ void uninitVulkan() {
 
   g_renderer.destroySurface();
 
-  g_renderer.uninitPhysicalDevice();
+  g_renderer.destroyPhysicalDevice();
 
   g_renderer.destroyInstance();
 }
