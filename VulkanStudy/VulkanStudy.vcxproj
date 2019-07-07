@@ -85,7 +85,9 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="PhysicalDevice.cpp" />
     <ClCompile Include="Queue.cpp" />
+    <ClCompile Include="Renderer.cpp" />
     <ClCompile Include="Surface.cpp" />
+    <ClCompile Include="Swapchain.cpp" />
     <ClCompile Include="VulkanFunction.cpp" />
     <ClCompile Include="WindowManager.cpp" />
   </ItemGroup>
@@ -96,7 +98,9 @@
     <ClInclude Include="Instance.h" />
     <ClInclude Include="PhysicalDevice.h" />
     <ClInclude Include="Queue.h" />
+    <ClInclude Include="Renderer.h" />
     <ClInclude Include="Surface.h" />
+    <ClInclude Include="Swapchain.h" />
     <ClInclude Include="VulkanFunction.h" />
     <ClInclude Include="WindowManager.h" />
   </ItemGroup>

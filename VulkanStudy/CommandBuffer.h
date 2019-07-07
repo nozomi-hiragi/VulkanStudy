@@ -62,6 +62,10 @@ public:
     _command_buffer.draw(vertex_count, instance_count, first_vertex, first_instance);
   }
 
+  vk::CommandBuffer aaa() {
+    return _command_buffer;
+  }
+
 protected:
 private:
   vk::CommandBuffer _command_buffer;

@@ -45,6 +45,12 @@
     <ClCompile Include="CommandBuffer.cpp">
       <Filter>source</Filter>
     </ClCompile>
+    <ClCompile Include="Renderer.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
+    <ClCompile Include="Swapchain.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="WindowManager.h">
@@ -72,6 +78,12 @@
       <Filter>header</Filter>
     </ClInclude>
     <ClInclude Include="CommandBuffer.h">
+      <Filter>header</Filter>
+    </ClInclude>
+    <ClInclude Include="Renderer.h">
+      <Filter>header</Filter>
+    </ClInclude>
+    <ClInclude Include="Swapchain.h">
       <Filter>header</Filter>
     </ClInclude>
   </ItemGroup>

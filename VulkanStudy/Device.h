@@ -5,13 +5,16 @@
 #include "Queue.h"
 #include "CommandPool.h"
 #include "CommandBuffer.h"
+#include "Swapchain.h"
 
 class Device {
 public:
   Device(): _device(nullptr) {
   }
 
-  Device(const vk::Device device) : _device(device) {
+  Device(const vk::Device device, const uint32_t present_queue_family_index) :
+    _device(device),
+    _present_queue_family_index(present_queue_family_index) {
   }
 
   ~Device() {
@@ -25,14 +28,15 @@ public:
   }
 
   // for queue
-  Queue getQueue(const uint32_t queu_family_index, const uint32_t queue_index) {
-    return Queue(_device.getQueue(queu_family_index, queue_index));
+  Queue getPresentQueue(const uint32_t queue_index) {
+    return Queue(_device.getQueue(_present_queue_family_index, queue_index));
   }
 
   // for command buffer
-  CommandPool createCommandPool(const uint32_t queue_family_index) {
+  CommandPool createPresentQueueCommandPool() {
     return CommandPool(_device.createCommandPool(vk::CommandPoolCreateInfo()
-      .setQueueFamilyIndex(queue_family_index)));
+      .setQueueFamilyIndex(_present_queue_family_index)
+      .setFlags(vk::CommandPoolCreateFlagBits::eResetCommandBuffer)));
   }
 
   void destroyCommandPool(CommandPool& command_pool) {
@@ -67,6 +71,10 @@ public:
 
   vk::Result waitForFences(const uint32_t count, const vk::Fence* fences, const bool wait_all, const uint64_t timeout) {
     return _device.waitForFences(count, fences, wait_all ? VK_TRUE : VK_FALSE, timeout);
+  }
+
+  void resetFence(const vk::Fence fence) {
+    _device.resetFences(fence);
   }
 
   // for semaphoer
@@ -207,23 +215,68 @@ public:
   }
 
   // for swapchain
-  vk::SwapchainKHR createSwapchain(const vk::SwapchainCreateInfoKHR& swapchain_info) {
-    return _device.createSwapchainKHR(swapchain_info);
+  Swapchain createSwapchain(Surface surface, const uint32_t width, const uint32_t height) {
+    auto surface_capabilities = surface.getSurfaceCapabilities();
+
+    vk::SurfaceTransformFlagBitsKHR pre_transform;
+    if (surface_capabilities.supportedTransforms & vk::SurfaceTransformFlagBitsKHR::eIdentity) {
+      pre_transform = vk::SurfaceTransformFlagBitsKHR::eIdentity;
+    }
+    else {
+      pre_transform = surface_capabilities.currentTransform;
+    }
+
+    vk::CompositeAlphaFlagBitsKHR composite_alpha = vk::CompositeAlphaFlagBitsKHR::eOpaque;
+    vk::CompositeAlphaFlagBitsKHR composite_alpha_flags[] = {
+        vk::CompositeAlphaFlagBitsKHR::eOpaque,
+        vk::CompositeAlphaFlagBitsKHR::ePreMultiplied,
+        vk::CompositeAlphaFlagBitsKHR::ePostMultiplied,
+        vk::CompositeAlphaFlagBitsKHR::eInherit,
+    };
+    for (auto it : composite_alpha_flags) {
+      if (surface_capabilities.supportedCompositeAlpha & it) {
+        composite_alpha = it;
+        break;
+      }
+    }
+
+    auto swapchain_info = vk::SwapchainCreateInfoKHR()
+      .setSurface(surface.getVkSurface())
+      .setMinImageCount(surface_capabilities.minImageCount)
+      .setImageFormat(surface.getFormat())
+      .setImageColorSpace(surface.getColorSpace())
+      .setImageExtent({ width, height })
+      .setImageArrayLayers(1)
+      .setImageUsage(vk::ImageUsageFlagBits::eColorAttachment)
+      .setImageSharingMode(vk::SharingMode::eExclusive)
+      .setQueueFamilyIndexCount(0) // Ç†ÇÍÅH
+      .setPQueueFamilyIndices(nullptr)
+      .setPreTransform(pre_transform)
+      .setCompositeAlpha(composite_alpha)
+      .setPresentMode(vk::PresentModeKHR::eFifo)
+      .setClipped(true)
+      .setOldSwapchain(nullptr);
+
+    return Swapchain(_device.createSwapchainKHR(swapchain_info));
   }
 
-  void destroySwapchain(const vk::SwapchainKHR swapchain) {
-    _device.destroySwapchainKHR(swapchain);
+  void destroySwapchain(Swapchain swapchain) {
+    auto vk_swapchain = swapchain.getVkSwapchain();
+    if (!vk_swapchain) { return; }
+    _device.destroySwapchainKHR(vk_swapchain);
+    swapchain.setVkSwapchain(nullptr);
   }
 
-  std::vector<vk::Image> getSwapchainImages(const vk::SwapchainKHR swapchain) {
-    return _device.getSwapchainImagesKHR(swapchain);
+  std::vector<vk::Image> getSwapchainImages(Swapchain swapchain) {
+    return _device.getSwapchainImagesKHR(swapchain.getVkSwapchain());
   }
 
-  void acquireNextImage(const vk::SwapchainKHR swapchain, const uint64_t timeout, const vk::Semaphore semaphore, const vk::Fence fence, uint32_t* image_index) {
-    _device.acquireNextImageKHR(swapchain, timeout, semaphore, fence, image_index);
+  void acquireNextImage(Swapchain swapchain, const uint64_t timeout, const vk::Semaphore semaphore, const vk::Fence fence, uint32_t* image_index) {
+    _device.acquireNextImageKHR(swapchain.getVkSwapchain(), timeout, semaphore, fence, image_index);
   }
 
 protected:
 private:
   vk::Device _device;
+  uint32_t _present_queue_family_index;
 };
