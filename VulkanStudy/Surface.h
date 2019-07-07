@@ -3,8 +3,9 @@
 #include <Windows.h>
 #define VK_USE_PLATFORM_WIN32_KHR
 #include <vulkan/vulkan.h>
+#include <memory>
 
-class PhysicalDevice;
+class PhysicalDeviceObject;
 
 class SurfaceObject {
 public:
@@ -21,16 +22,7 @@ private:
 
 class SurfaceFactory {
 public:
-  static const auto _createVkSurface(VkInstance instance, const HINSTANCE hinstance, const HWND hwnd) {
-    VkWin32SurfaceCreateInfoKHR surface_info = {};
-    surface_info.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
-    surface_info.hinstance = hinstance;
-    surface_info.hwnd = hwnd;
-
-    VkSurfaceKHR surface;
-    auto result = vkCreateWin32SurfaceKHR(instance, &surface_info, nullptr, &surface); // result
-    return surface;
-  }
+  static const VkSurfaceKHR _createVkSurface(VkInstance instance, const HINSTANCE hinstance, const HWND hwnd);
 
   static const void _destroyVkSurface(VkInstance instance, VkSurfaceKHR surface) {
     vkDestroySurfaceKHR(instance, surface, nullptr);
@@ -80,7 +72,7 @@ public:
     return _surface;
   }
 
-  void fixSurfaceProperties(PhysicalDevice* physical_device) {
+  void fixSurfaceProperties(std::shared_ptr<PhysicalDeviceObject> physical_device) {
     fixSurfaceFormat(physical_device);
     fixSurfaceCapabilities(physical_device);
   }
@@ -100,8 +92,8 @@ public:
 protected:
 
 private:
-  void fixSurfaceFormat(PhysicalDevice* physical_device);
-  void fixSurfaceCapabilities(PhysicalDevice* physical_device);
+  void fixSurfaceFormat(std::shared_ptr<PhysicalDeviceObject> physical_device);
+  void fixSurfaceCapabilities(std::shared_ptr<PhysicalDeviceObject>  physical_device);
 
   VkSurfaceKHR _surface;
   VkSurfaceFormatKHR _surface_format;

@@ -28,8 +28,8 @@ public:
   }
 
   void initPhysicalDevice() {
-    _physical_device = PhysicalDevice(_instance_obj->_devices[PRIMALY_PHYSICAL_DEVICE_INDEX]);
-    _memory_properties = _physical_device.getMemoryProperties();
+    _physical_device_object = _physical_device_factory.createPhysicalDevice(_instance_obj, PRIMALY_PHYSICAL_DEVICE_INDEX);
+    _memory_properties = _physical_device_object->_memory_properties;
   }
 
   void uninitPhysicalDevice() {
@@ -37,7 +37,7 @@ public:
 
   void createSurface(HINSTANCE hinstance, HWND hwnd) {
     _surface = Surface::createSurface(_instance_obj->_vk_instance, hinstance, hwnd);
-    _surface.fixSurfaceProperties(&_physical_device);
+    _surface.fixSurfaceProperties(_physical_device_object);
   }
 
   void destroySurface() {
@@ -45,14 +45,19 @@ public:
   }
 
   void createDevice() {
-    _device = _physical_device.createDevice(_surface);
+    _device = Device::createDevice(_physical_device_object, _surface);
   }
 
   void destroyDevice() {
     _device.destroy();
   }
 
-  PhysicalDevice _physical_device;
+  //PhysicalDevice _physical_device;
+
+  PhysicalDeviceFactory _physical_device_factory;
+  std::shared_ptr<PhysicalDeviceObject> _physical_device_object;
+
+
   VkPhysicalDeviceMemoryProperties _memory_properties;
   Surface _surface;
   Device _device;

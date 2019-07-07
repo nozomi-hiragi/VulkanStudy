@@ -6,9 +6,14 @@
 #include "CommandPool.h"
 #include "CommandBuffer.h"
 #include "Swapchain.h"
+#include "Surface.h"
+
+class PhysicalDeviceObject;
 
 class Device {
 public:
+  static Device createDevice(std::shared_ptr<PhysicalDeviceObject> physical_device, Surface& surface);
+
   Device(): _device(nullptr) {
   }
 
