@@ -1,25 +1,25 @@
 #pragma once
 
-#include <Windows.h>
-#define VK_USE_PLATFORM_WIN32_KHR
 #include <vulkan/vulkan.h>
 #include <set>
 
 #include "PhysicalDevice.h"
-#include "Surface.h"
 
 constexpr auto ENGINE_NAME = "Speell";
 constexpr auto ENGINE_VERSION = 0;
 
 class InstanceObject {
 public:
-  InstanceObject(const VkInstance instance) : _instance(instance) {
+  InstanceObject(const VkInstance instance, const std::vector<PhysicalDevice> devices) :
+    _vk_instance(instance),
+    _devices(devices) {
   }
 
   ~InstanceObject() {
   }
 
-  const VkInstance _instance;
+  const VkInstance _vk_instance;
+  const std::vector<PhysicalDevice> _devices;
 protected:
 private:
 };
@@ -94,7 +94,6 @@ class InstanceFactory {
     vkDestroyInstance(instance, nullptr);
   }
 
-public:
   static auto _getPhysicalDevices(VkInstance instance) {
     uint32_t physical_device_count = 0;
     auto result = vkEnumeratePhysicalDevices(instance, &physical_device_count, nullptr); // result
@@ -109,6 +108,7 @@ public:
     return std::move(_physical_devices);
   }
 
+public:
   InstanceFactory() {
   }
 
@@ -116,76 +116,26 @@ public:
   }
 
   auto createInstance(const char* app_name, const uint32_t app_version) {
-    auto object = std::make_shared<InstanceObject>(_createVkInstance(app_name, app_version));
+    auto vk_instance = _createVkInstance(app_name, app_version);
+    auto devices = _getPhysicalDevices(vk_instance);
+    auto object = std::make_shared<InstanceObject>(vk_instance, std::move(devices));
     _container.insert(object);
     return object;
   }
 
-  void destroyInstance(std::shared_ptr<InstanceObject> object) {
+  void destroyInstance(std::shared_ptr<InstanceObject>& object) {
+    if (!object) { return; }
     auto before_size = _container.size();
     _container.erase(object);
     auto after_size = _container.size();
  
     if (before_size != after_size) {
-      _destroyVkInstance(object->_instance);
+      _destroyVkInstance(object->_vk_instance);
+      object.reset();
     }
   }
 
 protected:
 private:
   std::set<std::shared_ptr<InstanceObject>> _container;
-};
-
-class Instance {
-public:
-  static const auto _createSurface(VkInstance instance, const HINSTANCE hinstance, const HWND hwnd) {
-    VkWin32SurfaceCreateInfoKHR surface_info = {};
-    surface_info.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
-    surface_info.hinstance = hinstance;
-    surface_info.hwnd = hwnd;
-
-    VkSurfaceKHR surface;
-    auto result = vkCreateWin32SurfaceKHR(instance, &surface_info, nullptr, &surface); // result
-    return surface;
-  }
-
-  Instance(): _instance(nullptr) {
-  }
-
-  ~Instance() {
-  }
-
-  void createInstance(const char* app_name, const uint32_t app_version) {
-    _instance = _factory.createInstance(app_name, app_version);
-    _physical_devices = InstanceFactory::_getPhysicalDevices(_instance->_instance);
-  }
-
-  void destroyInstance() {
-    if (!_instance) { return; }
-    _factory.destroyInstance(_instance);
-    _instance = nullptr;
-  }
-
-  Surface createSurface(const HINSTANCE hinstance, const HWND hwnd) {
-    return Surface(_createSurface(_instance->_instance, hinstance, hwnd), &(_physical_devices[0]));
-  }
-
-  void destroySurface(Surface& surface) {
-    auto vk_surface = surface.getVkSurface();
-    if (!vk_surface) { return; }
-    vkDestroySurfaceKHR(_instance->_instance, vk_surface, nullptr);
-    surface.setVkSurface(nullptr);
-  }
-
-  PhysicalDevice getPhysicalDevice(const size_t index) {
-    return _physical_devices[index];
-  }
-
-protected:
-
-private:
-  InstanceFactory _factory;
-
-  std::shared_ptr<InstanceObject> _instance;
-  std::vector<PhysicalDevice> _physical_devices;
 };

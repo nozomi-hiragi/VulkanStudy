@@ -1,24 +1,75 @@
 #pragma once
 
+#include <Windows.h>
+#define VK_USE_PLATFORM_WIN32_KHR
 #include <vulkan/vulkan.h>
 
 class PhysicalDevice;
 
-class Surface {
+class SurfaceObject {
 public:
-  Surface() :
-    _surface(nullptr),
-    _linked_physical_device(nullptr) {
+  SurfaceObject(const VkSurfaceKHR surface) : _surface(surface) {
   }
 
-  Surface(const VkSurfaceKHR surface, PhysicalDevice* physical_device) :
-    _surface(surface),
-    _linked_physical_device(physical_device) {
-    fixSurfaceFormat();
-    fixSurfaceCapabilities();
+  ~SurfaceObject() {
+  }
+
+  const VkSurfaceKHR _surface;
+protected:
+private:
+};
+
+class SurfaceFactory {
+public:
+  static const auto _createVkSurface(VkInstance instance, const HINSTANCE hinstance, const HWND hwnd) {
+    VkWin32SurfaceCreateInfoKHR surface_info = {};
+    surface_info.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
+    surface_info.hinstance = hinstance;
+    surface_info.hwnd = hwnd;
+
+    VkSurfaceKHR surface;
+    auto result = vkCreateWin32SurfaceKHR(instance, &surface_info, nullptr, &surface); // result
+    return surface;
+  }
+
+  static const void _destroyVkSurface(VkInstance instance, VkSurfaceKHR surface) {
+    vkDestroySurfaceKHR(instance, surface, nullptr);
+  }
+
+  SurfaceFactory() {
+  }
+
+  ~SurfaceFactory() {
+  }
+
+protected:
+private:
+};
+
+class Surface {
+public:
+
+
+  Surface() :
+    _surface(nullptr) {
+  }
+
+  Surface(VkInstance instance, const HINSTANCE hinstance, const HWND hwnd) :
+    _surface(SurfaceFactory::_createVkSurface(instance, hinstance, hwnd)) {
   }
 
   ~Surface() {
+  }
+
+  static auto createSurface(VkInstance instance, const HINSTANCE hinstance, const HWND hwnd) {
+    return Surface(instance, hinstance, hwnd);
+  }
+
+  static void destroySurface(VkInstance instance, Surface& surface) {
+    auto vk_surface = surface.getVkSurface();
+    if (!vk_surface) { return; }
+    SurfaceFactory::_destroyVkSurface(instance, vk_surface);
+    surface.setVkSurface(nullptr);
   }
 
   void setVkSurface(const VkSurfaceKHR surface) {
@@ -29,8 +80,9 @@ public:
     return _surface;
   }
 
-  void linkPhysilacDevice(PhysicalDevice* physical_device) {
-    _linked_physical_device = physical_device;
+  void fixSurfaceProperties(PhysicalDevice* physical_device) {
+    fixSurfaceFormat(physical_device);
+    fixSurfaceCapabilities(physical_device);
   }
 
   auto getFormat() {
@@ -48,11 +100,10 @@ public:
 protected:
 
 private:
-  void fixSurfaceFormat();
-  void fixSurfaceCapabilities();
+  void fixSurfaceFormat(PhysicalDevice* physical_device);
+  void fixSurfaceCapabilities(PhysicalDevice* physical_device);
 
   VkSurfaceKHR _surface;
-  PhysicalDevice* _linked_physical_device;
   VkSurfaceFormatKHR _surface_format;
   VkSurfaceCapabilitiesKHR _surface_capabilities;
 };

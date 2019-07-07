@@ -20,15 +20,15 @@ public:
   }
 
   void createInstance(const char* const app_name, const uint32_t app_version) {
-    _instance.createInstance(app_name, app_version);
+    _instance_obj = _instance_factory.createInstance(app_name, app_version);
   }
 
   void destroyInstance() {
-    _instance.destroyInstance();
+    _instance_factory.destroyInstance(_instance_obj);
   }
 
   void initPhysicalDevice() {
-    _physical_device = _instance.getPhysicalDevice(PRIMALY_PHYSICAL_DEVICE_INDEX);
+    _physical_device = _instance_obj->_devices[PRIMALY_PHYSICAL_DEVICE_INDEX];
     _memory_properties = _physical_device.getMemoryProperties();
   }
 
@@ -36,11 +36,12 @@ public:
   }
 
   void createSurface(HINSTANCE hinstance, HWND hwnd) {
-    _surface = _instance.createSurface(hinstance, hwnd);
+    _surface = Surface::createSurface(_instance_obj->_vk_instance, hinstance, hwnd);
+    _surface.fixSurfaceProperties(&_physical_device);
   }
 
   void destroySurface() {
-    _instance.destroySurface(_surface);
+    Surface::destroySurface(_instance_obj->_vk_instance, _surface);
   }
 
   void createDevice() {
@@ -57,5 +58,6 @@ public:
   Device _device;
 protected:
 private:
-  Instance _instance;
+  InstanceFactory _instance_factory;
+  std::shared_ptr<InstanceObject> _instance_obj;
 };
