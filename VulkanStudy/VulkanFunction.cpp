@@ -124,11 +124,12 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
     g_swapchain_image_views.reserve(g_swapchain_images.size());
 
     for (auto image : g_swapchain_images) {
-      auto color_image_view = vk::ImageViewCreateInfo()
-        .setViewType(vk::ImageViewType::e2D)
-        .setFormat(g_renderer._surface.getFormat())
-        .setSubresourceRange(vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1))
-        .setImage(image);
+      VkImageViewCreateInfo color_image_view = {};
+      color_image_view.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+      color_image_view.viewType = VK_IMAGE_VIEW_TYPE_2D;
+      color_image_view.format = g_renderer._surface.getFormat();
+      color_image_view.subresourceRange = vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1);
+      color_image_view.image = image;
 
       g_swapchain_image_views.push_back(g_renderer._device.createImageView(color_image_view));
     }
@@ -326,16 +327,18 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
 
   // Create render pass
 
-  vk::AttachmentDescription attachment_description[] = {
-    vk::AttachmentDescription()
-    .setFormat(g_renderer._surface.getFormat())
-    .setSamples(vk::SampleCountFlagBits::e1)
-    .setLoadOp(vk::AttachmentLoadOp::eClear)
-    .setStoreOp(vk::AttachmentStoreOp::eStore)
-    .setStencilLoadOp(vk::AttachmentLoadOp::eDontCare)
-    .setStencilStoreOp(vk::AttachmentStoreOp::eDontCare)
-    .setInitialLayout(vk::ImageLayout::eUndefined)
-    .setFinalLayout(vk::ImageLayout::ePresentSrcKHR),
+  VkAttachmentDescription attachment_description[] = {
+    {
+      0,
+      g_renderer._surface.getFormat(),
+      VK_SAMPLE_COUNT_1_BIT,
+      VK_ATTACHMENT_LOAD_OP_CLEAR,  
+      VK_ATTACHMENT_STORE_OP_STORE,
+      VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+      VK_ATTACHMENT_STORE_OP_DONT_CARE,
+      VK_IMAGE_LAYOUT_UNDEFINED,
+      VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
+    },
 
     vk::AttachmentDescription()
     .setFormat(g_depth_format)
@@ -348,32 +351,33 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
     .setFinalLayout(vk::ImageLayout::eDepthStencilAttachmentOptimal)
   };
 
-  auto color_reference = vk::AttachmentReference()
-    .setAttachment(0)
-    .setLayout(vk::ImageLayout::eColorAttachmentOptimal);
+  VkAttachmentReference color_reference = {};
+  color_reference.attachment = 0;
+  color_reference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
-  auto depth_reference = vk::AttachmentReference()
-    .setAttachment(1)
-    .setLayout(vk::ImageLayout::eDepthStencilAttachmentOptimal);
+  VkAttachmentReference depth_reference = {};
+  depth_reference.attachment = 1;
+  depth_reference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
-  auto subpass_description = vk::SubpassDescription()
-    .setPipelineBindPoint(vk::PipelineBindPoint::eGraphics)
-    .setInputAttachmentCount(0)
-    .setPInputAttachments(nullptr)
-    .setColorAttachmentCount(1)
-    .setPColorAttachments(&color_reference)
-    .setPResolveAttachments(nullptr)
-    .setPDepthStencilAttachment(&depth_reference)
-    .setPreserveAttachmentCount(0)
-    .setPPreserveAttachments(nullptr);
+  VkSubpassDescription subpass_description = {};
+  subpass_description.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+  subpass_description.inputAttachmentCount = 0;
+  subpass_description.pInputAttachments = nullptr;
+  subpass_description.colorAttachmentCount = 1;
+  subpass_description.pColorAttachments = &color_reference;
+  subpass_description.pResolveAttachments = nullptr;
+  subpass_description.pDepthStencilAttachment = &depth_reference;
+  subpass_description.preserveAttachmentCount = 0;
+  subpass_description.pPreserveAttachments = nullptr;
 
-  auto render_pass_info = vk::RenderPassCreateInfo()
-    .setAttachmentCount(2)
-    .setPAttachments(attachment_description)
-    .setSubpassCount(1)
-    .setPSubpasses(&subpass_description)
-    .setDependencyCount(0)
-    .setPDependencies(nullptr);
+  VkRenderPassCreateInfo render_pass_info = {};
+  render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+  render_pass_info.attachmentCount = 2;
+  render_pass_info.pAttachments = attachment_description;
+  render_pass_info.subpassCount = 1;
+  render_pass_info.pSubpasses = &subpass_description;
+  render_pass_info.dependencyCount = 0;
+  render_pass_info.pDependencies = nullptr;
 
   g_render_pass = g_renderer._device.createRenderPass(render_pass_info);
 

@@ -218,20 +218,20 @@ public:
   Swapchain createSwapchain(Surface surface, const uint32_t width, const uint32_t height) {
     auto surface_capabilities = surface.getSurfaceCapabilities();
 
-    vk::SurfaceTransformFlagBitsKHR pre_transform;
-    if (surface_capabilities.supportedTransforms & vk::SurfaceTransformFlagBitsKHR::eIdentity) {
-      pre_transform = vk::SurfaceTransformFlagBitsKHR::eIdentity;
+    VkSurfaceTransformFlagBitsKHR pre_transform;
+    if (surface_capabilities.supportedTransforms & VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR) {
+      pre_transform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
     }
     else {
       pre_transform = surface_capabilities.currentTransform;
     }
 
-    vk::CompositeAlphaFlagBitsKHR composite_alpha = vk::CompositeAlphaFlagBitsKHR::eOpaque;
-    vk::CompositeAlphaFlagBitsKHR composite_alpha_flags[] = {
-        vk::CompositeAlphaFlagBitsKHR::eOpaque,
-        vk::CompositeAlphaFlagBitsKHR::ePreMultiplied,
-        vk::CompositeAlphaFlagBitsKHR::ePostMultiplied,
-        vk::CompositeAlphaFlagBitsKHR::eInherit,
+    VkCompositeAlphaFlagBitsKHR composite_alpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+    VkCompositeAlphaFlagBitsKHR composite_alpha_flags[] = {
+        VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
+        VK_COMPOSITE_ALPHA_PRE_MULTIPLIED_BIT_KHR,
+        VK_COMPOSITE_ALPHA_POST_MULTIPLIED_BIT_KHR,
+        VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR,
     };
     for (auto it : composite_alpha_flags) {
       if (surface_capabilities.supportedCompositeAlpha & it) {
@@ -240,22 +240,23 @@ public:
       }
     }
 
-    auto swapchain_info = vk::SwapchainCreateInfoKHR()
-      .setSurface(surface.getVkSurface())
-      .setMinImageCount(surface_capabilities.minImageCount)
-      .setImageFormat(surface.getFormat())
-      .setImageColorSpace(surface.getColorSpace())
-      .setImageExtent({ width, height })
-      .setImageArrayLayers(1)
-      .setImageUsage(vk::ImageUsageFlagBits::eColorAttachment)
-      .setImageSharingMode(vk::SharingMode::eExclusive)
-      .setQueueFamilyIndexCount(0) // Ç†ÇÍÅH
-      .setPQueueFamilyIndices(nullptr)
-      .setPreTransform(pre_transform)
-      .setCompositeAlpha(composite_alpha)
-      .setPresentMode(vk::PresentModeKHR::eFifo)
-      .setClipped(true)
-      .setOldSwapchain(nullptr);
+    VkSwapchainCreateInfoKHR swapchain_info = {};
+    swapchain_info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+    swapchain_info.surface = surface.getVkSurface();
+    swapchain_info.minImageCount = surface_capabilities.minImageCount;
+    swapchain_info.imageFormat = surface.getFormat();
+    swapchain_info.imageColorSpace = surface.getColorSpace();
+    swapchain_info.imageExtent = { width, height };
+    swapchain_info.imageArrayLayers = 1;
+    swapchain_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+    swapchain_info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    swapchain_info.queueFamilyIndexCount = 0; // Ç†ÇÍÅH
+    swapchain_info.pQueueFamilyIndices = nullptr;
+    swapchain_info.preTransform = pre_transform;
+    swapchain_info.compositeAlpha = composite_alpha;
+    swapchain_info.presentMode = VK_PRESENT_MODE_FIFO_KHR;
+    swapchain_info.clipped = true;
+    swapchain_info.oldSwapchain = nullptr;
 
     return Swapchain(_device.createSwapchainKHR(swapchain_info));
   }

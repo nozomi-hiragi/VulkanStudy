@@ -11,7 +11,7 @@ public:
     _linked_physical_device(nullptr) {
   }
 
-  Surface(const vk::SurfaceKHR surface, PhysicalDevice* physical_device) :
+  Surface(const VkSurfaceKHR surface, PhysicalDevice* physical_device) :
     _surface(surface),
     _linked_physical_device(physical_device) {
     fixSurfaceFormat();
@@ -21,11 +21,11 @@ public:
   ~Surface() {
   }
 
-  void setVkSurface(const vk::SurfaceKHR surface) {
+  void setVkSurface(const VkSurfaceKHR surface) {
     _surface = surface;
   }
 
-  vk::SurfaceKHR getVkSurface() {
+  VkSurfaceKHR getVkSurface() {
     return _surface;
   }
 
@@ -51,8 +51,8 @@ private:
   void fixSurfaceFormat();
   void fixSurfaceCapabilities();
 
-  vk::SurfaceKHR _surface;
+  VkSurfaceKHR _surface;
   PhysicalDevice* _linked_physical_device;
-  vk::SurfaceFormatKHR _surface_format;
-  vk::SurfaceCapabilitiesKHR _surface_capabilities;
+  VkSurfaceFormatKHR _surface_format;
+  VkSurfaceCapabilitiesKHR _surface_capabilities;
 };
