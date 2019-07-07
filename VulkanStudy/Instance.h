@@ -3,14 +3,12 @@
 #include <vulkan/vulkan.h>
 #include <set>
 
-#include "PhysicalDevice.h"
-
 constexpr auto ENGINE_NAME = "Speell";
 constexpr auto ENGINE_VERSION = 0;
 
 class InstanceObject {
 public:
-  InstanceObject(const VkInstance instance, const std::vector<PhysicalDevice> devices) :
+  InstanceObject(const VkInstance instance, const std::vector<VkPhysicalDevice> devices) :
     _vk_instance(instance),
     _devices(devices) {
   }
@@ -19,7 +17,7 @@ public:
   }
 
   const VkInstance _vk_instance;
-  const std::vector<PhysicalDevice> _devices;
+  const std::vector<VkPhysicalDevice> _devices;
 protected:
 private:
 };
@@ -100,12 +98,7 @@ class InstanceFactory {
     std::vector<VkPhysicalDevice> physical_devices(physical_device_count);
     result = vkEnumeratePhysicalDevices(instance, &physical_device_count, physical_devices.data()); // result
 
-    std::vector<PhysicalDevice> _physical_devices;
-    _physical_devices.reserve(physical_device_count);
-    for (uint32_t i = 0; i < physical_device_count; i++) {
-      _physical_devices.push_back(PhysicalDevice(physical_devices[i]));
-    }
-    return std::move(_physical_devices);
+    return std::move(physical_devices);
   }
 
 public:

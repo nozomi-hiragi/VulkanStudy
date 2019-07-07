@@ -28,7 +28,7 @@ public:
   }
 
   void initPhysicalDevice() {
-    _physical_device = _instance_obj->_devices[PRIMALY_PHYSICAL_DEVICE_INDEX];
+    _physical_device = PhysicalDevice(_instance_obj->_devices[PRIMALY_PHYSICAL_DEVICE_INDEX]);
     _memory_properties = _physical_device.getMemoryProperties();
   }
 
@@ -53,7 +53,7 @@ public:
   }
 
   PhysicalDevice _physical_device;
-  vk::PhysicalDeviceMemoryProperties _memory_properties;
+  VkPhysicalDeviceMemoryProperties _memory_properties;
   Surface _surface;
   Device _device;
 protected:

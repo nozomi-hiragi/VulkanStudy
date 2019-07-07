@@ -160,7 +160,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
     auto depth_image_memory_requirements = g_renderer._device.getImageMemoryRequirements(g_depth_image);
 
     auto memory_type_bits = depth_image_memory_requirements.memoryTypeBits;
-    auto memory_property_bits = vk::MemoryPropertyFlagBits::eDeviceLocal;
+    auto memory_property_bits = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
     auto memory_types = g_renderer._memory_properties.memoryTypes;
     auto memory_type_index = 0;
     for (uint32_t i = 0; i < VK_MAX_MEMORY_TYPES; i++) {
@@ -218,7 +218,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
     g_uniform_buffer_memory_requirements = g_renderer._device.getBufferMemoryRequirements(g_uniform_buffer);
 
     auto memory_type_bits = g_uniform_buffer_memory_requirements.memoryTypeBits;
-    auto memory_property_bits = vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent;
+    auto memory_property_bits = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
     auto memory_types = g_renderer._memory_properties.memoryTypes;
     auto memory_type_index = 0;
     for (uint32_t i = 0; i < VK_MAX_MEMORY_TYPES; i++) {
@@ -458,7 +458,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
   auto vertex_buffer_memory_requirements = g_renderer._device.getBufferMemoryRequirements(g_vertex_buffer);
 
   auto memory_type_bits = vertex_buffer_memory_requirements.memoryTypeBits;
-  auto memory_property_bits = vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent;
+  auto memory_property_bits = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
   auto memory_types = g_renderer._memory_properties.memoryTypes;
   auto memory_type_index = 0;
   for (uint32_t i = 0; i < VK_MAX_MEMORY_TYPES; i++) {
