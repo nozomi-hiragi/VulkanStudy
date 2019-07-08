@@ -11,8 +11,6 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include "Renderer.h"
-#include "PhysicalDevice.h"
-#include "Surface.h"
 #include "Device.h"
 #include "Queue.h"
 #include "CommandPool.h"

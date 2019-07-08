@@ -1,7 +1,5 @@
 
-#include "Surface.h"
-
-#include "PhysicalDevice.h"
+#include "SurfaceFactory.h"
 
 const VkSurfaceKHR SurfaceFactory::_createVkSurface(VkInstance instance, const HINSTANCE hinstance, const HWND hwnd) {
   VkWin32SurfaceCreateInfoKHR surface_info = {};

@@ -24,12 +24,6 @@
     <ClCompile Include="VulkanFunction.cpp">
       <Filter>source</Filter>
     </ClCompile>
-    <ClCompile Include="PhysicalDevice.cpp">
-      <Filter>source</Filter>
-    </ClCompile>
-    <ClCompile Include="Surface.cpp">
-      <Filter>source</Filter>
-    </ClCompile>
     <ClCompile Include="Device.cpp">
       <Filter>source</Filter>
     </ClCompile>
@@ -51,18 +45,18 @@
     <ClCompile Include="InstanceFactory.cpp">
       <Filter>source</Filter>
     </ClCompile>
+    <ClCompile Include="PhysicalDeviceFactory.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
+    <ClCompile Include="SurfaceFactory.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="WindowManager.h">
       <Filter>header</Filter>
     </ClInclude>
     <ClInclude Include="VulkanFunction.h">
-      <Filter>header</Filter>
-    </ClInclude>
-    <ClInclude Include="PhysicalDevice.h">
-      <Filter>header</Filter>
-    </ClInclude>
-    <ClInclude Include="Surface.h">
       <Filter>header</Filter>
     </ClInclude>
     <ClInclude Include="Device.h">
@@ -87,6 +81,18 @@
       <Filter>header</Filter>
     </ClInclude>
     <ClInclude Include="InstanceFactory.h">
+      <Filter>header</Filter>
+    </ClInclude>
+    <ClInclude Include="PhysicalDeviceObject.h">
+      <Filter>header</Filter>
+    </ClInclude>
+    <ClInclude Include="PhysicalDeviceFactory.h">
+      <Filter>header</Filter>
+    </ClInclude>
+    <ClInclude Include="SurfaceObject.h">
+      <Filter>header</Filter>
+    </ClInclude>
+    <ClInclude Include="SurfaceFactory.h">
       <Filter>header</Filter>
     </ClInclude>
   </ItemGroup>

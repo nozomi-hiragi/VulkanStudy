@@ -83,10 +83,10 @@
     <ClCompile Include="Device.cpp" />
     <ClCompile Include="InstanceFactory.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="PhysicalDevice.cpp" />
+    <ClCompile Include="PhysicalDeviceFactory.cpp" />
     <ClCompile Include="Queue.cpp" />
     <ClCompile Include="Renderer.cpp" />
-    <ClCompile Include="Surface.cpp" />
+    <ClCompile Include="SurfaceFactory.cpp" />
     <ClCompile Include="Swapchain.cpp" />
     <ClCompile Include="VulkanFunction.cpp" />
     <ClCompile Include="WindowManager.cpp" />
@@ -97,10 +97,12 @@
     <ClInclude Include="Device.h" />
     <ClInclude Include="InstanceFactory.h" />
     <ClInclude Include="InstanceObject.h" />
-    <ClInclude Include="PhysicalDevice.h" />
+    <ClInclude Include="PhysicalDeviceFactory.h" />
+    <ClInclude Include="PhysicalDeviceObject.h" />
     <ClInclude Include="Queue.h" />
     <ClInclude Include="Renderer.h" />
-    <ClInclude Include="Surface.h" />
+    <ClInclude Include="SurfaceFactory.h" />
+    <ClInclude Include="SurfaceObject.h" />
     <ClInclude Include="Swapchain.h" />
     <ClInclude Include="VulkanFunction.h" />
     <ClInclude Include="WindowManager.h" />

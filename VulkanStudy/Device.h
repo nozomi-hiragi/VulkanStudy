@@ -6,7 +6,6 @@
 #include "CommandPool.h"
 #include "CommandBuffer.h"
 #include "Swapchain.h"
-#include "Surface.h"
 
 class PhysicalDeviceObject;
 

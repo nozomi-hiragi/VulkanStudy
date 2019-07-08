@@ -5,8 +5,8 @@
 #include <vulkan/vulkan.hpp>
 
 #include "InstanceFactory.h"
-#include "PhysicalDevice.h"
-#include "Surface.h"
+#include "PhysicalDeviceFactory.h"
+#include "SurfaceFactory.h"
 #include "Device.h"
 
 constexpr auto PRIMALY_PHYSICAL_DEVICE_INDEX = 0;

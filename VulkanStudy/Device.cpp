@@ -1,7 +1,7 @@
 
 #include "Device.h"
 
-#include "PhysicalDevice.h"
+#include "PhysicalDeviceObject.h"
 
 Device Device::createDevice(std::shared_ptr<PhysicalDeviceObject> physical_device, VkSurfaceKHR surface) {
 

@@ -6,22 +6,9 @@
 #include <memory>
 #include <set>
 
+#include "SurfaceObject.h"
 #include "InstanceObject.h"
-
-class PhysicalDeviceObject;
-
-class SurfaceObject {
-public:
-  SurfaceObject(const VkSurfaceKHR surface): _vk_surface(surface) {
-  }
-
-  ~SurfaceObject() {
-  }
-
-  const VkSurfaceKHR _vk_surface;
-protected:
-private:
-};
+#include "PhysicalDeviceObject.h"
 
 class SurfaceFactory {
   static const VkSurfaceKHR _createVkSurface(VkInstance instance, const HINSTANCE hinstance, const HWND hwnd);
