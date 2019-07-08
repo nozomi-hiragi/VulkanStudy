@@ -8,7 +8,6 @@
 
 #include "SurfaceObject.h"
 #include "InstanceObject.h"
-#include "PhysicalDeviceObject.h"
 
 class SurfaceFactory {
   static const VkSurfaceKHR _createVkSurface(VkInstance instance, const HINSTANCE hinstance, const HWND hwnd);

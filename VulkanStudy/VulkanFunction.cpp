@@ -15,20 +15,24 @@
 #include "Queue.h"
 #include "CommandPool.h"
 #include "CommandBuffer.h"
-#include "Swapchain.h"
+#include "SwapchainFactory.h"
+#include "Imaget.h"
 
 const char* const APP_NAME = "VulkanStudy";
 const uint32_t APP_VERSION = 0;
+
+ImageFactory _image_factory;
+SwapchainFactory _swapchain_factory;
+
+std::shared_ptr<ImageObject> _depth_image;
 
 Renderer g_renderer;
 CommandPool myCommandPool;
 CommandBuffer myCommandBuffer;
 Queue myQueue;
-Swapchain mySwapchain;
+std::shared_ptr<SwapchainObject> mySwapchain;
 std::vector<vk::Image> g_swapchain_images;
 std::vector<vk::ImageView> g_swapchain_image_views;
-vk::Format g_depth_format;
-vk::Image g_depth_image = nullptr;
 vk::DeviceMemory g_depth_memory = nullptr;
 vk::ImageView g_depth_image_view = nullptr;
 vk::Buffer g_uniform_buffer = nullptr;
@@ -102,9 +106,9 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
 
   // Create Swapchain
   {
-    mySwapchain = g_renderer._device.createSwapchain(g_renderer._surface_object->_vk_surface, g_renderer.getPhysicalDeviceObject()->_physical_device, width, height);
+    mySwapchain = _swapchain_factory.createSwapchain(g_renderer._device.getVkDevice(), g_renderer._surface_object->_vk_surface, g_renderer.getPhysicalDeviceObject()->_physical_device, width, height);
 
-    g_swapchain_images = g_renderer._device.getSwapchainImages(mySwapchain);
+    g_swapchain_images = g_renderer._device.getSwapchainImages(mySwapchain->_swapchain);
   }
 
   // Create Swapchain image view
@@ -116,7 +120,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
       VkImageViewCreateInfo color_image_view = {};
       color_image_view.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
       color_image_view.viewType = VK_IMAGE_VIEW_TYPE_2D;
-      color_image_view.format = mySwapchain.getFormat();
+      color_image_view.format = mySwapchain->_format;
       color_image_view.subresourceRange = vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1);
       color_image_view.image = image;
 
@@ -126,27 +130,17 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
 
   // Create Depth image
   {
-    g_depth_format = vk::Format::eD16Unorm;
-    auto const depth_image_info = vk::ImageCreateInfo()
-      .setImageType(vk::ImageType::e2D)
-      .setFormat(g_depth_format)
-      .setExtent({ width, height, 1 })
-      .setMipLevels(1)
-      .setArrayLayers(1)
-      .setSamples(vk::SampleCountFlagBits::e1)
-      .setTiling(vk::ImageTiling::eOptimal)
-      .setUsage(vk::ImageUsageFlagBits::eDepthStencilAttachment)
-      .setSharingMode(vk::SharingMode::eExclusive)
-      .setQueueFamilyIndexCount(0)
-      .setPQueueFamilyIndices(nullptr)
-      .setInitialLayout(vk::ImageLayout::eUndefined);
-
-    g_depth_image = g_renderer._device.createImage(depth_image_info);
+    _depth_image = _image_factory.createImage(
+      g_renderer._device.getVkDevice(),
+      VK_FORMAT_D16_UNORM,
+      VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+      width,
+      height);
   }
 
   // Allocate depth memory
   {
-    auto depth_image_memory_requirements = g_renderer._device.getImageMemoryRequirements(g_depth_image);
+    auto depth_image_memory_requirements = g_renderer._device.getImageMemoryRequirements(_depth_image->_vk_image);
 
     auto memory_type_bits = depth_image_memory_requirements.memoryTypeBits;
     auto memory_property_bits = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
@@ -171,16 +165,18 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
 
   // Bind memory to depth image
   {
-    g_renderer._device.bindImageMemory(g_depth_image, g_depth_memory, 0);
+    g_renderer._device.bindImageMemory(_depth_image->_vk_image, g_depth_memory, 0);
   }
 
   // Create depth image view
   {
-    auto depth_image_view_info = vk::ImageViewCreateInfo()
-      .setImage(g_depth_image)
-      .setViewType(vk::ImageViewType::e2D)
-      .setFormat(g_depth_format)
-      .setSubresourceRange(vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eDepth, 0, 1, 0, 1));
+
+    VkImageViewCreateInfo depth_image_view_info = {};
+    depth_image_view_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+    depth_image_view_info.image = _depth_image->_vk_image;
+    depth_image_view_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+    depth_image_view_info.format = _depth_image->_vk_fotmat;
+    depth_image_view_info.subresourceRange = vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eDepth, 0, 1, 0, 1);
 
     g_depth_image_view = g_renderer._device.createImageView(depth_image_view_info);
   }
@@ -319,7 +315,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
   VkAttachmentDescription attachment_description[] = {
     {
       0,
-      mySwapchain.getFormat(),
+      mySwapchain->_format,
       VK_SAMPLE_COUNT_1_BIT,
       VK_ATTACHMENT_LOAD_OP_CLEAR,  
       VK_ATTACHMENT_STORE_OP_STORE,
@@ -329,15 +325,17 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
       VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
     },
 
-    vk::AttachmentDescription()
-    .setFormat(g_depth_format)
-    .setSamples(vk::SampleCountFlagBits::e1)
-    .setLoadOp(vk::AttachmentLoadOp::eClear)
-    .setStoreOp(vk::AttachmentStoreOp::eDontCare)
-    .setStencilLoadOp(vk::AttachmentLoadOp::eDontCare)
-    .setStencilStoreOp(vk::AttachmentStoreOp::eDontCare)
-    .setInitialLayout(vk::ImageLayout::eUndefined)
-    .setFinalLayout(vk::ImageLayout::eDepthStencilAttachmentOptimal)
+    {
+      0,
+      _depth_image->_vk_fotmat,
+      VK_SAMPLE_COUNT_1_BIT,
+      VK_ATTACHMENT_LOAD_OP_CLEAR,
+      VK_ATTACHMENT_STORE_OP_DONT_CARE,
+      VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+      VK_ATTACHMENT_STORE_OP_DONT_CARE,
+      VK_IMAGE_LAYOUT_UNDEFINED,
+      VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+    }
   };
 
   VkAttachmentReference color_reference = {};
@@ -504,7 +502,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
     it = g_renderer._device.createSemaphore(vk::SemaphoreCreateInfo());
   }
 
-  g_renderer._device.acquireNextImage(mySwapchain, UINT64_MAX, g_image_semaphores[0], nullptr, &g_current_buffer);
+  g_renderer._device.acquireNextImage(mySwapchain->_swapchain, UINT64_MAX, g_image_semaphores[0], nullptr, &g_current_buffer);
 
   // Create pipeline
 
@@ -678,10 +676,11 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
 
   //
 
-  auto present_info = vk::PresentInfoKHR()
-    .setSwapchainCount(1)
-    .setPSwapchains(&mySwapchain.getVkSwapchain())
-    .setPImageIndices(&g_current_buffer);
+  VkPresentInfoKHR present_info = {};
+  present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+  present_info.swapchainCount = 1;
+  present_info.pSwapchains = &mySwapchain->_swapchain;
+  present_info.pImageIndices = &g_current_buffer;
 
   myQueue.present(present_info);
 
@@ -690,7 +689,7 @@ float a = -10;
 void updateVulkan() {
 
 
-  g_renderer._device.acquireNextImage(mySwapchain, UINT64_MAX, g_image_semaphores[0], nullptr, &g_current_buffer);
+  g_renderer._device.acquireNextImage(mySwapchain->_swapchain, UINT64_MAX, g_image_semaphores[0], nullptr, &g_current_buffer);
 
   g_renderer._device.waitForFences(1, &g_fence, true, UINT64_MAX);
   g_renderer._device.resetFence(g_fence);
@@ -763,10 +762,11 @@ void updateVulkan() {
     .setPWaitDstStageMask(&pipe_stage_flags);
   myQueue.submit(submit_info, g_fence);
 
-  auto present_info = vk::PresentInfoKHR()
-    .setSwapchainCount(1)
-    .setPSwapchains(&mySwapchain.getVkSwapchain())
-    .setPImageIndices(&g_current_buffer);
+  VkPresentInfoKHR present_info = {};
+  present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+  present_info.swapchainCount = 1;
+  present_info.pSwapchains = &mySwapchain->_swapchain;
+  present_info.pImageIndices = &g_current_buffer;
 
   myQueue.present(present_info);
 }
@@ -853,10 +853,7 @@ void uninitVulkan() {
     g_depth_memory = nullptr;
   }
 
-  if (g_depth_image) {
-    g_renderer._device.destroyImage(g_depth_image);
-    g_depth_image = nullptr;
-  }
+  _image_factory.destroyImage(g_renderer._device.getVkDevice(), _depth_image);
 
   g_renderer._device.freeCommandBuffers(myCommandPool, myCommandBuffer);
 
@@ -869,7 +866,7 @@ void uninitVulkan() {
 
   g_swapchain_images.clear();
 
-  g_renderer._device.destroySwapchain(mySwapchain);
+  _swapchain_factory.destroySwapchain(g_renderer._device.getVkDevice(), mySwapchain);
 
   g_renderer.destroyDevice();
 

@@ -39,9 +39,6 @@
     <ClCompile Include="Renderer.cpp">
       <Filter>source</Filter>
     </ClCompile>
-    <ClCompile Include="Swapchain.cpp">
-      <Filter>source</Filter>
-    </ClCompile>
     <ClCompile Include="InstanceFactory.cpp">
       <Filter>source</Filter>
     </ClCompile>
@@ -49,6 +46,12 @@
       <Filter>source</Filter>
     </ClCompile>
     <ClCompile Include="SurfaceFactory.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
+    <ClCompile Include="Image.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
+    <ClCompile Include="SwapchainFactory.cpp">
       <Filter>source</Filter>
     </ClCompile>
   </ItemGroup>
@@ -74,9 +77,6 @@
     <ClInclude Include="Renderer.h">
       <Filter>header</Filter>
     </ClInclude>
-    <ClInclude Include="Swapchain.h">
-      <Filter>header</Filter>
-    </ClInclude>
     <ClInclude Include="InstanceObject.h">
       <Filter>header</Filter>
     </ClInclude>
@@ -93,6 +93,15 @@
       <Filter>header</Filter>
     </ClInclude>
     <ClInclude Include="SurfaceFactory.h">
+      <Filter>header</Filter>
+    </ClInclude>
+    <ClInclude Include="Imaget.h">
+      <Filter>header</Filter>
+    </ClInclude>
+    <ClInclude Include="SwapchainObject.h">
+      <Filter>header</Filter>
+    </ClInclude>
+    <ClInclude Include="SwapchainFactory.h">
       <Filter>header</Filter>
     </ClInclude>
   </ItemGroup>

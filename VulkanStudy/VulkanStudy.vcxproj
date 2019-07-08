@@ -81,13 +81,14 @@
     <ClCompile Include="CommandBuffer.cpp" />
     <ClCompile Include="CommandPool.cpp" />
     <ClCompile Include="Device.cpp" />
+    <ClCompile Include="Image.cpp" />
     <ClCompile Include="InstanceFactory.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="PhysicalDeviceFactory.cpp" />
     <ClCompile Include="Queue.cpp" />
     <ClCompile Include="Renderer.cpp" />
     <ClCompile Include="SurfaceFactory.cpp" />
-    <ClCompile Include="Swapchain.cpp" />
+    <ClCompile Include="SwapchainFactory.cpp" />
     <ClCompile Include="VulkanFunction.cpp" />
     <ClCompile Include="WindowManager.cpp" />
   </ItemGroup>
@@ -95,6 +96,7 @@
     <ClInclude Include="CommandBuffer.h" />
     <ClInclude Include="CommandPool.h" />
     <ClInclude Include="Device.h" />
+    <ClInclude Include="Imaget.h" />
     <ClInclude Include="InstanceFactory.h" />
     <ClInclude Include="InstanceObject.h" />
     <ClInclude Include="PhysicalDeviceFactory.h" />
@@ -103,7 +105,8 @@
     <ClInclude Include="Renderer.h" />
     <ClInclude Include="SurfaceFactory.h" />
     <ClInclude Include="SurfaceObject.h" />
-    <ClInclude Include="Swapchain.h" />
+    <ClInclude Include="SwapchainFactory.h" />
+    <ClInclude Include="SwapchainObject.h" />
     <ClInclude Include="VulkanFunction.h" />
     <ClInclude Include="WindowManager.h" />
   </ItemGroup>

@@ -5,7 +5,6 @@
 #include "Queue.h"
 #include "CommandPool.h"
 #include "CommandBuffer.h"
-#include "Swapchain.h"
 
 class PhysicalDeviceObject;
 
@@ -219,81 +218,18 @@ public:
   }
 
   // for swapchain
-  static VkSurfaceFormatKHR getFixSurfaceProperties(VkPhysicalDevice physical_device, VkSurfaceKHR surface) {
-    uint32_t count = 0;
-    auto result = vkGetPhysicalDeviceSurfaceFormatsKHR(physical_device, surface, &count, nullptr);
-    std::vector<VkSurfaceFormatKHR> surface_formats(count);
-    result = vkGetPhysicalDeviceSurfaceFormatsKHR(physical_device, surface, &count, surface_formats.data());
 
-    auto surface_format = surface_formats[0];
-    if (surface_formats.size() == 1 && surface_format.format == VK_FORMAT_UNDEFINED) {
-      surface_format.format = VK_FORMAT_B8G8R8A8_UNORM;
-    }
-    return surface_format;
+
+  std::vector<vk::Image> getSwapchainImages(VkSwapchainKHR swapchain) {
+    return _device.getSwapchainImagesKHR(swapchain);
   }
 
-  Swapchain createSwapchain(VkSurfaceKHR surface, VkPhysicalDevice physical_device, const uint32_t width, const uint32_t height) {
-    VkSurfaceCapabilitiesKHR surface_capabilities;
-    auto result = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physical_device, surface, &surface_capabilities);
-
-    auto surface_format = getFixSurfaceProperties(physical_device, surface);
-
-    VkSurfaceTransformFlagBitsKHR pre_transform;
-    if (surface_capabilities.supportedTransforms & VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR) {
-      pre_transform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
-    }
-    else {
-      pre_transform = surface_capabilities.currentTransform;
-    }
-
-    VkCompositeAlphaFlagBitsKHR composite_alpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-    VkCompositeAlphaFlagBitsKHR composite_alpha_flags[] = {
-        VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
-        VK_COMPOSITE_ALPHA_PRE_MULTIPLIED_BIT_KHR,
-        VK_COMPOSITE_ALPHA_POST_MULTIPLIED_BIT_KHR,
-        VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR,
-    };
-    for (auto it : composite_alpha_flags) {
-      if (surface_capabilities.supportedCompositeAlpha & it) {
-        composite_alpha = it;
-        break;
-      }
-    }
-
-    VkSwapchainCreateInfoKHR swapchain_info = {};
-    swapchain_info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-    swapchain_info.surface = surface;
-    swapchain_info.minImageCount = surface_capabilities.minImageCount;
-    swapchain_info.imageFormat = surface_format.format;
-    swapchain_info.imageColorSpace = surface_format.colorSpace;
-    swapchain_info.imageExtent = { width, height };
-    swapchain_info.imageArrayLayers = 1;
-    swapchain_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-    swapchain_info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-    swapchain_info.queueFamilyIndexCount = 0; // Ç†ÇÍÅH
-    swapchain_info.pQueueFamilyIndices = nullptr;
-    swapchain_info.preTransform = pre_transform;
-    swapchain_info.compositeAlpha = composite_alpha;
-    swapchain_info.presentMode = VK_PRESENT_MODE_FIFO_KHR;
-    swapchain_info.clipped = true;
-    swapchain_info.oldSwapchain = nullptr;
-
-    return Swapchain(_device.createSwapchainKHR(swapchain_info), surface_format);
+  void acquireNextImage(VkSwapchainKHR swapchain, const uint64_t timeout, const vk::Semaphore semaphore, const vk::Fence fence, uint32_t* image_index) {
+    _device.acquireNextImageKHR(swapchain, timeout, semaphore, fence, image_index);
   }
 
-  void destroySwapchain(Swapchain swapchain) {
-    auto vk_swapchain = swapchain.getVkSwapchain();
-    if (!vk_swapchain) { return; }
-    _device.destroySwapchainKHR(vk_swapchain);
-    swapchain.setVkSwapchain(nullptr);
-  }
-
-  std::vector<vk::Image> getSwapchainImages(Swapchain swapchain) {
-    return _device.getSwapchainImagesKHR(swapchain.getVkSwapchain());
-  }
-
-  void acquireNextImage(Swapchain swapchain, const uint64_t timeout, const vk::Semaphore semaphore, const vk::Fence fence, uint32_t* image_index) {
-    _device.acquireNextImageKHR(swapchain.getVkSwapchain(), timeout, semaphore, fence, image_index);
+  auto getVkDevice() {
+    return _device;
   }
 
 protected:
