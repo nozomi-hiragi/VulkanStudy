@@ -16,6 +16,7 @@
 #include "SwapchainFactory.h"
 #include "ImageFactory.h"
 #include "ImageViewFactory.h"
+#include "DeviceMemoryFactory.h"
 
 #include "Renderer.h"
 #include "Device.h"
@@ -33,6 +34,7 @@ SurfaceFactory _surface_factory;
 SwapchainFactory _swapchain_factory;
 ImageFactory _image_factory;
 ImageViewFactory _image_view_factory;
+DeviceMemoryFactory _device_memory_factory;
 
 std::shared_ptr<InstanceObject> _instance_object;
 std::shared_ptr<PhysicalDeviceObject> _physical_device_object;
@@ -41,14 +43,15 @@ std::shared_ptr<SwapchainObject> _swapchain;
 std::shared_ptr<ImageObject> _depth_image;
 std::vector<std::shared_ptr<ImageViewObject>> _swapchain_image_views;
 std::shared_ptr<ImageViewObject> _depth_image_view;
+std::shared_ptr<DeviceMemoryObject> _depth_memory;
+std::shared_ptr<DeviceMemoryObject> _uniform_memory;
+std::shared_ptr<DeviceMemoryObject> _vertex_memory;
 
 Device _device;
 CommandPool myCommandPool;
 CommandBuffer myCommandBuffer;
 Queue myQueue;
-vk::DeviceMemory g_depth_memory = nullptr;
 vk::Buffer g_uniform_buffer = nullptr;
-vk::DeviceMemory g_uniform_memory = nullptr;
 vk::MemoryRequirements g_uniform_buffer_memory_requirements;
 vk::DescriptorSetLayout g_descriptor_set_layout = nullptr;
 vk::PipelineLayout g_pipeline_layout = nullptr;
@@ -59,7 +62,6 @@ vk::ShaderModule g_vs = nullptr;
 vk::ShaderModule g_ps = nullptr;
 std::vector<vk::Framebuffer> g_frame_buffers;
 vk::Buffer g_vertex_buffer = nullptr;
-vk::DeviceMemory g_vertex_memory = nullptr;
 std::vector<vk::Semaphore> g_image_semaphores;
 vk::Pipeline g_pipeline = nullptr;
 vk::Fence g_fence;
@@ -118,13 +120,13 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
   // Create Swapchain
   _swapchain = _swapchain_factory.createSwapchain(_device.getVkDevice(), _surface_object->_vk_surface, _physical_device_object->_physical_device, width, height);
 
+  // Create Swapchain image
+  _swapchain_image_views.reserve(_swapchain->_swapchain_image_count);
+
   // Create Swapchain image view
-  {
-    _swapchain_image_views.reserve(_swapchain->_swapchain_image_count);
-    for (auto image : _swapchain->_swapchain_images) {
-      VkImageSubresourceRange subresource_range = { VkImageAspectFlagBits::VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
-      _swapchain_image_views.push_back(_image_view_factory.createImageView(_device.getVkDevice(), image, subresource_range));
-    }
+  for (auto image : _swapchain->_swapchain_images) {
+    VkImageSubresourceRange subresource_range = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
+    _swapchain_image_views.push_back(_image_view_factory.createImageView(_device.getVkDevice(), image, subresource_range));
   }
 
   // Create Depth image
@@ -138,31 +140,13 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
   // Allocate depth memory
   {
     auto depth_image_memory_requirements = _device.getImageMemoryRequirements(_depth_image->_vk_image);
-
-    auto memory_type_bits = depth_image_memory_requirements.memoryTypeBits;
-    auto memory_property_bits = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
-    auto memory_types = _physical_device_object->_memory_properties.memoryTypes;
-    auto memory_type_index = 0;
-    for (uint32_t i = 0; i < VK_MAX_MEMORY_TYPES; i++) {
-      if (memory_type_bits & 1) {
-        if ((memory_types[i].propertyFlags & memory_property_bits) == memory_property_bits) {
-          memory_type_index = i;
-          break;
-        }
-      }
-      memory_type_bits >>= 1;
-    }
-
-    auto depth_memory_info = vk::MemoryAllocateInfo()
-      .setAllocationSize(depth_image_memory_requirements.size)
-      .setMemoryTypeIndex(memory_type_index);
-
-    g_depth_memory = _device.allocateMemory(depth_memory_info);
+    auto memory_type_index = _physical_device_object->findProperties(depth_image_memory_requirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    _depth_memory = _device_memory_factory.createDeviceMemory(_device.getVkDevice(), depth_image_memory_requirements.size, memory_type_index);
   }
 
   // Bind memory to depth image
   {
-    _device.bindImageMemory(_depth_image->_vk_image, g_depth_memory, 0);
+    _device.bindImageMemory(_depth_image->_vk_image, _depth_memory->_vk_device_memory, 0);
   }
 
   // Create depth image view
@@ -191,40 +175,22 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
   // Allocate uniform memory
   {
     g_uniform_buffer_memory_requirements = _device.getBufferMemoryRequirements(g_uniform_buffer);
-
-    auto memory_type_bits = g_uniform_buffer_memory_requirements.memoryTypeBits;
-    auto memory_property_bits = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-    auto memory_types = _physical_device_object->_memory_properties.memoryTypes;
-    auto memory_type_index = 0;
-    for (uint32_t i = 0; i < VK_MAX_MEMORY_TYPES; i++) {
-      if (memory_type_bits & 1) {
-        if ((memory_types[i].propertyFlags & memory_property_bits) == memory_property_bits) {
-          memory_type_index = i;
-          break;
-        }
-      }
-      memory_type_bits >>= 1;
-    }
-
-    auto uniform_memory_info = vk::MemoryAllocateInfo()
-      .setAllocationSize(g_uniform_buffer_memory_requirements.size)
-      .setMemoryTypeIndex(memory_type_index);
-
-    g_uniform_memory = _device.allocateMemory(uniform_memory_info);
+    auto memory_type_index = _physical_device_object->findProperties(g_uniform_buffer_memory_requirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    _uniform_memory = _device_memory_factory.createDeviceMemory(_device.getVkDevice(), g_uniform_buffer_memory_requirements.size, memory_type_index);
   }
 
   // Wrinte to memory
   {
-    auto data = _device.mapMemory(g_uniform_memory, 0, g_uniform_buffer_memory_requirements.size);
+    auto data = _device.mapMemory(_uniform_memory->_vk_device_memory, 0, g_uniform_buffer_memory_requirements.size);
 
     memcpy(data, &g_mvp, sizeof(g_mvp));
 
-    _device.unmapMemory(g_uniform_memory);
+    _device.unmapMemory(_uniform_memory->_vk_device_memory);
   }
 
   // Bind memory to buffer
   {
-    _device.bindBufferMemory(g_uniform_buffer, g_uniform_memory, 0);
+    _device.bindBufferMemory(g_uniform_buffer, _uniform_memory->_vk_device_memory, 0);
   }
 
   // Create descriptor set layout
@@ -433,36 +399,21 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
   // Allocate vertex buffer memory
 
   auto vertex_buffer_memory_requirements = _device.getBufferMemoryRequirements(g_vertex_buffer);
-
   auto memory_type_bits = vertex_buffer_memory_requirements.memoryTypeBits;
   auto memory_property_bits = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-  auto memory_types = _physical_device_object->_memory_properties.memoryTypes;
-  auto memory_type_index = 0;
-  for (uint32_t i = 0; i < VK_MAX_MEMORY_TYPES; i++) {
-    if (memory_type_bits & 1) {
-      if ((memory_types[i].propertyFlags & memory_property_bits) == memory_property_bits) {
-        memory_type_index = i;
-        break;
-      }
-    }
-    memory_type_bits >>= 1;
-  }
+  auto memory_type_index = _physical_device_object->findProperties(memory_type_bits, memory_property_bits);
 
-  auto vertex_memory_info = vk::MemoryAllocateInfo()
-    .setAllocationSize(vertex_buffer_memory_requirements.size)
-    .setMemoryTypeIndex(memory_type_index);
-
-  g_vertex_memory = _device.allocateMemory(vertex_memory_info);
+  _vertex_memory = _device_memory_factory.createDeviceMemory(_device.getVkDevice(), vertex_buffer_memory_requirements.size, memory_type_index);
 
   // Store vertex buffer
 
-  auto vertex_map = _device.mapMemory(g_vertex_memory, 0, vertex_buffer_memory_requirements.size);
+  auto vertex_map = _device.mapMemory(_vertex_memory->_vk_device_memory, 0, vertex_buffer_memory_requirements.size);
 
   memcpy(vertex_map, &poly, sizeof(poly));
 
-  _device.unmapMemory(g_vertex_memory);
+  _device.unmapMemory(_vertex_memory->_vk_device_memory);
 
-  _device.bindBufferMemory(g_vertex_buffer, g_vertex_memory, 0);
+  _device.bindBufferMemory(g_vertex_buffer, _vertex_memory->_vk_device_memory, 0);
 
   // Description
 
@@ -778,10 +729,7 @@ void uninitVulkan() {
   }
   g_image_semaphores.clear();
 
-  if (g_vertex_memory) {
-    _device.freeMemory(g_vertex_memory);
-    g_vertex_memory = nullptr;
-  }
+  _device_memory_factory.destroyDeviceMemory(_device.getVkDevice(), _vertex_memory);
 
   if (g_vertex_buffer) {
     _device.destroyBuffer(g_vertex_buffer);
@@ -823,10 +771,7 @@ void uninitVulkan() {
     g_descriptor_set_layout = nullptr;
   }
 
-  if (g_uniform_memory) {
-    _device.freeMemory(g_uniform_memory);
-    g_uniform_memory = nullptr;
-  }
+  _device_memory_factory.destroyDeviceMemory(_device.getVkDevice(), _uniform_memory);
 
   if (g_uniform_buffer) {
     _device.destroyBuffer(g_uniform_buffer);
@@ -835,10 +780,7 @@ void uninitVulkan() {
 
   _image_view_factory.destroyImageView(_device.getVkDevice(), _depth_image_view);
 
-  if (g_depth_memory) {
-    _device.freeMemory(g_depth_memory);
-    g_depth_memory = nullptr;
-  }
+  _device_memory_factory.destroyDeviceMemory(_device.getVkDevice(), _depth_memory);
 
   _image_factory.destroyImage(_device.getVkDevice(), _depth_image);
 

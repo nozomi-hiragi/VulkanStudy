@@ -17,6 +17,18 @@ public:
   ~PhysicalDeviceObject() {
   }
 
+  const uint32_t findProperties(uint32_t memory_type_bits, VkMemoryPropertyFlags properties) {
+    auto& memory_types = _memory_properties.memoryTypes;
+    for (uint32_t i = 0; i < _memory_properties.memoryTypeCount; i++) {
+      if (memory_type_bits & 1 &&
+        (memory_types[i].propertyFlags & properties) == properties) {
+          return i;
+      }
+      memory_type_bits >>= 1;
+    }
+    return -1;
+  }
+
   const VkPhysicalDevice _physical_device;
   const VkPhysicalDeviceMemoryProperties _memory_properties;
   const std::vector<VkQueueFamilyProperties> _queue_family_properties;

@@ -113,5 +113,11 @@
     <ClInclude Include="ImageViewFactory.h">
       <Filter>header</Filter>
     </ClInclude>
+    <ClInclude Include="DeviceMemoryObject.h">
+      <Filter>header</Filter>
+    </ClInclude>
+    <ClInclude Include="DeviceMemoryFactory.h">
+      <Filter>header</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

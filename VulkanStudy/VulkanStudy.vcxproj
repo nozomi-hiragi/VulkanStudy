@@ -96,6 +96,8 @@
     <ClInclude Include="CommandBuffer.h" />
     <ClInclude Include="CommandPool.h" />
     <ClInclude Include="Device.h" />
+    <ClInclude Include="DeviceMemoryFactory.h" />
+    <ClInclude Include="DeviceMemoryObject.h" />
     <ClInclude Include="ImageObject.h" />
     <ClInclude Include="ImageFactory.h" />
     <ClInclude Include="ImageViewFactory.h" />
