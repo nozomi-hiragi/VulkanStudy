@@ -29,13 +29,13 @@ ImageViewFactory _image_view_factory;
 std::shared_ptr<SwapchainObject> _swapchain;
 std::shared_ptr<ImageObject> _depth_image;
 std::vector<std::shared_ptr<ImageViewObject>> _swapchain_image_views;
+std::shared_ptr<ImageViewObject> _depth_image_view;
 
 Renderer g_renderer;
 CommandPool myCommandPool;
 CommandBuffer myCommandBuffer;
 Queue myQueue;
 vk::DeviceMemory g_depth_memory = nullptr;
-vk::ImageView g_depth_image_view = nullptr;
 vk::Buffer g_uniform_buffer = nullptr;
 vk::DeviceMemory g_uniform_memory = nullptr;
 vk::MemoryRequirements g_uniform_buffer_memory_requirements;
@@ -156,15 +156,8 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
 
   // Create depth image view
   {
-
-    VkImageViewCreateInfo depth_image_view_info = {};
-    depth_image_view_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-    depth_image_view_info.image = _depth_image->_vk_image;
-    depth_image_view_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
-    depth_image_view_info.format = _depth_image->_vk_format;
-    depth_image_view_info.subresourceRange = vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eDepth, 0, 1, 0, 1);
-
-    g_depth_image_view = g_renderer._device.createImageView(depth_image_view_info);
+    VkImageSubresourceRange subresource_range = { VK_IMAGE_ASPECT_DEPTH_BIT, 0, 1, 0, 1 };
+    _depth_image_view = _image_view_factory.createImageView(g_renderer._device.getVkDevice(), _depth_image, subresource_range);
   }
 
   // Create matrix
@@ -400,7 +393,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
   //
 
   vk::ImageView attachments[2];
-  attachments[1] = g_depth_image_view;
+  attachments[1] = _depth_image_view->_vk_image_view;
 
   auto const frame_buffer_info = vk::FramebufferCreateInfo()
     .setRenderPass(g_render_pass)
@@ -829,10 +822,7 @@ void uninitVulkan() {
     g_uniform_buffer = nullptr;
   }
 
-  if (g_depth_image_view) {
-    g_renderer._device.destroyImageView(g_depth_image_view);
-    g_depth_image_view = nullptr;
-  }
+  _image_view_factory.destroyImageView(g_renderer._device.getVkDevice(), _depth_image_view);
 
   if (g_depth_memory) {
     g_renderer._device.freeMemory(g_depth_memory);
