@@ -1,5 +1,8 @@
 
-#include "Instance.h"
+#include "InstanceFactory.h"
+
+constexpr auto ENGINE_NAME = "Speell";
+constexpr auto ENGINE_VERSION = 0;
 
 const VkInstance InstanceFactory::_createVkInstance(const char* app_name, const uint32_t app_version) {
   VkApplicationInfo app_info = {};

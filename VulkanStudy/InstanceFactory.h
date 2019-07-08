@@ -3,28 +3,10 @@
 #include <Windows.h>
 #define VK_USE_PLATFORM_WIN32_KHR
 #include <vulkan/vulkan.h>
-#include <vector>
-#include <set>
 #include <memory>
+#include <set>
 
-constexpr auto ENGINE_NAME = "Speell";
-constexpr auto ENGINE_VERSION = 0;
-
-class InstanceObject {
-public:
-  InstanceObject(const VkInstance instance, const std::vector<VkPhysicalDevice> devices) :
-    _vk_instance(instance),
-    _devices(devices) {
-  }
-
-  ~InstanceObject() {
-  }
-
-  const VkInstance _vk_instance;
-  const std::vector<VkPhysicalDevice> _devices;
-protected:
-private:
-};
+#include "instanceObject.h"
 
 class InstanceFactory {
   static const VkInstance _createVkInstance(const char* app_name, const uint32_t app_version);
@@ -62,7 +44,7 @@ public:
     auto before_size = _container.size();
     _container.erase(object);
     auto after_size = _container.size();
- 
+
     if (before_size != after_size) {
       _destroyVkInstance(object->_vk_instance);
       object.reset();

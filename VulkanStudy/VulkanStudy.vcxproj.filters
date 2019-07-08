@@ -24,9 +24,6 @@
     <ClCompile Include="VulkanFunction.cpp">
       <Filter>source</Filter>
     </ClCompile>
-    <ClCompile Include="Instance.cpp">
-      <Filter>source</Filter>
-    </ClCompile>
     <ClCompile Include="PhysicalDevice.cpp">
       <Filter>source</Filter>
     </ClCompile>
@@ -51,15 +48,15 @@
     <ClCompile Include="Swapchain.cpp">
       <Filter>source</Filter>
     </ClCompile>
+    <ClCompile Include="InstanceFactory.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="WindowManager.h">
       <Filter>header</Filter>
     </ClInclude>
     <ClInclude Include="VulkanFunction.h">
-      <Filter>header</Filter>
-    </ClInclude>
-    <ClInclude Include="Instance.h">
       <Filter>header</Filter>
     </ClInclude>
     <ClInclude Include="PhysicalDevice.h">
@@ -84,6 +81,12 @@
       <Filter>header</Filter>
     </ClInclude>
     <ClInclude Include="Swapchain.h">
+      <Filter>header</Filter>
+    </ClInclude>
+    <ClInclude Include="InstanceObject.h">
+      <Filter>header</Filter>
+    </ClInclude>
+    <ClInclude Include="InstanceFactory.h">
       <Filter>header</Filter>
     </ClInclude>
   </ItemGroup>

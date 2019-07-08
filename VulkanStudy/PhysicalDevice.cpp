@@ -1,8 +1,6 @@
 
 #include "PhysicalDevice.h"
 
-#include "Instance.h"
-
 std::shared_ptr<PhysicalDeviceObject> PhysicalDeviceFactory::createPhysicalDevice(std::shared_ptr<InstanceObject> instance, uint32_t index) {
   auto vk_physical_device = instance->_devices[index];
 

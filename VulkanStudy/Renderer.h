@@ -4,7 +4,7 @@
 #define VK_USE_PLATFORM_WIN32_KHR
 #include <vulkan/vulkan.hpp>
 
-#include "Instance.h"
+#include "InstanceFactory.h"
 #include "PhysicalDevice.h"
 #include "Surface.h"
 #include "Device.h"

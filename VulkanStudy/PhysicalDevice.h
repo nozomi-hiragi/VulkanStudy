@@ -5,7 +5,7 @@
 #include <set>
 #include <memory>
 
-class InstanceObject;
+#include "InstanceObject.h"
 
 class PhysicalDeviceObject {
 public:

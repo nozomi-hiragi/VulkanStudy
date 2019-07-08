@@ -11,7 +11,6 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include "Renderer.h"
-#include "Instance.h"
 #include "PhysicalDevice.h"
 #include "Surface.h"
 #include "Device.h"
@@ -24,18 +23,10 @@ const char* const APP_NAME = "VulkanStudy";
 const uint32_t APP_VERSION = 0;
 
 Renderer g_renderer;
-//Instance myInstance;
-//PhysicalDevice myPhysicalDevice;
-//vk::PhysicalDeviceMemoryProperties g_physical_device_memoryproperties; // ÉÅÉÇÉää÷åWÇ…Ç‹Ç∆ÇﬂÇÁÇÍÇªÇ§
-//Surface mySurface;
-//uint32_t g_present_queue_family_index = UINT32_MAX;
-//Device myDevice;
 CommandPool myCommandPool;
 CommandBuffer myCommandBuffer;
 Queue myQueue;
-//vk::SwapchainKHR g_swapchain = nullptr;
 Swapchain mySwapchain;
-//vk::Format g_surface_format;
 std::vector<vk::Image> g_swapchain_images;
 std::vector<vk::ImageView> g_swapchain_image_views;
 vk::Format g_depth_format;
