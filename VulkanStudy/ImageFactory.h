@@ -4,21 +4,7 @@
 #include <memory>
 #include <set>
 
-class ImageObject {
-public:
-  ImageObject(const VkImage image, const VkFormat format):
-    _vk_image(image),
-    _vk_fotmat(format) {
-  }
-
-  ~ImageObject() {
-  }
-
-  const VkImage _vk_image;
-  const VkFormat _vk_fotmat;
-protected:
-private:
-};
+#include "ImageObject.h"
 
 class ImageFactory {
 public:

@@ -81,7 +81,7 @@
     <ClCompile Include="CommandBuffer.cpp" />
     <ClCompile Include="CommandPool.cpp" />
     <ClCompile Include="Device.cpp" />
-    <ClCompile Include="Image.cpp" />
+    <ClCompile Include="ImageFactory.cpp" />
     <ClCompile Include="InstanceFactory.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="PhysicalDeviceFactory.cpp" />
@@ -96,7 +96,8 @@
     <ClInclude Include="CommandBuffer.h" />
     <ClInclude Include="CommandPool.h" />
     <ClInclude Include="Device.h" />
-    <ClInclude Include="Imaget.h" />
+    <ClInclude Include="ImageObject.h" />
+    <ClInclude Include="ImageFactory.h" />
     <ClInclude Include="InstanceFactory.h" />
     <ClInclude Include="InstanceObject.h" />
     <ClInclude Include="PhysicalDeviceFactory.h" />

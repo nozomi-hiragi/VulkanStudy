@@ -26,6 +26,14 @@ class SwapchainFactory {
     return surface_format;
   }
 
+  static std::vector<VkImage> _getVkSwapchainImages(VkDevice device, VkSwapchainKHR swapchain) {
+    uint32_t swapchain_image_count = 0;
+    vkGetSwapchainImagesKHR(device, swapchain, &swapchain_image_count, nullptr);
+    std::vector<VkImage> swapchain_images(swapchain_image_count);
+    vkGetSwapchainImagesKHR(device, swapchain, &swapchain_image_count, swapchain_images.data());
+    return std::move(swapchain_images);
+  }
+
   static VkSwapchainKHR _createVkSwapchain(VkDevice device, VkSurfaceKHR surface, VkSurfaceCapabilitiesKHR surface_capabilities, VkSurfaceFormatKHR surface_format, const uint32_t width, const uint32_t height) {
 
     VkSurfaceTransformFlagBitsKHR pre_transform;
@@ -83,7 +91,19 @@ public:
     auto surface_capabilities = _getSurfaceCapabilities(physical_device, surface);
     auto surface_format = _getFixSurfaceFormat(physical_device, surface);
     auto vk_swapchain = _createVkSwapchain(device, surface, surface_capabilities, surface_format, width, height);
-    auto object = std::make_shared<SwapchainObject>(vk_swapchain, surface_format.format, surface_format.colorSpace);
+    auto vk_swapchain_images = _getVkSwapchainImages(device, vk_swapchain);
+
+    std::vector<std::shared_ptr<ImageObject>> swapchain_images;
+    swapchain_images.reserve(vk_swapchain_images.size());
+    for (auto it : vk_swapchain_images) {
+      swapchain_images.push_back(std::make_shared<ImageObject>(it, surface_format.format));
+    }
+
+    auto object = std::make_shared<SwapchainObject>(
+      vk_swapchain,
+      surface_format.format,
+      surface_format.colorSpace,
+      std::move(swapchain_images));
     _container.insert(object);
     return object;
   }
@@ -95,7 +115,7 @@ public:
     auto after = _container.size();
 
     if (before != after) {
-      _destroyVkSwapchain(device, object->_swapchain);
+      _destroyVkSwapchain(device, object->_vk_swapchain);
       object.reset();
     }
   }

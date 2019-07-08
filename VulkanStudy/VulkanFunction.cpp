@@ -16,7 +16,7 @@
 #include "CommandPool.h"
 #include "CommandBuffer.h"
 #include "SwapchainFactory.h"
-#include "Imaget.h"
+#include "ImageFactory.h"
 
 const char* const APP_NAME = "VulkanStudy";
 const uint32_t APP_VERSION = 0;
@@ -25,13 +25,12 @@ ImageFactory _image_factory;
 SwapchainFactory _swapchain_factory;
 
 std::shared_ptr<ImageObject> _depth_image;
+std::shared_ptr<SwapchainObject> _swapchain;
 
 Renderer g_renderer;
 CommandPool myCommandPool;
 CommandBuffer myCommandBuffer;
 Queue myQueue;
-std::shared_ptr<SwapchainObject> mySwapchain;
-std::vector<vk::Image> g_swapchain_images;
 std::vector<vk::ImageView> g_swapchain_image_views;
 vk::DeviceMemory g_depth_memory = nullptr;
 vk::ImageView g_depth_image_view = nullptr;
@@ -106,23 +105,26 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
 
   // Create Swapchain
   {
-    mySwapchain = _swapchain_factory.createSwapchain(g_renderer._device.getVkDevice(), g_renderer._surface_object->_vk_surface, g_renderer.getPhysicalDeviceObject()->_physical_device, width, height);
+    _swapchain = _swapchain_factory.createSwapchain(g_renderer._device.getVkDevice(), g_renderer._surface_object->_vk_surface, g_renderer.getPhysicalDeviceObject()->_physical_device, width, height);
 
-    g_swapchain_images = g_renderer._device.getSwapchainImages(mySwapchain->_swapchain);
+    //uint32_t swapchain_image_count = 0;
+    //vkGetSwapchainImagesKHR(g_renderer._device.getVkDevice(), _swapchain->_swapchain, &swapchain_image_count, nullptr);
+    //g_swapchain_images.resize(swapchain_image_count);
+    //vkGetSwapchainImagesKHR(g_renderer._device.getVkDevice(), _swapchain->_swapchain, &swapchain_image_count, g_swapchain_images.data());
   }
 
   // Create Swapchain image view
   {
     g_swapchain_image_views.clear();
-    g_swapchain_image_views.reserve(g_swapchain_images.size());
+    g_swapchain_image_views.reserve(_swapchain->_swapchain_image_count);
 
-    for (auto image : g_swapchain_images) {
+    for (auto image : _swapchain->_swapchain_images) {
       VkImageViewCreateInfo color_image_view = {};
       color_image_view.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
       color_image_view.viewType = VK_IMAGE_VIEW_TYPE_2D;
-      color_image_view.format = mySwapchain->_format;
+      color_image_view.format = image->_vk_format;
       color_image_view.subresourceRange = vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1);
-      color_image_view.image = image;
+      color_image_view.image = image->_vk_image;
 
       g_swapchain_image_views.push_back(g_renderer._device.createImageView(color_image_view));
     }
@@ -175,7 +177,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
     depth_image_view_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
     depth_image_view_info.image = _depth_image->_vk_image;
     depth_image_view_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
-    depth_image_view_info.format = _depth_image->_vk_fotmat;
+    depth_image_view_info.format = _depth_image->_vk_format;
     depth_image_view_info.subresourceRange = vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eDepth, 0, 1, 0, 1);
 
     g_depth_image_view = g_renderer._device.createImageView(depth_image_view_info);
@@ -315,7 +317,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
   VkAttachmentDescription attachment_description[] = {
     {
       0,
-      mySwapchain->_format,
+      _swapchain->_vk_format,
       VK_SAMPLE_COUNT_1_BIT,
       VK_ATTACHMENT_LOAD_OP_CLEAR,  
       VK_ATTACHMENT_STORE_OP_STORE,
@@ -327,7 +329,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
 
     {
       0,
-      _depth_image->_vk_fotmat,
+      _depth_image->_vk_format,
       VK_SAMPLE_COUNT_1_BIT,
       VK_ATTACHMENT_LOAD_OP_CLEAR,
       VK_ATTACHMENT_STORE_OP_DONT_CARE,
@@ -424,9 +426,9 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
     .setHeight(height)
     .setLayers(1);
 
-  g_frame_buffers.reserve(g_swapchain_images.size());
+  g_frame_buffers.reserve(_swapchain->_swapchain_image_count);
 
-  for (uint32_t i = 0; i < g_swapchain_images.size(); i++) {
+  for (uint32_t i = 0; i < _swapchain->_swapchain_image_count; i++) {
     attachments[0] = g_swapchain_image_views[i];
     g_frame_buffers.push_back(g_renderer._device.createFramebuffer(frame_buffer_info));
   }
@@ -497,12 +499,12 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
 
   // Create semaphore
 
-  g_image_semaphores.resize(g_swapchain_images.size());
+  g_image_semaphores.resize(_swapchain->_swapchain_image_count);
   for (auto& it : g_image_semaphores) {
     it = g_renderer._device.createSemaphore(vk::SemaphoreCreateInfo());
   }
 
-  g_renderer._device.acquireNextImage(mySwapchain->_swapchain, UINT64_MAX, g_image_semaphores[0], nullptr, &g_current_buffer);
+  g_renderer._device.acquireNextImage(_swapchain->_vk_swapchain, UINT64_MAX, g_image_semaphores[0], nullptr, &g_current_buffer);
 
   // Create pipeline
 
@@ -679,7 +681,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
   VkPresentInfoKHR present_info = {};
   present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
   present_info.swapchainCount = 1;
-  present_info.pSwapchains = &mySwapchain->_swapchain;
+  present_info.pSwapchains = &_swapchain->_vk_swapchain;
   present_info.pImageIndices = &g_current_buffer;
 
   myQueue.present(present_info);
@@ -689,7 +691,7 @@ float a = -10;
 void updateVulkan() {
 
 
-  g_renderer._device.acquireNextImage(mySwapchain->_swapchain, UINT64_MAX, g_image_semaphores[0], nullptr, &g_current_buffer);
+  g_renderer._device.acquireNextImage(_swapchain->_vk_swapchain, UINT64_MAX, g_image_semaphores[0], nullptr, &g_current_buffer);
 
   g_renderer._device.waitForFences(1, &g_fence, true, UINT64_MAX);
   g_renderer._device.resetFence(g_fence);
@@ -765,7 +767,7 @@ void updateVulkan() {
   VkPresentInfoKHR present_info = {};
   present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
   present_info.swapchainCount = 1;
-  present_info.pSwapchains = &mySwapchain->_swapchain;
+  present_info.pSwapchains = &_swapchain->_vk_swapchain;
   present_info.pImageIndices = &g_current_buffer;
 
   myQueue.present(present_info);
@@ -864,9 +866,7 @@ void uninitVulkan() {
   }
   g_swapchain_image_views.clear();
 
-  g_swapchain_images.clear();
-
-  _swapchain_factory.destroySwapchain(g_renderer._device.getVkDevice(), mySwapchain);
+  _swapchain_factory.destroySwapchain(g_renderer._device.getVkDevice(), _swapchain);
 
   g_renderer.destroyDevice();
 

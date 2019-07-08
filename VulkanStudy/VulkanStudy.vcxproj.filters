@@ -48,10 +48,10 @@
     <ClCompile Include="SurfaceFactory.cpp">
       <Filter>source</Filter>
     </ClCompile>
-    <ClCompile Include="Image.cpp">
+    <ClCompile Include="SwapchainFactory.cpp">
       <Filter>source</Filter>
     </ClCompile>
-    <ClCompile Include="SwapchainFactory.cpp">
+    <ClCompile Include="ImageFactory.cpp">
       <Filter>source</Filter>
     </ClCompile>
   </ItemGroup>
@@ -95,13 +95,16 @@
     <ClInclude Include="SurfaceFactory.h">
       <Filter>header</Filter>
     </ClInclude>
-    <ClInclude Include="Imaget.h">
-      <Filter>header</Filter>
-    </ClInclude>
     <ClInclude Include="SwapchainObject.h">
       <Filter>header</Filter>
     </ClInclude>
     <ClInclude Include="SwapchainFactory.h">
+      <Filter>header</Filter>
+    </ClInclude>
+    <ClInclude Include="ImageObject.h">
+      <Filter>header</Filter>
+    </ClInclude>
+    <ClInclude Include="ImageFactory.h">
       <Filter>header</Filter>
     </ClInclude>
   </ItemGroup>
