@@ -113,7 +113,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
 
   // Create Swapchain
   {
-    mySwapchain = g_renderer._device.createSwapchain(g_renderer._surface, width, height);
+    mySwapchain = g_renderer._device.createSwapchain(g_renderer._surface_object->_vk_surface, g_renderer.getPhysicalDeviceObject()->_physical_device, width, height);
 
     g_swapchain_images = g_renderer._device.getSwapchainImages(mySwapchain);
   }
@@ -127,7 +127,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
       VkImageViewCreateInfo color_image_view = {};
       color_image_view.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
       color_image_view.viewType = VK_IMAGE_VIEW_TYPE_2D;
-      color_image_view.format = g_renderer._surface.getFormat();
+      color_image_view.format = mySwapchain.getFormat();
       color_image_view.subresourceRange = vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1);
       color_image_view.image = image;
 
@@ -330,7 +330,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
   VkAttachmentDescription attachment_description[] = {
     {
       0,
-      g_renderer._surface.getFormat(),
+      mySwapchain.getFormat(),
       VK_SAMPLE_COUNT_1_BIT,
       VK_ATTACHMENT_LOAD_OP_CLEAR,  
       VK_ATTACHMENT_STORE_OP_STORE,

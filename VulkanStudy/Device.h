@@ -12,7 +12,7 @@ class PhysicalDeviceObject;
 
 class Device {
 public:
-  static Device createDevice(std::shared_ptr<PhysicalDeviceObject> physical_device, Surface& surface);
+  static Device createDevice(std::shared_ptr<PhysicalDeviceObject> physical_device, VkSurfaceKHR surface);
 
   Device(): _device(nullptr) {
   }
@@ -220,8 +220,24 @@ public:
   }
 
   // for swapchain
-  Swapchain createSwapchain(Surface surface, const uint32_t width, const uint32_t height) {
-    auto surface_capabilities = surface.getSurfaceCapabilities();
+  static VkSurfaceFormatKHR getFixSurfaceProperties(VkPhysicalDevice physical_device, VkSurfaceKHR surface) {
+    uint32_t count = 0;
+    auto result = vkGetPhysicalDeviceSurfaceFormatsKHR(physical_device, surface, &count, nullptr);
+    std::vector<VkSurfaceFormatKHR> surface_formats(count);
+    result = vkGetPhysicalDeviceSurfaceFormatsKHR(physical_device, surface, &count, surface_formats.data());
+
+    auto surface_format = surface_formats[0];
+    if (surface_formats.size() == 1 && surface_format.format == VK_FORMAT_UNDEFINED) {
+      surface_format.format = VK_FORMAT_B8G8R8A8_UNORM;
+    }
+    return surface_format;
+  }
+
+  Swapchain createSwapchain(VkSurfaceKHR surface, VkPhysicalDevice physical_device, const uint32_t width, const uint32_t height) {
+    VkSurfaceCapabilitiesKHR surface_capabilities;
+    auto result = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physical_device, surface, &surface_capabilities);
+
+    auto surface_format = getFixSurfaceProperties(physical_device, surface);
 
     VkSurfaceTransformFlagBitsKHR pre_transform;
     if (surface_capabilities.supportedTransforms & VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR) {
@@ -247,10 +263,10 @@ public:
 
     VkSwapchainCreateInfoKHR swapchain_info = {};
     swapchain_info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-    swapchain_info.surface = surface.getVkSurface();
+    swapchain_info.surface = surface;
     swapchain_info.minImageCount = surface_capabilities.minImageCount;
-    swapchain_info.imageFormat = surface.getFormat();
-    swapchain_info.imageColorSpace = surface.getColorSpace();
+    swapchain_info.imageFormat = surface_format.format;
+    swapchain_info.imageColorSpace = surface_format.colorSpace;
     swapchain_info.imageExtent = { width, height };
     swapchain_info.imageArrayLayers = 1;
     swapchain_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
@@ -263,7 +279,7 @@ public:
     swapchain_info.clipped = true;
     swapchain_info.oldSwapchain = nullptr;
 
-    return Swapchain(_device.createSwapchainKHR(swapchain_info));
+    return Swapchain(_device.createSwapchainKHR(swapchain_info), surface_format);
   }
 
   void destroySwapchain(Swapchain swapchain) {

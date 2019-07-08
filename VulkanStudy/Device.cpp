@@ -3,11 +3,11 @@
 
 #include "PhysicalDevice.h"
 
-Device Device::createDevice(std::shared_ptr<PhysicalDeviceObject> physical_device, Surface& surface) {
+Device Device::createDevice(std::shared_ptr<PhysicalDeviceObject> physical_device, VkSurfaceKHR surface) {
 
-  auto get_surface_support = [](VkPhysicalDevice physical_device, const uint32_t index, Surface& surface) {
+  auto get_surface_support = [](VkPhysicalDevice physical_device, const uint32_t index, VkSurfaceKHR surface) {
     VkBool32 result;
-    vkGetPhysicalDeviceSurfaceSupportKHR(physical_device, index, surface.getVkSurface(), &result);
+    vkGetPhysicalDeviceSurfaceSupportKHR(physical_device, index, surface, &result);
     return result == VK_TRUE;
   };
 

@@ -5,97 +5,56 @@
 #include <vulkan/vulkan.h>
 #include <memory>
 
+#include "Instance.h"
+
 class PhysicalDeviceObject;
 
 class SurfaceObject {
 public:
-  SurfaceObject(const VkSurfaceKHR surface) : _surface(surface) {
+  SurfaceObject(const VkSurfaceKHR surface): _vk_surface(surface) {
   }
 
   ~SurfaceObject() {
   }
 
-  const VkSurfaceKHR _surface;
+  const VkSurfaceKHR _vk_surface;
 protected:
 private:
 };
 
 class SurfaceFactory {
-public:
   static const VkSurfaceKHR _createVkSurface(VkInstance instance, const HINSTANCE hinstance, const HWND hwnd);
 
   static const void _destroyVkSurface(VkInstance instance, VkSurfaceKHR surface) {
     vkDestroySurfaceKHR(instance, surface, nullptr);
   }
 
+public:
   SurfaceFactory() {
   }
 
   ~SurfaceFactory() {
   }
 
-protected:
-private:
-};
-
-class Surface {
-public:
-
-
-  Surface() :
-    _surface(nullptr) {
+  auto createSurface(std::shared_ptr<InstanceObject> instance, const HINSTANCE hinstance, const HWND hwnd) {
+    auto vk_surface = _createVkSurface(instance->_vk_instance, hinstance, hwnd);
+    auto object = std::make_shared<SurfaceObject>(vk_surface);
+    return object;
   }
 
-  Surface(VkInstance instance, const HINSTANCE hinstance, const HWND hwnd) :
-    _surface(SurfaceFactory::_createVkSurface(instance, hinstance, hwnd)) {
-  }
+  void destroySurface(std::shared_ptr<InstanceObject> instance, std::shared_ptr<SurfaceObject>& object) {
+    if (!object) { return; }
+    auto before_size = _container.size();
+    _container.erase(object);
+    auto after_size = _container.size();
 
-  ~Surface() {
-  }
-
-  static auto createSurface(VkInstance instance, const HINSTANCE hinstance, const HWND hwnd) {
-    return Surface(instance, hinstance, hwnd);
-  }
-
-  static void destroySurface(VkInstance instance, Surface& surface) {
-    auto vk_surface = surface.getVkSurface();
-    if (!vk_surface) { return; }
-    SurfaceFactory::_destroyVkSurface(instance, vk_surface);
-    surface.setVkSurface(nullptr);
-  }
-
-  void setVkSurface(const VkSurfaceKHR surface) {
-    _surface = surface;
-  }
-
-  VkSurfaceKHR getVkSurface() {
-    return _surface;
-  }
-
-  void fixSurfaceProperties(std::shared_ptr<PhysicalDeviceObject> physical_device) {
-    fixSurfaceFormat(physical_device);
-    fixSurfaceCapabilities(physical_device);
-  }
-
-  auto getFormat() {
-    return _surface_format.format;
-  }
-
-  auto getColorSpace() {
-    return _surface_format.colorSpace;
-  }
-
-  auto getSurfaceCapabilities() {
-    return _surface_capabilities;
+    if (before_size != after_size) {
+      _destroyVkSurface(instance->_vk_instance, object->_vk_surface);
+      object.reset();
+    }
   }
 
 protected:
-
 private:
-  void fixSurfaceFormat(std::shared_ptr<PhysicalDeviceObject> physical_device);
-  void fixSurfaceCapabilities(std::shared_ptr<PhysicalDeviceObject>  physical_device);
-
-  VkSurfaceKHR _surface;
-  VkSurfaceFormatKHR _surface_format;
-  VkSurfaceCapabilitiesKHR _surface_capabilities;
+  std::set<std::shared_ptr<SurfaceObject>> _container;
 };
