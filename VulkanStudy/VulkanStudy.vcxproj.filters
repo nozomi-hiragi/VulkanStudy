@@ -107,5 +107,11 @@
     <ClInclude Include="ImageFactory.h">
       <Filter>header</Filter>
     </ClInclude>
+    <ClInclude Include="ImageViewObject.h">
+      <Filter>header</Filter>
+    </ClInclude>
+    <ClInclude Include="ImageViewFactory.h">
+      <Filter>header</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

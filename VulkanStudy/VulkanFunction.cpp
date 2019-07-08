@@ -17,21 +17,23 @@
 #include "CommandBuffer.h"
 #include "SwapchainFactory.h"
 #include "ImageFactory.h"
+#include "ImageViewFactory.h"
 
 const char* const APP_NAME = "VulkanStudy";
 const uint32_t APP_VERSION = 0;
 
-ImageFactory _image_factory;
 SwapchainFactory _swapchain_factory;
+ImageFactory _image_factory;
+ImageViewFactory _image_view_factory;
 
-std::shared_ptr<ImageObject> _depth_image;
 std::shared_ptr<SwapchainObject> _swapchain;
+std::shared_ptr<ImageObject> _depth_image;
+std::vector<std::shared_ptr<ImageViewObject>> _swapchain_image_views;
 
 Renderer g_renderer;
 CommandPool myCommandPool;
 CommandBuffer myCommandBuffer;
 Queue myQueue;
-std::vector<vk::ImageView> g_swapchain_image_views;
 vk::DeviceMemory g_depth_memory = nullptr;
 vk::ImageView g_depth_image_view = nullptr;
 vk::Buffer g_uniform_buffer = nullptr;
@@ -99,46 +101,28 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
   // Create primaly Command buffer
   myCommandBuffer = g_renderer._device.allocateCommandBuffer(myCommandPool);
 
-  //
-
+  // Get queue
   myQueue = g_renderer._device.getPresentQueue(0);
 
   // Create Swapchain
-  {
-    _swapchain = _swapchain_factory.createSwapchain(g_renderer._device.getVkDevice(), g_renderer._surface_object->_vk_surface, g_renderer.getPhysicalDeviceObject()->_physical_device, width, height);
-
-    //uint32_t swapchain_image_count = 0;
-    //vkGetSwapchainImagesKHR(g_renderer._device.getVkDevice(), _swapchain->_swapchain, &swapchain_image_count, nullptr);
-    //g_swapchain_images.resize(swapchain_image_count);
-    //vkGetSwapchainImagesKHR(g_renderer._device.getVkDevice(), _swapchain->_swapchain, &swapchain_image_count, g_swapchain_images.data());
-  }
+  _swapchain = _swapchain_factory.createSwapchain(g_renderer._device.getVkDevice(), g_renderer._surface_object->_vk_surface, g_renderer.getPhysicalDeviceObject()->_physical_device, width, height);
 
   // Create Swapchain image view
   {
-    g_swapchain_image_views.clear();
-    g_swapchain_image_views.reserve(_swapchain->_swapchain_image_count);
-
+    _swapchain_image_views.reserve(_swapchain->_swapchain_image_count);
     for (auto image : _swapchain->_swapchain_images) {
-      VkImageViewCreateInfo color_image_view = {};
-      color_image_view.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-      color_image_view.viewType = VK_IMAGE_VIEW_TYPE_2D;
-      color_image_view.format = image->_vk_format;
-      color_image_view.subresourceRange = vk::ImageSubresourceRange(vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1);
-      color_image_view.image = image->_vk_image;
-
-      g_swapchain_image_views.push_back(g_renderer._device.createImageView(color_image_view));
+      VkImageSubresourceRange subresource_range = { VkImageAspectFlagBits::VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
+      _swapchain_image_views.push_back(_image_view_factory.createImageView(g_renderer._device.getVkDevice(), image, subresource_range));
     }
   }
 
   // Create Depth image
-  {
-    _depth_image = _image_factory.createImage(
-      g_renderer._device.getVkDevice(),
-      VK_FORMAT_D16_UNORM,
-      VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-      width,
-      height);
-  }
+  _depth_image = _image_factory.createImage(
+    g_renderer._device.getVkDevice(),
+    VK_FORMAT_D16_UNORM,
+    VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+    width,
+    height);
 
   // Allocate depth memory
   {
@@ -429,7 +413,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
   g_frame_buffers.reserve(_swapchain->_swapchain_image_count);
 
   for (uint32_t i = 0; i < _swapchain->_swapchain_image_count; i++) {
-    attachments[0] = g_swapchain_image_views[i];
+    attachments[0] = _swapchain_image_views[i]->_vk_image_view;
     g_frame_buffers.push_back(g_renderer._device.createFramebuffer(frame_buffer_info));
   }
 
@@ -861,10 +845,10 @@ void uninitVulkan() {
 
   g_renderer._device.destroyCommandPool(myCommandPool);
 
-  for (auto image_view : g_swapchain_image_views) {
-    g_renderer._device.destroyImageView(image_view);
-  }
-  g_swapchain_image_views.clear();
+  for (auto& image_view : _swapchain_image_views) {
+    _image_view_factory.destroyImageView(g_renderer._device.getVkDevice(), image_view);
+  } 
+  _swapchain_image_views.clear();
 
   _swapchain_factory.destroySwapchain(g_renderer._device.getVkDevice(), _swapchain);
 

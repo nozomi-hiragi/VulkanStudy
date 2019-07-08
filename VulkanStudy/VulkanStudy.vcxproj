@@ -98,6 +98,8 @@
     <ClInclude Include="Device.h" />
     <ClInclude Include="ImageObject.h" />
     <ClInclude Include="ImageFactory.h" />
+    <ClInclude Include="ImageViewFactory.h" />
+    <ClInclude Include="ImageViewObject.h" />
     <ClInclude Include="InstanceFactory.h" />
     <ClInclude Include="InstanceObject.h" />
     <ClInclude Include="PhysicalDeviceFactory.h" />
