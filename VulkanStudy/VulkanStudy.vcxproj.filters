@@ -119,5 +119,11 @@
     <ClInclude Include="DeviceMemoryFactory.h">
       <Filter>header</Filter>
     </ClInclude>
+    <ClInclude Include="BufferObject.h">
+      <Filter>header</Filter>
+    </ClInclude>
+    <ClInclude Include="BufferFactory.h">
+      <Filter>header</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

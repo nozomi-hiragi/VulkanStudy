@@ -17,6 +17,7 @@
 #include "ImageFactory.h"
 #include "ImageViewFactory.h"
 #include "DeviceMemoryFactory.h"
+#include "BufferFactory.h"
 
 #include "Renderer.h"
 #include "Device.h"
@@ -35,6 +36,7 @@ SwapchainFactory _swapchain_factory;
 ImageFactory _image_factory;
 ImageViewFactory _image_view_factory;
 DeviceMemoryFactory _device_memory_factory;
+BufferFactory _buffer_factory;
 
 std::shared_ptr<InstanceObject> _instance_object;
 std::shared_ptr<PhysicalDeviceObject> _physical_device_object;
@@ -46,12 +48,13 @@ std::shared_ptr<ImageViewObject> _depth_image_view;
 std::shared_ptr<DeviceMemoryObject> _depth_memory;
 std::shared_ptr<DeviceMemoryObject> _uniform_memory;
 std::shared_ptr<DeviceMemoryObject> _vertex_memory;
+std::shared_ptr<BufferObject> _uniform_buffer;
+std::shared_ptr<BufferObject> _vertex_buffer;
 
 Device _device;
 CommandPool myCommandPool;
 CommandBuffer myCommandBuffer;
 Queue myQueue;
-vk::Buffer g_uniform_buffer = nullptr;
 vk::MemoryRequirements g_uniform_buffer_memory_requirements;
 vk::DescriptorSetLayout g_descriptor_set_layout = nullptr;
 vk::PipelineLayout g_pipeline_layout = nullptr;
@@ -61,7 +64,6 @@ vk::RenderPass g_render_pass = nullptr;
 vk::ShaderModule g_vs = nullptr;
 vk::ShaderModule g_ps = nullptr;
 std::vector<vk::Framebuffer> g_frame_buffers;
-vk::Buffer g_vertex_buffer = nullptr;
 std::vector<vk::Semaphore> g_image_semaphores;
 vk::Pipeline g_pipeline = nullptr;
 vk::Fence g_fence;
@@ -169,12 +171,12 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
       .setSize(sizeof(g_mvp))
       .setUsage(vk::BufferUsageFlagBits::eUniformBuffer);
 
-    g_uniform_buffer = _device.createBuffer(uniform_buffer_info);
+    _uniform_buffer = _buffer_factory.createBuffer(_device.getVkDevice(), sizeof(g_mvp), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
   }
 
   // Allocate uniform memory
   {
-    g_uniform_buffer_memory_requirements = _device.getBufferMemoryRequirements(g_uniform_buffer);
+    g_uniform_buffer_memory_requirements = _device.getBufferMemoryRequirements(_uniform_buffer->_vk_buffer);
     auto memory_type_index = _physical_device_object->findProperties(g_uniform_buffer_memory_requirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
     _uniform_memory = _device_memory_factory.createDeviceMemory(_device.getVkDevice(), g_uniform_buffer_memory_requirements.size, memory_type_index);
   }
@@ -190,7 +192,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
 
   // Bind memory to buffer
   {
-    _device.bindBufferMemory(g_uniform_buffer, _uniform_memory->_vk_device_memory, 0);
+    _device.bindBufferMemory(_uniform_buffer->_vk_buffer, _uniform_memory->_vk_device_memory, 0);
   }
 
   // Create descriptor set layout
@@ -254,7 +256,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
   auto descriptor_buffer_info = vk::DescriptorBufferInfo()
     .setOffset(0)
     .setRange(sizeof(g_mvp))//VK_WHOLE_SIZE??
-    .setBuffer(g_uniform_buffer);
+    .setBuffer(_uniform_buffer->_vk_buffer);
 
   vk::WriteDescriptorSet write_descriptor_sets[] = {
     vk::WriteDescriptorSet()
@@ -394,11 +396,11 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
     .setSize(sizeof(poly))
     .setSharingMode(vk::SharingMode::eExclusive);
 
-  g_vertex_buffer = _device.createBuffer(vertex_buffer_info);
+  _vertex_buffer = _buffer_factory.createBuffer(_device.getVkDevice(), sizeof(poly), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
 
   // Allocate vertex buffer memory
 
-  auto vertex_buffer_memory_requirements = _device.getBufferMemoryRequirements(g_vertex_buffer);
+  auto vertex_buffer_memory_requirements = _device.getBufferMemoryRequirements(_vertex_buffer->_vk_buffer);
   auto memory_type_bits = vertex_buffer_memory_requirements.memoryTypeBits;
   auto memory_property_bits = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
   auto memory_type_index = _physical_device_object->findProperties(memory_type_bits, memory_property_bits);
@@ -413,7 +415,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
 
   _device.unmapMemory(_vertex_memory->_vk_device_memory);
 
-  _device.bindBufferMemory(g_vertex_buffer, _vertex_memory->_vk_device_memory, 0);
+  _device.bindBufferMemory(_vertex_buffer->_vk_buffer, _vertex_memory->_vk_device_memory, 0);
 
   // Description
 
@@ -564,7 +566,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
   // Bind vertex buffer
 
   vk::DeviceSize vertex_offset = 0;
-  myCommandBuffer.bindVertexBuffers(0, g_vertex_buffer, vertex_offset);
+  myCommandBuffer.bindVertexBuffers(0, _vertex_buffer->_vk_buffer, vertex_offset);
 
   //
 
@@ -677,7 +679,7 @@ void updateVulkan() {
   myCommandBuffer.aaa().pushConstants(g_pipeline_layout, vk::ShaderStageFlagBits::eVertex, 0, sizeof(g_mvp), &g_mvp);
 
   vk::DeviceSize vertex_offset = 0;
-  myCommandBuffer.bindVertexBuffers(0, g_vertex_buffer, vertex_offset);
+  myCommandBuffer.bindVertexBuffers(0, _vertex_buffer->_vk_buffer, vertex_offset);
 
 
   uint32_t vertex_count = 2 * 3;
@@ -731,10 +733,7 @@ void uninitVulkan() {
 
   _device_memory_factory.destroyDeviceMemory(_device.getVkDevice(), _vertex_memory);
 
-  if (g_vertex_buffer) {
-    _device.destroyBuffer(g_vertex_buffer);
-    g_vertex_buffer = nullptr;
-  }
+  _buffer_factory.destroyBuffer(_device.getVkDevice(), _vertex_buffer);
 
   for (auto frame_buffer : g_frame_buffers) {
     _device.destroyFramebuffer(frame_buffer);
@@ -773,10 +772,7 @@ void uninitVulkan() {
 
   _device_memory_factory.destroyDeviceMemory(_device.getVkDevice(), _uniform_memory);
 
-  if (g_uniform_buffer) {
-    _device.destroyBuffer(g_uniform_buffer);
-    g_uniform_buffer = nullptr;
-  }
+  _buffer_factory.destroyBuffer(_device.getVkDevice(), _uniform_buffer);
 
   _image_view_factory.destroyImageView(_device.getVkDevice(), _depth_image_view);
 
