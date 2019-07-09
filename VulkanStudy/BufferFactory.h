@@ -23,6 +23,12 @@ class BufferFactory {
     vkDestroyBuffer(device, buffer, nullptr);
   }
 
+  static auto _getVkBufferMemoryRequirements(VkDevice device, VkBuffer buffer) {
+    VkMemoryRequirements memory_requirements;
+    vkGetBufferMemoryRequirements(device, buffer, &memory_requirements);
+    return std::move(memory_requirements);
+  }
+
 public:
   BufferFactory() {
   }
@@ -32,8 +38,8 @@ public:
 
   auto createBuffer(VkDevice device, VkDeviceSize size, VkBufferUsageFlags usage) {
     auto vk_buffer = _createVkBuffer(device, size, usage);
-
-    auto object = std::make_shared<BufferObject>(vk_buffer);
+    auto memory_requirements = _getVkBufferMemoryRequirements(device, vk_buffer);
+    auto object = std::make_shared<BufferObject>(vk_buffer, std::move(memory_requirements));
     _container.insert(object);
     return object;
   }

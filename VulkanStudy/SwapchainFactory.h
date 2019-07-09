@@ -86,6 +86,12 @@ class SwapchainFactory {
     vkDestroySwapchainKHR(device, swapchain, nullptr);
   }
 
+  static auto _getVkImageMemoryRequirements(VkDevice device, VkImage image) {
+    VkMemoryRequirements memory_requirements;
+    vkGetImageMemoryRequirements(device, image, &memory_requirements);
+    return std::move(memory_requirements);
+  }
+
 public:
   std::shared_ptr<SwapchainObject> createSwapchain(VkDevice device, VkSurfaceKHR surface, VkPhysicalDevice physical_device, const uint32_t width, const uint32_t height) {
     auto surface_capabilities = _getSurfaceCapabilities(physical_device, surface);
@@ -96,7 +102,8 @@ public:
     std::vector<std::shared_ptr<ImageObject>> swapchain_images;
     swapchain_images.reserve(vk_swapchain_images.size());
     for (auto it : vk_swapchain_images) {
-      swapchain_images.push_back(std::make_shared<ImageObject>(it, surface_format.format));
+      auto memory_requirements = _getVkImageMemoryRequirements(device, it);
+      swapchain_images.push_back(std::make_shared<ImageObject>(it, std::move(memory_requirements), surface_format.format));
     }
 
     auto object = std::make_shared<SwapchainObject>(

@@ -7,7 +7,6 @@
 #include "ImageObject.h"
 
 class ImageFactory {
-public:
   static auto _createVkImage(VkDevice device, VkFormat format, VkImageUsageFlags usage, uint32_t width, uint32_t height) {
     VkImageCreateInfo image_info = {};
     image_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -35,6 +34,13 @@ public:
     vkDestroyImage(device, image, nullptr);
   }
 
+  static auto _getVkImageMemoryRequirements(VkDevice device, VkImage image) {
+    VkMemoryRequirements memory_requirements;
+    vkGetImageMemoryRequirements(device, image, &memory_requirements);
+    return std::move(memory_requirements);
+  }
+
+public:
   ImageFactory() {
   }
 
@@ -43,7 +49,8 @@ public:
 
   auto createImage(VkDevice device, VkFormat format, VkImageUsageFlags usage, uint32_t width, uint32_t height) {
     auto vk_image = _createVkImage(device, format, usage, width, height);
-    auto object = std::make_shared<ImageObject>(vk_image, format);
+    auto memory_requirements = _getVkImageMemoryRequirements(device, vk_image);
+    auto object = std::make_shared<ImageObject>(vk_image, std::move(memory_requirements), format);
     _container.insert(object);
     return object;
   }

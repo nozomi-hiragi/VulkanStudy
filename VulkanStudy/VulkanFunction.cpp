@@ -55,7 +55,6 @@ Device _device;
 CommandPool myCommandPool;
 CommandBuffer myCommandBuffer;
 Queue myQueue;
-vk::MemoryRequirements g_uniform_buffer_memory_requirements;
 vk::DescriptorSetLayout g_descriptor_set_layout = nullptr;
 vk::PipelineLayout g_pipeline_layout = nullptr;
 vk::DescriptorPool g_descriptor_pool = nullptr;
@@ -141,15 +140,12 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
 
   // Allocate depth memory
   {
-    auto depth_image_memory_requirements = _device.getImageMemoryRequirements(_depth_image->_vk_image);
-    auto memory_type_index = _physical_device_object->findProperties(depth_image_memory_requirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    _depth_memory = _device_memory_factory.createDeviceMemory(_device.getVkDevice(), depth_image_memory_requirements.size, memory_type_index);
+    auto memory_type_index = _physical_device_object->findProperties(_depth_image->_memory_requirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    _depth_memory = _device_memory_factory.createDeviceMemory(_device.getVkDevice(), _depth_image->_memory_requirements.size, memory_type_index);
   }
 
   // Bind memory to depth image
-  {
-    _device.bindImageMemory(_depth_image->_vk_image, _depth_memory->_vk_device_memory, 0);
-  }
+  _device.bindImageMemory(_depth_image->_vk_image, _depth_memory->_vk_device_memory, 0);
 
   // Create depth image view
   {
@@ -166,24 +162,17 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
   }
 
   // Create uniform buffer
-  {
-    auto uniform_buffer_info = vk::BufferCreateInfo()
-      .setSize(sizeof(g_mvp))
-      .setUsage(vk::BufferUsageFlagBits::eUniformBuffer);
-
-    _uniform_buffer = _buffer_factory.createBuffer(_device.getVkDevice(), sizeof(g_mvp), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
-  }
+  _uniform_buffer = _buffer_factory.createBuffer(_device.getVkDevice(), sizeof(g_mvp), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
 
   // Allocate uniform memory
   {
-    g_uniform_buffer_memory_requirements = _device.getBufferMemoryRequirements(_uniform_buffer->_vk_buffer);
-    auto memory_type_index = _physical_device_object->findProperties(g_uniform_buffer_memory_requirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-    _uniform_memory = _device_memory_factory.createDeviceMemory(_device.getVkDevice(), g_uniform_buffer_memory_requirements.size, memory_type_index);
+    auto memory_type_index = _physical_device_object->findProperties(_uniform_buffer->_memory_requirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    _uniform_memory = _device_memory_factory.createDeviceMemory(_device.getVkDevice(), _uniform_buffer->_memory_requirements.size, memory_type_index);
   }
 
   // Wrinte to memory
   {
-    auto data = _device.mapMemory(_uniform_memory->_vk_device_memory, 0, g_uniform_buffer_memory_requirements.size);
+    auto data = _device.mapMemory(_uniform_memory->_vk_device_memory, 0, _uniform_buffer->_memory_requirements.size);
 
     memcpy(data, &g_mvp, sizeof(g_mvp));
 
@@ -400,16 +389,15 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
 
   // Allocate vertex buffer memory
 
-  auto vertex_buffer_memory_requirements = _device.getBufferMemoryRequirements(_vertex_buffer->_vk_buffer);
-  auto memory_type_bits = vertex_buffer_memory_requirements.memoryTypeBits;
+  auto memory_type_bits = _vertex_buffer->_memory_requirements.memoryTypeBits;
   auto memory_property_bits = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
   auto memory_type_index = _physical_device_object->findProperties(memory_type_bits, memory_property_bits);
 
-  _vertex_memory = _device_memory_factory.createDeviceMemory(_device.getVkDevice(), vertex_buffer_memory_requirements.size, memory_type_index);
+  _vertex_memory = _device_memory_factory.createDeviceMemory(_device.getVkDevice(), _vertex_buffer->_memory_requirements.size, memory_type_index);
 
   // Store vertex buffer
 
-  auto vertex_map = _device.mapMemory(_vertex_memory->_vk_device_memory, 0, vertex_buffer_memory_requirements.size);
+  auto vertex_map = _device.mapMemory(_vertex_memory->_vk_device_memory, 0, _vertex_buffer->_memory_requirements.size);
 
   memcpy(vertex_map, &poly, sizeof(poly));
 
