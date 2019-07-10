@@ -66,11 +66,11 @@ Device Device::createDevice(std::shared_ptr<PhysicalDeviceObject> physical_devic
 
   VkDevice vk_device;
   vkCreateDevice(physical_device->_physical_device, &device_info, nullptr, &vk_device);
-  auto device = Device(vk_device, present_queue_family_index);
+  auto device = Device(vk_device);
 
   VkQueue vk_queue;
   vkGetDeviceQueue(vk_device, present_queue_family_index, 0, &vk_queue);
-  device._queue = std::make_shared<QueueObject>(vk_queue);
+  device._queue = std::make_shared<QueueObject>(vk_queue, present_queue_family_index);
 
   return device;
 }

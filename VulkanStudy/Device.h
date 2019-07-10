@@ -5,7 +5,6 @@
 
 #include "PhysicalDeviceObject.h"
 #include "QueueObject.h"
-#include "CommandPool.h"
 #include "CommandBuffer.h"
 
 class Device {
@@ -15,9 +14,8 @@ public:
   Device(): _device(nullptr) {
   }
 
-  Device(const vk::Device device, const uint32_t present_queue_family_index) :
-    _device(device),
-    _present_queue_family_index(present_queue_family_index) {
+  Device(const vk::Device device) :
+    _device(device) {
   }
 
   ~Device() {
@@ -36,30 +34,17 @@ public:
   }
 
   // for command buffer
-  CommandPool createPresentQueueCommandPool() {
-    return CommandPool(_device.createCommandPool(vk::CommandPoolCreateInfo()
-      .setQueueFamilyIndex(_present_queue_family_index)
-      .setFlags(vk::CommandPoolCreateFlagBits::eResetCommandBuffer)));
-  }
-
-  void destroyCommandPool(CommandPool& command_pool) {
-    auto vk_command_pool = command_pool.getVkCommandPool();
-    if (!vk_command_pool) { return; }
-    _device.destroyCommandPool(vk_command_pool);
-    command_pool.setVkCommandPool(nullptr);
-  }
-
-  CommandBuffer allocateCommandBuffer(CommandPool& command_pool) {
+  CommandBuffer allocateCommandBuffer(VkCommandPool command_pool) {
     return CommandBuffer(_device.allocateCommandBuffers(vk::CommandBufferAllocateInfo()
-      .setCommandPool(command_pool.getVkCommandPool())
+      .setCommandPool(command_pool)
       .setLevel(vk::CommandBufferLevel::ePrimary)
       .setCommandBufferCount(1))[0]);
   }
 
-  void freeCommandBuffers(CommandPool& command_pool, CommandBuffer command_buffer) {
+  void freeCommandBuffers(VkCommandPool command_pool, CommandBuffer command_buffer) {
     auto vk_command_buffer = command_buffer.getVkCommandBuffer();
     if (!vk_command_buffer) { return; }
-    _device.freeCommandBuffers(command_pool.getVkCommandPool(), vk_command_buffer);
+    _device.freeCommandBuffers(command_pool, vk_command_buffer);
     command_buffer.setVkCommandBuffer(nullptr);
   }
 
@@ -168,6 +153,5 @@ public:
 protected:
 private:
   vk::Device _device;
-  uint32_t _present_queue_family_index;
   std::shared_ptr<QueueObject> _queue;
 };

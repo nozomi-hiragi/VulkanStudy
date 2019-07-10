@@ -62,9 +62,6 @@
     <ClInclude Include="Device.h">
       <Filter>header</Filter>
     </ClInclude>
-    <ClInclude Include="CommandPool.h">
-      <Filter>header</Filter>
-    </ClInclude>
     <ClInclude Include="CommandBuffer.h">
       <Filter>header</Filter>
     </ClInclude>
@@ -129,6 +126,12 @@
       <Filter>header</Filter>
     </ClInclude>
     <ClInclude Include="QueueObject.h">
+      <Filter>header</Filter>
+    </ClInclude>
+    <ClInclude Include="CommandPoolObject.h">
+      <Filter>header</Filter>
+    </ClInclude>
+    <ClInclude Include="CommandPoolFactory.h">
       <Filter>header</Filter>
     </ClInclude>
   </ItemGroup>

@@ -19,11 +19,11 @@
 #include "BufferFactory.h"
 #include "FenceFactory.h"
 #include "SemaphoreFactory.h"
+#include "CommandPoolFactory.h"
 
 #include "Renderer.h"
 #include "Device.h"
 #include "QueueObject.h"
-#include "CommandPool.h"
 #include "CommandBuffer.h"
 
 const char* const APP_NAME = "VulkanStudy";
@@ -39,6 +39,7 @@ DeviceMemoryFactory _device_memory_factory;
 BufferFactory _buffer_factory;
 FenceFactory _fence_factory;
 SemaphoreFactory _semaphore_factory;
+CommandPoolFactory _command_pool_factory;
 
 std::shared_ptr<InstanceObject> _instance_object;
 std::shared_ptr<PhysicalDeviceObject> _physical_device_object;
@@ -55,9 +56,9 @@ std::shared_ptr<BufferObject> _vertex_buffer;
 std::shared_ptr<FenceObject> _fence;
 std::shared_ptr<SemaphoreObject> _image_semaphore;
 std::shared_ptr<QueueObject> _queue;
+std::shared_ptr<CommandPoolObject> _command_pool;
 
 Device _device;
-CommandPool myCommandPool;
 CommandBuffer myCommandBuffer;
 vk::DescriptorSetLayout g_descriptor_set_layout = nullptr;
 vk::PipelineLayout g_pipeline_layout = nullptr;
@@ -111,14 +112,14 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
   // Create Device
   _device = Device::createDevice(_physical_device_object, _surface_object->_vk_surface);
 
-  // Create Command pool
-  myCommandPool = _device.createPresentQueueCommandPool();
-
-  // Create primaly Command buffer
-  myCommandBuffer = _device.allocateCommandBuffer(myCommandPool);
-
   // Get queue
   _queue = _device.getQueue();
+
+  // Create Command pool
+  _command_pool = _command_pool_factory.createCommandPool(_device.getVkDevice(), _queue->_vk_queue_family_index);
+
+  // Create primaly Command buffer
+  myCommandBuffer = _device.allocateCommandBuffer(_command_pool->_vk_command_pool);
 
   // Create Swapchain
   _swapchain = _swapchain_factory.createSwapchain(_device.getVkDevice(), _surface_object->_vk_surface, _physical_device_object->_physical_device, width, height);
@@ -760,9 +761,9 @@ void uninitVulkan() {
 
   _image_factory.destroyImage(_device.getVkDevice(), _depth_image);
 
-  _device.freeCommandBuffers(myCommandPool, myCommandBuffer);
+  _device.freeCommandBuffers(_command_pool->_vk_command_pool, myCommandBuffer);
 
-  _device.destroyCommandPool(myCommandPool);
+  _command_pool_factory.destroyCommandPool(_device.getVkDevice(), _command_pool);
 
   for (auto& image_view : _swapchain_image_views) {
     _image_view_factory.destroyImageView(_device.getVkDevice(), image_view);
