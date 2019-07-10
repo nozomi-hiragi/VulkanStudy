@@ -33,21 +33,6 @@ public:
     return _queue;
   }
 
-  // for command buffer
-  CommandBuffer allocateCommandBuffer(VkCommandPool command_pool) {
-    return CommandBuffer(_device.allocateCommandBuffers(vk::CommandBufferAllocateInfo()
-      .setCommandPool(command_pool)
-      .setLevel(vk::CommandBufferLevel::ePrimary)
-      .setCommandBufferCount(1))[0]);
-  }
-
-  void freeCommandBuffers(VkCommandPool command_pool, CommandBuffer command_buffer) {
-    auto vk_command_buffer = command_buffer.getVkCommandBuffer();
-    if (!vk_command_buffer) { return; }
-    _device.freeCommandBuffers(command_pool, vk_command_buffer);
-    command_buffer.setVkCommandBuffer(nullptr);
-  }
-
   // for fence
   void resetFence(const vk::Fence fence) {
     _device.resetFences(fence);

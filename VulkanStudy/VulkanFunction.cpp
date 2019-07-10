@@ -63,7 +63,7 @@ CommandBuffer myCommandBuffer;
 vk::DescriptorSetLayout g_descriptor_set_layout = nullptr;
 vk::PipelineLayout g_pipeline_layout = nullptr;
 vk::DescriptorPool g_descriptor_pool = nullptr;
-vk::DescriptorSet g_descriptor_set = nullptr;
+VkDescriptorSet g_descriptor_set = nullptr;
 vk::RenderPass g_render_pass = nullptr;
 vk::ShaderModule g_vs = nullptr;
 vk::ShaderModule g_ps = nullptr;
@@ -119,7 +119,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
   _command_pool = _command_pool_factory.createCommandPool(_device.getVkDevice(), _queue->_vk_queue_family_index);
 
   // Create primaly Command buffer
-  myCommandBuffer = _device.allocateCommandBuffer(_command_pool->_vk_command_pool);
+  myCommandBuffer = _command_pool->allocateCommandBuffer(_device.getVkDevice());
 
   // Create Swapchain
   _swapchain = _swapchain_factory.createSwapchain(_device.getVkDevice(), _surface_object->_vk_surface, _physical_device_object->_physical_device, width, height);
@@ -534,16 +534,16 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
     .setClearValueCount(2)
     .setPClearValues(clear_values);
 
-  myCommandBuffer.beginRenderPass(render_begin_info, vk::SubpassContents::eInline);
+  myCommandBuffer.beginRenderPass(render_begin_info, VK_SUBPASS_CONTENTS_INLINE);
 
   //
 
-  myCommandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, g_pipeline);
+  myCommandBuffer.bindPipeline(VK_PIPELINE_BIND_POINT_GRAPHICS, g_pipeline);
 
   //
 
   uint32_t ofst = 0;
-  myCommandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, g_pipeline_layout, 0, 1, &g_descriptor_set, 1, &ofst);
+  myCommandBuffer.bindDescriptorSets(VK_PIPELINE_BIND_POINT_GRAPHICS, g_pipeline_layout, 0, 1, &g_descriptor_set, 1, &ofst);
 
   //
 
@@ -614,7 +614,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
   vkQueuePresentKHR(_queue->_vk_queue, &present_info);
 
 }
-float a = -10;
+float a = 0;
 void updateVulkan() {
 
 
@@ -638,14 +638,14 @@ void updateVulkan() {
     .setClearValueCount(2)
     .setPClearValues(clear_values);
 
-  myCommandBuffer.beginRenderPass(render_begin_info, vk::SubpassContents::eInline);
+  myCommandBuffer.beginRenderPass(render_begin_info, VK_SUBPASS_CONTENTS_INLINE);
 
   // ~~~
 
-  myCommandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, g_pipeline);
+  myCommandBuffer.bindPipeline(VK_PIPELINE_BIND_POINT_GRAPHICS, g_pipeline);
 
   uint32_t ofst = 0;
-  myCommandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, g_pipeline_layout, 0, 1, &g_descriptor_set, 1, &ofst);
+  myCommandBuffer.bindDescriptorSets(VK_PIPELINE_BIND_POINT_GRAPHICS, g_pipeline_layout, 0, 1, &g_descriptor_set, 1, &ofst);
 
   auto viewport = vk::Viewport()
     .setWidth((float)_width)
@@ -662,7 +662,8 @@ void updateVulkan() {
   a+=0.01f;
   model = glm::translate(glm::mat4(1), glm::vec3(a, 0, 0));
   g_mvp = projection * view * model;
-  myCommandBuffer.aaa().pushConstants(g_pipeline_layout, vk::ShaderStageFlagBits::eVertex, 0, sizeof(g_mvp), &g_mvp);
+ 
+  vkCmdPushConstants(myCommandBuffer.getVkCommandBuffer(), g_pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(g_mvp), &g_mvp);
 
   vk::DeviceSize vertex_offset = 0;
   myCommandBuffer.bindVertexBuffers(0, _vertex_buffer->_vk_buffer, vertex_offset);
@@ -761,7 +762,7 @@ void uninitVulkan() {
 
   _image_factory.destroyImage(_device.getVkDevice(), _depth_image);
 
-  _device.freeCommandBuffers(_command_pool->_vk_command_pool, myCommandBuffer);
+  _command_pool->freeCommandBuffers(_device.getVkDevice(), myCommandBuffer);
 
   _command_pool_factory.destroyCommandPool(_device.getVkDevice(), _command_pool);
 
