@@ -3,11 +3,12 @@
 #include <memory>
 #include <set>
 
-template<class Object, class Params>
+template<class Object, class Parent, class... Params>
 class AbstractFactory {
 public:
-  auto createObject(const Params& params) {
-    auto object = _createCore(params);
+  auto createObject(const std::shared_ptr<Parent> parent, const Params&... params) {
+    _parent = parent;
+    auto object = _createCore(params...);
     _container.insert(object);
     return object;
   }
@@ -25,8 +26,10 @@ public:
   }
 
 protected:
-  virtual std::shared_ptr<Object> _createCore(const Params&) = 0;
+  virtual std::shared_ptr<Object> _createCore(const Params...) = 0;
   virtual void _destroyCore(std::shared_ptr<Object>) = 0;
+
+  std::shared_ptr<Parent> _parent;
 private:
   std::set<std::shared_ptr<Object>> _container;
 };

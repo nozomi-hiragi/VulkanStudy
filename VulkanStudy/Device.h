@@ -5,7 +5,6 @@
 
 #include "PhysicalDeviceObject.h"
 #include "QueueObject.h"
-#include "CommandBuffer.h"
 
 class Device {
 public:

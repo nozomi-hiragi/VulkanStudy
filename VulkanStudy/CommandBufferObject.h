@@ -2,23 +2,13 @@
 
 #include <vulkan/vulkan.hpp>
 
-class CommandBuffer {
+class CommandBufferObject {
 public:
-  CommandBuffer(): _vk_command_buffer(nullptr) {
+  CommandBufferObject(const VkCommandBuffer command_buffer):
+    _vk_command_buffer(command_buffer) {
   }
 
-  CommandBuffer(const VkCommandBuffer command_buffer) : _vk_command_buffer(command_buffer) {
-  }
-
-  ~CommandBuffer() {
-  }
-
-  VkCommandBuffer getVkCommandBuffer() {
-    return _vk_command_buffer;
-  }
-
-  void setVkCommandBuffer(VkCommandBuffer command_buffer) {
-    _vk_command_buffer = command_buffer;
+  ~CommandBufferObject() {
   }
 
   void begin() {
@@ -64,7 +54,7 @@ public:
     vkCmdDraw(_vk_command_buffer, vertex_count, instance_count, first_vertex, first_instance);
   }
 
+  const VkCommandBuffer _vk_command_buffer;
 protected:
 private:
-  VkCommandBuffer _vk_command_buffer;
 };

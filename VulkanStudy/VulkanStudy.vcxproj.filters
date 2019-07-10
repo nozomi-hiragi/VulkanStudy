@@ -62,9 +62,6 @@
     <ClInclude Include="Device.h">
       <Filter>header</Filter>
     </ClInclude>
-    <ClInclude Include="CommandBuffer.h">
-      <Filter>header</Filter>
-    </ClInclude>
     <ClInclude Include="Renderer.h">
       <Filter>header</Filter>
     </ClInclude>
@@ -135,6 +132,9 @@
       <Filter>header</Filter>
     </ClInclude>
     <ClInclude Include="AbstractFactory.h">
+      <Filter>header</Filter>
+    </ClInclude>
+    <ClInclude Include="CommandBufferObject.h">
       <Filter>header</Filter>
     </ClInclude>
   </ItemGroup>

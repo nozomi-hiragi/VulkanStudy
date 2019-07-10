@@ -94,7 +94,7 @@
   <ItemGroup>
     <ClInclude Include="BufferFactory.h" />
     <ClInclude Include="BufferObject.h" />
-    <ClInclude Include="CommandBuffer.h" />
+    <ClInclude Include="CommandBufferObject.h" />
     <ClInclude Include="CommandPoolFactory.h" />
     <ClInclude Include="CommandPoolObject.h" />
     <ClInclude Include="Device.h" />

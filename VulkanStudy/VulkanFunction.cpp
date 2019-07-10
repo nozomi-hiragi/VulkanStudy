@@ -20,11 +20,11 @@
 #include "FenceFactory.h"
 #include "SemaphoreFactory.h"
 #include "CommandPoolFactory.h"
+#include "CommandBufferObject.h"
 
 #include "Renderer.h"
 #include "Device.h"
 #include "QueueObject.h"
-#include "CommandBuffer.h"
 
 const char* const APP_NAME = "VulkanStudy";
 const uint32_t APP_VERSION = 0;
@@ -57,9 +57,9 @@ std::shared_ptr<FenceObject> _fence;
 std::shared_ptr<SemaphoreObject> _image_semaphore;
 std::shared_ptr<QueueObject> _queue;
 std::shared_ptr<CommandPoolObject> _command_pool;
+std::shared_ptr<CommandBufferObject> _command_buffer;
 
 Device _device;
-CommandBuffer myCommandBuffer;
 vk::DescriptorSetLayout g_descriptor_set_layout = nullptr;
 vk::PipelineLayout g_pipeline_layout = nullptr;
 vk::DescriptorPool g_descriptor_pool = nullptr;
@@ -100,13 +100,13 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
   _height = height;
 
   // init
-  _instance_object = _instance_factory.createObject(InstanceParams(APP_NAME, APP_VERSION));
+  _instance_object = _instance_factory.createObject(nullptr, APP_NAME, APP_VERSION);
 
   _physical_device_object = _instance_object->_physical_devices[PRIMALY_PHYSICAL_DEVICE_INDEX];
 
   // Create Surface
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
-  _surface_object = _surface_factory.createSurface(_instance_object, hinstance, hwnd);
+  _surface_object = _surface_factory.createObject(_instance_object, hinstance, hwnd);
 #endif
 
   // Create Device
@@ -119,7 +119,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
   _command_pool = _command_pool_factory.createCommandPool(_device.getVkDevice(), _queue->_vk_queue_family_index);
 
   // Create primaly Command buffer
-  myCommandBuffer = _command_pool->allocateCommandBuffer(_device.getVkDevice());
+  _command_buffer = _command_pool->allocateCommandBuffer(_device.getVkDevice());
 
   // Create Swapchain
   _swapchain = _swapchain_factory.createSwapchain(_device.getVkDevice(), _surface_object->_vk_surface, _physical_device_object->_physical_device, width, height);
@@ -518,7 +518,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
 
   // Begin command
 
-  myCommandBuffer.begin();
+  _command_buffer->begin();
 
   // Begin render pass
 
@@ -534,16 +534,16 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
     .setClearValueCount(2)
     .setPClearValues(clear_values);
 
-  myCommandBuffer.beginRenderPass(render_begin_info, VK_SUBPASS_CONTENTS_INLINE);
+  _command_buffer->beginRenderPass(render_begin_info, VK_SUBPASS_CONTENTS_INLINE);
 
   //
 
-  myCommandBuffer.bindPipeline(VK_PIPELINE_BIND_POINT_GRAPHICS, g_pipeline);
+  _command_buffer->bindPipeline(VK_PIPELINE_BIND_POINT_GRAPHICS, g_pipeline);
 
   //
 
   uint32_t ofst = 0;
-  myCommandBuffer.bindDescriptorSets(VK_PIPELINE_BIND_POINT_GRAPHICS, g_pipeline_layout, 0, 1, &g_descriptor_set, 1, &ofst);
+  _command_buffer->bindDescriptorSets(VK_PIPELINE_BIND_POINT_GRAPHICS, g_pipeline_layout, 0, 1, &g_descriptor_set, 1, &ofst);
 
   //
 
@@ -553,7 +553,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
   // Bind vertex buffer
 
   vk::DeviceSize vertex_offset = 0;
-  myCommandBuffer.bindVertexBuffers(0, _vertex_buffer->_vk_buffer, vertex_offset);
+  _command_buffer->bindVertexBuffers(0, _vertex_buffer->_vk_buffer, vertex_offset);
 
   //
 
@@ -566,15 +566,15 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
   uint32_t first_vertex = 0;
   uint32_t first_instance = 0;
 
-  myCommandBuffer.draw(vertex_count, instance_count, first_vertex, first_instance);
+  _command_buffer->draw(vertex_count, instance_count, first_vertex, first_instance);
 
   // End render pass
 
-  myCommandBuffer.endRenderPass();
+  _command_buffer->endRenderPass();
 
   // End command
 
-  myCommandBuffer.end();
+  _command_buffer->end();
 
   //
   _fence = _fence_factory.createFence(_device.getVkDevice());
@@ -582,7 +582,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
   //
 
   VkPipelineStageFlags pipe_stage_flags = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-  VkCommandBuffer command_buffers[] = { myCommandBuffer.getVkCommandBuffer() };
+  VkCommandBuffer command_buffers[] = { _command_buffer->_vk_command_buffer };
   VkSubmitInfo submit_info = {};
   submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
   submit_info.commandBufferCount = 1;
@@ -624,7 +624,7 @@ void updateVulkan() {
   _device.resetFence(_fence->_vk_fence);
 
 
-  myCommandBuffer.begin();
+  _command_buffer->begin();
 
   vk::ClearValue clear_values[2] = {
     vk::ClearColorValue(std::array<float, 4>({{0.2f, 0.2f, 0.2f, 0.2f}})),
@@ -638,14 +638,14 @@ void updateVulkan() {
     .setClearValueCount(2)
     .setPClearValues(clear_values);
 
-  myCommandBuffer.beginRenderPass(render_begin_info, VK_SUBPASS_CONTENTS_INLINE);
+  _command_buffer->beginRenderPass(render_begin_info, VK_SUBPASS_CONTENTS_INLINE);
 
   // ~~~
 
-  myCommandBuffer.bindPipeline(VK_PIPELINE_BIND_POINT_GRAPHICS, g_pipeline);
+  _command_buffer->bindPipeline(VK_PIPELINE_BIND_POINT_GRAPHICS, g_pipeline);
 
   uint32_t ofst = 0;
-  myCommandBuffer.bindDescriptorSets(VK_PIPELINE_BIND_POINT_GRAPHICS, g_pipeline_layout, 0, 1, &g_descriptor_set, 1, &ofst);
+  _command_buffer->bindDescriptorSets(VK_PIPELINE_BIND_POINT_GRAPHICS, g_pipeline_layout, 0, 1, &g_descriptor_set, 1, &ofst);
 
   auto viewport = vk::Viewport()
     .setWidth((float)_width)
@@ -663,10 +663,10 @@ void updateVulkan() {
   model = glm::translate(glm::mat4(1), glm::vec3(a, 0, 0));
   g_mvp = projection * view * model;
  
-  vkCmdPushConstants(myCommandBuffer.getVkCommandBuffer(), g_pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(g_mvp), &g_mvp);
+  vkCmdPushConstants(_command_buffer->_vk_command_buffer, g_pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(g_mvp), &g_mvp);
 
   vk::DeviceSize vertex_offset = 0;
-  myCommandBuffer.bindVertexBuffers(0, _vertex_buffer->_vk_buffer, vertex_offset);
+  _command_buffer->bindVertexBuffers(0, _vertex_buffer->_vk_buffer, vertex_offset);
 
 
   uint32_t vertex_count = 2 * 3;
@@ -674,15 +674,15 @@ void updateVulkan() {
   uint32_t first_vertex = 0;
   uint32_t first_instance = 0;
 
-  myCommandBuffer.draw(vertex_count, instance_count, first_vertex, first_instance);
+  _command_buffer->draw(vertex_count, instance_count, first_vertex, first_instance);
   // ~~~~
 
-  myCommandBuffer.endRenderPass();
+  _command_buffer->endRenderPass();
 
-  myCommandBuffer.end();
+  _command_buffer->end();
 
   VkPipelineStageFlags pipe_stage_flags = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-  VkCommandBuffer command_buffers[] = { myCommandBuffer.getVkCommandBuffer() };
+  VkCommandBuffer command_buffers[] = { _command_buffer->_vk_command_buffer };
   VkSubmitInfo submit_info = {};
   submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
   submit_info.commandBufferCount = 1;
@@ -762,7 +762,7 @@ void uninitVulkan() {
 
   _image_factory.destroyImage(_device.getVkDevice(), _depth_image);
 
-  _command_pool->freeCommandBuffers(_device.getVkDevice(), myCommandBuffer);
+  _command_pool->freeCommandBuffers(_device.getVkDevice(), _command_buffer);
 
   _command_pool_factory.destroyCommandPool(_device.getVkDevice(), _command_pool);
 
@@ -775,7 +775,7 @@ void uninitVulkan() {
 
   _device.destroy();
 
-  _surface_factory.destroySurface(_instance_object, _surface_object);
+  _surface_factory.destroyObject(_surface_object);
 
   _instance_factory.destroyObject(_instance_object);
 }

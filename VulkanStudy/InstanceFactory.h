@@ -8,13 +8,7 @@
 #include "instanceObject.h"
 #include "PhysicalDeviceObject.h"
 
-struct InstanceParams {
-  InstanceParams(const char* app_name, const uint32_t app_version) : app_name(app_name), app_version(app_version) {}
-  const char* app_name;
-  const uint32_t app_version;
-};
-
-class InstanceFactory : public AbstractFactory<InstanceObject, InstanceParams> {
+class InstanceFactory : public AbstractFactory<InstanceObject, void, const char*, const uint32_t> {
 public:
   InstanceFactory() {
   }
@@ -39,8 +33,8 @@ private:
     return std::move(physical_devices);
   }
 
-  std::shared_ptr<InstanceObject> _createCore(const InstanceParams& params) {
-    auto vk_instance = _createVkInstance(params.app_name, params.app_version);
+  std::shared_ptr<InstanceObject> _createCore(const char* app_name, const uint32_t app_version) {
+    auto vk_instance = _createVkInstance(app_name, app_version);
     auto vk_physical_devices = _getVkPhysicalDevices(vk_instance);
 
     std::vector<std::shared_ptr<PhysicalDeviceObject>> devices;
