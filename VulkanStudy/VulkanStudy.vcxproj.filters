@@ -125,5 +125,11 @@
     <ClInclude Include="BufferFactory.h">
       <Filter>header</Filter>
     </ClInclude>
+    <ClInclude Include="FenceObject.h">
+      <Filter>header</Filter>
+    </ClInclude>
+    <ClInclude Include="FenceFactory.h">
+      <Filter>header</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

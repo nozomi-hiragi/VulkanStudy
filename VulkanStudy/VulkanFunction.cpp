@@ -18,6 +18,7 @@
 #include "ImageViewFactory.h"
 #include "DeviceMemoryFactory.h"
 #include "BufferFactory.h"
+#include "FenceFactory.h"
 
 #include "Renderer.h"
 #include "Device.h"
@@ -37,6 +38,7 @@ ImageFactory _image_factory;
 ImageViewFactory _image_view_factory;
 DeviceMemoryFactory _device_memory_factory;
 BufferFactory _buffer_factory;
+FenceFactory _fence_factory;
 
 std::shared_ptr<InstanceObject> _instance_object;
 std::shared_ptr<PhysicalDeviceObject> _physical_device_object;
@@ -50,6 +52,7 @@ std::shared_ptr<DeviceMemoryObject> _uniform_memory;
 std::shared_ptr<DeviceMemoryObject> _vertex_memory;
 std::shared_ptr<BufferObject> _uniform_buffer;
 std::shared_ptr<BufferObject> _vertex_buffer;
+std::shared_ptr<FenceObject> _fence;
 
 Device _device;
 CommandPool myCommandPool;
@@ -65,7 +68,6 @@ vk::ShaderModule g_ps = nullptr;
 std::vector<vk::Framebuffer> g_frame_buffers;
 std::vector<vk::Semaphore> g_image_semaphores;
 vk::Pipeline g_pipeline = nullptr;
-vk::Fence g_fence;
 
 uint32_t g_current_buffer = 0;
 
@@ -578,10 +580,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
   myCommandBuffer.end();
 
   //
-
-  auto fence_info = vk::FenceCreateInfo();
-
-  g_fence = _device.createFence(fence_info);
+  _fence = _fence_factory.createFence(_device.getVkDevice());
 
   //
 
@@ -595,15 +594,15 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
     .setPWaitSemaphores(&g_image_semaphores[0])
     .setPWaitDstStageMask(&pipe_stage_flags);
 
-  myQueue.submit(submit_info, g_fence);
+  myQueue.submit(submit_info, _fence->_vk_fence);
 
   //
 
-  vk::Result res;
+  VkResult res;
 
   do {
-    res = _device.waitForFences(1, &g_fence, true, UINT64_MAX);
-  } while (res == vk::Result::eTimeout);
+    res = FenceObject::vkWaitForFence(_device.getVkDevice(), _fence->_vk_fence, UINT64_MAX);
+  } while (res == VK_TIMEOUT);
 
   //
 
@@ -622,8 +621,8 @@ void updateVulkan() {
 
   _device.acquireNextImage(_swapchain->_vk_swapchain, UINT64_MAX, g_image_semaphores[0], nullptr, &g_current_buffer);
 
-  _device.waitForFences(1, &g_fence, true, UINT64_MAX);
-  _device.resetFence(g_fence);
+  FenceObject::vkWaitForFence(_device.getVkDevice(), _fence->_vk_fence, UINT64_MAX);
+  _device.resetFence(_fence->_vk_fence);
 
 
   myCommandBuffer.begin();
@@ -691,7 +690,7 @@ void updateVulkan() {
     .setWaitSemaphoreCount(1)
     .setPWaitSemaphores(&g_image_semaphores[0])
     .setPWaitDstStageMask(&pipe_stage_flags);
-  myQueue.submit(submit_info, g_fence);
+  myQueue.submit(submit_info, _fence->_vk_fence);
 
   VkPresentInfoKHR present_info = {};
   present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -704,10 +703,7 @@ void updateVulkan() {
 
 void uninitVulkan() {
 
-  if (g_fence) {
-    _device.waitForFences(1, &g_fence, true, UINT64_MAX);
-    _device.destroyFence(g_fence);
-  }
+  _fence_factory.destroyFence(_device.getVkDevice(), _fence);
 
   if (g_pipeline) {
     _device.destroyPipeline(g_pipeline);

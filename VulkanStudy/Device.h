@@ -72,8 +72,8 @@ public:
     _device.destroyFence(fence);
   }
 
-  vk::Result waitForFences(const uint32_t count, const vk::Fence* fences, const bool wait_all, const uint64_t timeout) {
-    return _device.waitForFences(count, fences, wait_all ? VK_TRUE : VK_FALSE, timeout);
+  VkResult waitForFences(const uint32_t count, const VkFence* fences, const bool wait_all, const uint64_t timeout) {
+        return vkWaitForFences(_device, count, fences, wait_all ? VK_TRUE : VK_FALSE, timeout);
   }
 
   void resetFence(const vk::Fence fence) {
