@@ -1,8 +1,6 @@
 
 #include "Device.h"
 
-#include "PhysicalDeviceObject.h"
-
 Device Device::createDevice(std::shared_ptr<PhysicalDeviceObject> physical_device, VkSurfaceKHR surface) {
 
   auto get_surface_support = [](VkPhysicalDevice physical_device, const uint32_t index, VkSurfaceKHR surface) {

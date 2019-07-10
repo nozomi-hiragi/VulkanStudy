@@ -23,7 +23,7 @@
 
 #include "Renderer.h"
 #include "Device.h"
-#include "Queue.h"
+#include "QueueObject.h"
 #include "CommandPool.h"
 #include "CommandBuffer.h"
 
@@ -56,11 +56,11 @@ std::shared_ptr<BufferObject> _uniform_buffer;
 std::shared_ptr<BufferObject> _vertex_buffer;
 std::shared_ptr<FenceObject> _fence;
 std::shared_ptr<SemaphoreObject> _image_semaphore;
+std::shared_ptr<QueueObject> _queue;
 
 Device _device;
 CommandPool myCommandPool;
 CommandBuffer myCommandBuffer;
-Queue myQueue;
 vk::DescriptorSetLayout g_descriptor_set_layout = nullptr;
 vk::PipelineLayout g_pipeline_layout = nullptr;
 vk::DescriptorPool g_descriptor_pool = nullptr;
@@ -120,7 +120,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
   myCommandBuffer = _device.allocateCommandBuffer(myCommandPool);
 
   // Get queue
-  myQueue = _device.getPresentQueue(0);
+  _queue = _device.getPresentQueue(0);
 
   // Create Swapchain
   _swapchain = _swapchain_factory.createSwapchain(_device.getVkDevice(), _surface_object->_vk_surface, _physical_device_object->_physical_device, width, height);
@@ -593,7 +593,8 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
   submit_info.pWaitSemaphores = &_image_semaphore->_vk_semaphore;
   submit_info.pWaitDstStageMask = &pipe_stage_flags;
 
-  myQueue.submit(submit_info, _fence->_vk_fence);
+
+  vkQueueSubmit(_queue->_vk_queue, 1, &submit_info, _fence->_vk_fence);
 
   //
 
@@ -611,7 +612,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
   present_info.pSwapchains = &_swapchain->_vk_swapchain;
   present_info.pImageIndices = &g_current_buffer;
 
-  myQueue.present(present_info);
+  vkQueuePresentKHR(_queue->_vk_queue, &present_info);
 
 }
 float a = -10;
@@ -690,7 +691,7 @@ void updateVulkan() {
   submit_info.waitSemaphoreCount = 1;
   submit_info.pWaitSemaphores = &_image_semaphore->_vk_semaphore;
   submit_info.pWaitDstStageMask = &pipe_stage_flags;
-  myQueue.submit(submit_info, _fence->_vk_fence);
+  vkQueueSubmit(_queue->_vk_queue, 1, &submit_info, _fence->_vk_fence);
 
   VkPresentInfoKHR present_info = {};
   present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -698,7 +699,7 @@ void updateVulkan() {
   present_info.pSwapchains = &_swapchain->_vk_swapchain;
   present_info.pImageIndices = &g_current_buffer;
 
-  myQueue.present(present_info);
+  vkQueuePresentKHR(_queue->_vk_queue, &present_info);
 }
 
 void uninitVulkan() {

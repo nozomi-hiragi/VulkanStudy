@@ -1,12 +1,12 @@
 #pragma once
 
 #include <vulkan/vulkan.hpp>
+#include <memory>
 
-#include "Queue.h"
+#include "PhysicalDeviceObject.h"
+#include "QueueObject.h"
 #include "CommandPool.h"
 #include "CommandBuffer.h"
-
-class PhysicalDeviceObject;
 
 class Device {
 public:
@@ -31,8 +31,9 @@ public:
   }
 
   // for queue
-  Queue getPresentQueue(const uint32_t queue_index) {
-    return Queue(_device.getQueue(_present_queue_family_index, queue_index));
+  auto getPresentQueue(const uint32_t queue_index) {
+    auto vk_queue = _device.getQueue(_present_queue_family_index, queue_index);
+    return std::make_shared<QueueObject>(vk_queue);
   }
 
   // for command buffer

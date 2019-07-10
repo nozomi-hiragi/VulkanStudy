@@ -65,9 +65,6 @@
     <ClInclude Include="Device.h">
       <Filter>header</Filter>
     </ClInclude>
-    <ClInclude Include="Queue.h">
-      <Filter>header</Filter>
-    </ClInclude>
     <ClInclude Include="CommandPool.h">
       <Filter>header</Filter>
     </ClInclude>
@@ -135,6 +132,9 @@
       <Filter>header</Filter>
     </ClInclude>
     <ClInclude Include="SemaphoreFactory.h">
+      <Filter>header</Filter>
+    </ClInclude>
+    <ClInclude Include="QueueObject.h">
       <Filter>header</Filter>
     </ClInclude>
   </ItemGroup>
