@@ -101,9 +101,6 @@
     <ClInclude Include="SwapchainFactory.h">
       <Filter>header</Filter>
     </ClInclude>
-    <ClInclude Include="ImageObject.h">
-      <Filter>header</Filter>
-    </ClInclude>
     <ClInclude Include="ImageFactory.h">
       <Filter>header</Filter>
     </ClInclude>
@@ -129,6 +126,15 @@
       <Filter>header</Filter>
     </ClInclude>
     <ClInclude Include="FenceFactory.h">
+      <Filter>header</Filter>
+    </ClInclude>
+    <ClInclude Include="ImageObject.h">
+      <Filter>header</Filter>
+    </ClInclude>
+    <ClInclude Include="SemaphoreObject.h">
+      <Filter>header</Filter>
+    </ClInclude>
+    <ClInclude Include="SemaphoreFactory.h">
       <Filter>header</Filter>
     </ClInclude>
   </ItemGroup>

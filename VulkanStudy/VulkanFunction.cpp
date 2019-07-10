@@ -19,6 +19,7 @@
 #include "DeviceMemoryFactory.h"
 #include "BufferFactory.h"
 #include "FenceFactory.h"
+#include "SemaphoreFactory.h"
 
 #include "Renderer.h"
 #include "Device.h"
@@ -39,6 +40,7 @@ ImageViewFactory _image_view_factory;
 DeviceMemoryFactory _device_memory_factory;
 BufferFactory _buffer_factory;
 FenceFactory _fence_factory;
+SemaphoreFactory _semaphore_factory;
 
 std::shared_ptr<InstanceObject> _instance_object;
 std::shared_ptr<PhysicalDeviceObject> _physical_device_object;
@@ -53,6 +55,7 @@ std::shared_ptr<DeviceMemoryObject> _vertex_memory;
 std::shared_ptr<BufferObject> _uniform_buffer;
 std::shared_ptr<BufferObject> _vertex_buffer;
 std::shared_ptr<FenceObject> _fence;
+std::shared_ptr<SemaphoreObject> _image_semaphore;
 
 Device _device;
 CommandPool myCommandPool;
@@ -66,7 +69,6 @@ vk::RenderPass g_render_pass = nullptr;
 vk::ShaderModule g_vs = nullptr;
 vk::ShaderModule g_ps = nullptr;
 std::vector<vk::Framebuffer> g_frame_buffers;
-std::vector<vk::Semaphore> g_image_semaphores;
 vk::Pipeline g_pipeline = nullptr;
 
 uint32_t g_current_buffer = 0;
@@ -429,13 +431,9 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
   };
 
   // Create semaphore
+  _image_semaphore = _semaphore_factory.createSemaphore(_device.getVkDevice());
 
-  g_image_semaphores.resize(_swapchain->_swapchain_image_count);
-  for (auto& it : g_image_semaphores) {
-    it = _device.createSemaphore(vk::SemaphoreCreateInfo());
-  }
-
-  _device.acquireNextImage(_swapchain->_vk_swapchain, UINT64_MAX, g_image_semaphores[0], nullptr, &g_current_buffer);
+  _device.acquireNextImage(_swapchain->_vk_swapchain, UINT64_MAX, _image_semaphore->_vk_semaphore, nullptr, &g_current_buffer);
 
   // Create pipeline
 
@@ -584,15 +582,16 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
 
   //
 
-  vk::PipelineStageFlags pipe_stage_flags = vk::PipelineStageFlagBits::eColorAttachmentOutput;
-  vk::CommandBuffer command_buffers[] = { myCommandBuffer.getVkCommandBuffer() };
-  auto submit_info = vk::SubmitInfo()
-    .setCommandBufferCount(1)
-    .setPCommandBuffers(command_buffers)
+  VkPipelineStageFlags pipe_stage_flags = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+  VkCommandBuffer command_buffers[] = { myCommandBuffer.getVkCommandBuffer() };
+  VkSubmitInfo submit_info = {};
+  submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+  submit_info.commandBufferCount = 1;
+  submit_info.pCommandBuffers = command_buffers;
 
-    .setWaitSemaphoreCount(1)
-    .setPWaitSemaphores(&g_image_semaphores[0])
-    .setPWaitDstStageMask(&pipe_stage_flags);
+  submit_info.waitSemaphoreCount = 1;
+  submit_info.pWaitSemaphores = &_image_semaphore->_vk_semaphore;
+  submit_info.pWaitDstStageMask = &pipe_stage_flags;
 
   myQueue.submit(submit_info, _fence->_vk_fence);
 
@@ -619,7 +618,7 @@ float a = -10;
 void updateVulkan() {
 
 
-  _device.acquireNextImage(_swapchain->_vk_swapchain, UINT64_MAX, g_image_semaphores[0], nullptr, &g_current_buffer);
+  _device.acquireNextImage(_swapchain->_vk_swapchain, UINT64_MAX, _image_semaphore->_vk_semaphore, nullptr, &g_current_buffer);
 
   FenceObject::vkWaitForFence(_device.getVkDevice(), _fence->_vk_fence, UINT64_MAX);
   _device.resetFence(_fence->_vk_fence);
@@ -681,15 +680,16 @@ void updateVulkan() {
 
   myCommandBuffer.end();
 
-  vk::PipelineStageFlags pipe_stage_flags = vk::PipelineStageFlagBits::eColorAttachmentOutput;
-  vk::CommandBuffer command_buffers[] = { myCommandBuffer.getVkCommandBuffer() };
-  auto submit_info = vk::SubmitInfo()
-    .setCommandBufferCount(1)
-    .setPCommandBuffers(command_buffers)
+  VkPipelineStageFlags pipe_stage_flags = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+  VkCommandBuffer command_buffers[] = { myCommandBuffer.getVkCommandBuffer() };
+  VkSubmitInfo submit_info = {};
+  submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+  submit_info.commandBufferCount = 1;
+  submit_info.pCommandBuffers = command_buffers;
 
-    .setWaitSemaphoreCount(1)
-    .setPWaitSemaphores(&g_image_semaphores[0])
-    .setPWaitDstStageMask(&pipe_stage_flags);
+  submit_info.waitSemaphoreCount = 1;
+  submit_info.pWaitSemaphores = &_image_semaphore->_vk_semaphore;
+  submit_info.pWaitDstStageMask = &pipe_stage_flags;
   myQueue.submit(submit_info, _fence->_vk_fence);
 
   VkPresentInfoKHR present_info = {};
@@ -710,10 +710,7 @@ void uninitVulkan() {
     g_pipeline = nullptr;
   }
 
-  for (auto it : g_image_semaphores) {
-    _device.destroySemaphore(it);
-  }
-  g_image_semaphores.clear();
+  _semaphore_factory.destroySemaphore(_device.getVkDevice(), _image_semaphore);
 
   _device_memory_factory.destroyDeviceMemory(_device.getVkDevice(), _vertex_memory);
 
