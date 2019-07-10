@@ -100,7 +100,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
   _height = height;
 
   // init
-  _instance_object = _instance_factory.createInstance(APP_NAME, APP_VERSION);
+  _instance_object = _instance_factory.createObject(InstanceParams(APP_NAME, APP_VERSION));
 
   _physical_device_object = _instance_object->_physical_devices[PRIMALY_PHYSICAL_DEVICE_INDEX];
 
@@ -777,5 +777,5 @@ void uninitVulkan() {
 
   _surface_factory.destroySurface(_instance_object, _surface_object);
 
-  _instance_factory.destroyInstance(_instance_object);
+  _instance_factory.destroyObject(_instance_object);
 }

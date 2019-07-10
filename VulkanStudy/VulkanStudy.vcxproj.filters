@@ -134,5 +134,8 @@
     <ClInclude Include="CommandPoolFactory.h">
       <Filter>header</Filter>
     </ClInclude>
+    <ClInclude Include="AbstractFactory.h">
+      <Filter>header</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

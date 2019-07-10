@@ -3,16 +3,30 @@
 #include <Windows.h>
 #define VK_USE_PLATFORM_WIN32_KHR
 #include <vulkan/vulkan.h>
-#include <memory>
-#include <set>
 
+#include "AbstractFactory.h"
 #include "instanceObject.h"
 #include "PhysicalDeviceObject.h"
 
-class InstanceFactory {
+struct InstanceParams {
+  InstanceParams(const char* app_name, const uint32_t app_version) : app_name(app_name), app_version(app_version) {}
+  const char* app_name;
+  const uint32_t app_version;
+};
+
+class InstanceFactory : public AbstractFactory<InstanceObject, InstanceParams> {
+public:
+  InstanceFactory() {
+  }
+
+  ~InstanceFactory() {
+  }
+
+protected:
+private:
   static const VkInstance _createVkInstance(const char* app_name, const uint32_t app_version);
 
-  static const void _destroyVkInstance(const VkInstance instance) {
+  static const void _destroyVkInstance(VkInstance instance) {
     vkDestroyInstance(instance, nullptr);
   }
 
@@ -25,15 +39,8 @@ class InstanceFactory {
     return std::move(physical_devices);
   }
 
-public:
-  InstanceFactory() {
-  }
-
-  ~InstanceFactory() {
-  }
-
-  auto createInstance(const char* app_name, const uint32_t app_version) {
-    auto vk_instance = _createVkInstance(app_name, app_version);
+  std::shared_ptr<InstanceObject> _createCore(const InstanceParams& params) {
+    auto vk_instance = _createVkInstance(params.app_name, params.app_version);
     auto vk_physical_devices = _getVkPhysicalDevices(vk_instance);
 
     std::vector<std::shared_ptr<PhysicalDeviceObject>> devices;
@@ -54,24 +61,10 @@ public:
       devices.push_back(physical_device_object);
     }
 
-    auto object = std::make_shared<InstanceObject>(vk_instance, std::move(devices));
-    _container.insert(object);
-    return object;
+    return std::make_shared<InstanceObject>(vk_instance, std::move(devices));
   }
 
-  void destroyInstance(std::shared_ptr<InstanceObject>& object) {
-    if (!object) { return; }
-    auto before_size = _container.size();
-    _container.erase(object);
-    auto after_size = _container.size();
-
-    if (before_size != after_size) {
-      _destroyVkInstance(object->_vk_instance);
-      object.reset();
-    }
+  void _destroyCore(std::shared_ptr<InstanceObject> object) {
+    _destroyVkInstance(object->_vk_instance);
   }
-
-protected:
-private:
-  std::set<std::shared_ptr<InstanceObject>> _container;
 };
