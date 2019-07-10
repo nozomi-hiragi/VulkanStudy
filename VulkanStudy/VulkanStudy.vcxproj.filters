@@ -42,9 +42,6 @@
     <ClCompile Include="InstanceFactory.cpp">
       <Filter>source</Filter>
     </ClCompile>
-    <ClCompile Include="PhysicalDeviceFactory.cpp">
-      <Filter>source</Filter>
-    </ClCompile>
     <ClCompile Include="SurfaceFactory.cpp">
       <Filter>source</Filter>
     </ClCompile>
@@ -81,9 +78,6 @@
       <Filter>header</Filter>
     </ClInclude>
     <ClInclude Include="PhysicalDeviceObject.h">
-      <Filter>header</Filter>
-    </ClInclude>
-    <ClInclude Include="PhysicalDeviceFactory.h">
       <Filter>header</Filter>
     </ClInclude>
     <ClInclude Include="SurfaceObject.h">

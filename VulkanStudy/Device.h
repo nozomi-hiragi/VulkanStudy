@@ -31,9 +31,8 @@ public:
   }
 
   // for queue
-  auto getPresentQueue(const uint32_t queue_index) {
-    auto vk_queue = _device.getQueue(_present_queue_family_index, queue_index);
-    return std::make_shared<QueueObject>(vk_queue);
+  auto getQueue() {
+    return _queue;
   }
 
   // for command buffer
@@ -170,4 +169,5 @@ protected:
 private:
   vk::Device _device;
   uint32_t _present_queue_family_index;
+  std::shared_ptr<QueueObject> _queue;
 };

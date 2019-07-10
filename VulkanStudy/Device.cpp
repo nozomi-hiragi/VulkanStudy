@@ -9,10 +9,17 @@ Device Device::createDevice(std::shared_ptr<PhysicalDeviceObject> physical_devic
     return result == VK_TRUE;
   };
 
+  std::vector<bool> support_surfaces(physical_device->_queue_family_properties.size());
+  for (int i = 0; i < support_surfaces.size(); i++) {
+    VkBool32 result;
+    vkGetPhysicalDeviceSurfaceSupportKHR(physical_device->_physical_device, i, surface, &result);
+    support_surfaces[i] = result == VK_TRUE;
+  }
+
   auto present_queue_family_index = UINT32_MAX;
   for (uint32_t i = 0; i < physical_device->_queue_family_properties.size(); i++) {
     auto is_graphycs_queue_family = (physical_device->_queue_family_properties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) == VK_QUEUE_GRAPHICS_BIT;
-    auto is_support_surface = get_surface_support(physical_device->_physical_device, i, surface);
+    auto is_support_surface = support_surfaces[i];
     if (is_graphycs_queue_family && is_support_surface) {
       present_queue_family_index = i;
       break;
@@ -57,8 +64,13 @@ Device Device::createDevice(std::shared_ptr<PhysicalDeviceObject> physical_devic
   device_info.ppEnabledExtensionNames = enabled_device_extensions.data();
   device_info.pEnabledFeatures = nullptr;
 
-  VkDevice device;
-  vkCreateDevice(physical_device->_physical_device, &device_info, nullptr, &device);
+  VkDevice vk_device;
+  vkCreateDevice(physical_device->_physical_device, &device_info, nullptr, &vk_device);
+  auto device = Device(vk_device, present_queue_family_index);
 
-  return Device(device, present_queue_family_index);
+  VkQueue vk_queue;
+  vkGetDeviceQueue(vk_device, present_queue_family_index, 0, &vk_queue);
+  device._queue = std::make_shared<QueueObject>(vk_queue);
+
+  return device;
 }

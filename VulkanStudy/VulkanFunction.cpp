@@ -118,7 +118,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
   myCommandBuffer = _device.allocateCommandBuffer(myCommandPool);
 
   // Get queue
-  _queue = _device.getPresentQueue(0);
+  _queue = _device.getQueue();
 
   // Create Swapchain
   _swapchain = _swapchain_factory.createSwapchain(_device.getVkDevice(), _surface_object->_vk_surface, _physical_device_object->_physical_device, width, height);

@@ -84,7 +84,6 @@
     <ClCompile Include="ImageFactory.cpp" />
     <ClCompile Include="InstanceFactory.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="PhysicalDeviceFactory.cpp" />
     <ClCompile Include="Queue.cpp" />
     <ClCompile Include="Renderer.cpp" />
     <ClCompile Include="SurfaceFactory.cpp" />
@@ -108,7 +107,6 @@
     <ClInclude Include="ImageViewObject.h" />
     <ClInclude Include="InstanceFactory.h" />
     <ClInclude Include="InstanceObject.h" />
-    <ClInclude Include="PhysicalDeviceFactory.h" />
     <ClInclude Include="PhysicalDeviceObject.h" />
     <ClInclude Include="QueueObject.h" />
     <ClInclude Include="Renderer.h" />
