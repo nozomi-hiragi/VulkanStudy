@@ -64,29 +64,8 @@ public:
   }
 
   // for fence
-  vk::Fence createFence(const vk::FenceCreateInfo& fence_info) {
-    return _device.createFence(fence_info);
-  }
-
-  void destroyFence(const vk::Fence fence) {
-    _device.destroyFence(fence);
-  }
-
-  VkResult waitForFences(const uint32_t count, const VkFence* fences, const bool wait_all, const uint64_t timeout) {
-        return vkWaitForFences(_device, count, fences, wait_all ? VK_TRUE : VK_FALSE, timeout);
-  }
-
   void resetFence(const vk::Fence fence) {
     _device.resetFences(fence);
-  }
-
-  // for semaphoer
-  vk::Semaphore createSemaphore(const vk::SemaphoreCreateInfo& semaphore_info) {
-    return _device.createSemaphore(semaphore_info);
-  }
-
-  void destroySemaphore(const vk::Semaphore semaphore) {
-    _device.destroySemaphore(semaphore);
   }
 
   // for render pass
@@ -134,14 +113,6 @@ public:
   }
 
   // fom memory
-  vk::DeviceMemory allocateMemory(const vk::MemoryAllocateInfo& memory_allocate_info) {
-    return _device.allocateMemory(memory_allocate_info);
-  }
-
-  void freeMemory(const vk::DeviceMemory memory) {
-    _device.freeMemory(memory);
-  }
-
   void* mapMemory(const vk::DeviceMemory memory, const uint64_t offset, const uint64_t size) {
     return _device.mapMemory(memory, offset, size);
   }
@@ -151,43 +122,11 @@ public:
   }
 
   // for buffer
-  vk::Buffer createBuffer(const vk::BufferCreateInfo& buffer_info) {
-    return _device.createBuffer(buffer_info);
-  }
-
-  void destroyBuffer(const vk::Buffer buffer) {
-    _device.destroyBuffer(buffer);
-  }
-
-  vk::MemoryRequirements getBufferMemoryRequirements(const vk::Buffer buffer) {
-    return _device.getBufferMemoryRequirements(buffer);
-  }
-
   void bindBufferMemory(const vk::Buffer buffer, const vk::DeviceMemory memory, const uint64_t offset) {
     _device.bindBufferMemory(buffer, memory, offset);
   }
 
   // for image
-  vk::Image createImage(const vk::ImageCreateInfo& image_info) {
-    return _device.createImage(image_info);
-  }
-
-  void destroyImage(const vk::Image image) {
-    _device.destroyImage(image);
-  }
-
-  vk::ImageView createImageView(const vk::ImageViewCreateInfo& image_view_info) {
-    return _device.createImageView(image_view_info);
-  }
-
-  void destroyImageView(const vk::ImageView image_view) {
-    _device.destroyImageView(image_view);
-  }
-
-  vk::MemoryRequirements getImageMemoryRequirements(const vk::Image image) {
-    return _device.getImageMemoryRequirements(image);
-  }
-
   void bindImageMemory(const vk::Image image, const vk::DeviceMemory memory, const uint64_t offset) {
     _device.bindImageMemory(image, memory, offset);
   }
@@ -218,12 +157,6 @@ public:
   }
 
   // for swapchain
-
-
-  std::vector<vk::Image> getSwapchainImages(VkSwapchainKHR swapchain) {
-    return _device.getSwapchainImagesKHR(swapchain);
-  }
-
   void acquireNextImage(VkSwapchainKHR swapchain, const uint64_t timeout, const vk::Semaphore semaphore, const vk::Fence fence, uint32_t* image_index) {
     _device.acquireNextImageKHR(swapchain, timeout, semaphore, fence, image_index);
   }
