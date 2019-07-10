@@ -11,7 +11,6 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include "InstanceFactory.h"
-#include "PhysicalDeviceFactory.h"
 #include "SurfaceFactory.h"
 #include "SwapchainFactory.h"
 #include "ImageFactory.h"
@@ -32,7 +31,6 @@ const uint32_t APP_VERSION = 0;
 constexpr auto PRIMALY_PHYSICAL_DEVICE_INDEX = 0;
 
 InstanceFactory _instance_factory;
-PhysicalDeviceFactory _physical_device_factory;
 SurfaceFactory _surface_factory;
 SwapchainFactory _swapchain_factory;
 ImageFactory _image_factory;
@@ -103,7 +101,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
   // init
   _instance_object = _instance_factory.createInstance(APP_NAME, APP_VERSION);
 
-  _physical_device_object = _physical_device_factory.createPhysicalDevice(_instance_object, PRIMALY_PHYSICAL_DEVICE_INDEX);
+  _physical_device_object = _instance_object->_physical_devices[PRIMALY_PHYSICAL_DEVICE_INDEX];
 
   // Create Surface
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
@@ -776,8 +774,6 @@ void uninitVulkan() {
   _device.destroy();
 
   _surface_factory.destroySurface(_instance_object, _surface_object);
-
-  _physical_device_factory.destroyPhysicalDevice(_physical_device_object);
 
   _instance_factory.destroyInstance(_instance_object);
 }
