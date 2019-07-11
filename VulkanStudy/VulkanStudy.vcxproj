@@ -114,6 +114,8 @@
     <ClInclude Include="Renderer.h" />
     <ClInclude Include="SemaphoreFactory.h" />
     <ClInclude Include="SemaphoreObject.h" />
+    <ClInclude Include="ShaderModuleFactory.h" />
+    <ClInclude Include="ShaderModuleObject.h" />
     <ClInclude Include="SurfaceFactory.h" />
     <ClInclude Include="SurfaceObject.h" />
     <ClInclude Include="SwapchainFactory.h" />

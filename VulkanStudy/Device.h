@@ -55,15 +55,6 @@ public:
     _device.destroyFramebuffer(frame_buffer);
   }
 
-  // for shader
-  vk::ShaderModule createShaderModule(const vk::ShaderModuleCreateInfo& shader_module_info) {
-    return _device.createShaderModule(shader_module_info);
-  }
-
-  void destroyShaderModule(const vk::ShaderModule shader) {
-    _device.destroyShaderModule(shader);
-  }
-
   // for pipeline
   vk::Pipeline createGraphicsPipeline(const vk::PipelineCache pipeline_cache, const vk::GraphicsPipelineCreateInfo& pipeline_info) {
     return _device.createGraphicsPipeline(pipeline_cache, pipeline_info);

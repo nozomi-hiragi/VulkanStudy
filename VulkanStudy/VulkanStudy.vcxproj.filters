@@ -137,5 +137,11 @@
     <ClInclude Include="CommandBufferObject.h">
       <Filter>header</Filter>
     </ClInclude>
+    <ClInclude Include="ShaderModuleObject.h">
+      <Filter>header</Filter>
+    </ClInclude>
+    <ClInclude Include="ShaderModuleFactory.h">
+      <Filter>header</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

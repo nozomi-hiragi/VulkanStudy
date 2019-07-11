@@ -21,6 +21,7 @@
 #include "SemaphoreFactory.h"
 #include "CommandPoolFactory.h"
 #include "CommandBufferObject.h"
+#include "ShaderModuleFactory.h"
 
 #include "Renderer.h"
 #include "Device.h"
@@ -40,6 +41,7 @@ BufferFactory _buffer_factory;
 FenceFactory _fence_factory;
 SemaphoreFactory _semaphore_factory;
 CommandPoolFactory _command_pool_factory;
+ShaderModuleFactory _shader_module_factory;
 
 std::shared_ptr<InstanceObject> _instance_object;
 std::shared_ptr<PhysicalDeviceObject> _physical_device_object;
@@ -58,6 +60,8 @@ std::shared_ptr<SemaphoreObject> _image_semaphore;
 std::shared_ptr<QueueObject> _queue;
 std::shared_ptr<CommandPoolObject> _command_pool;
 std::shared_ptr<CommandBufferObject> _command_buffer;
+std::shared_ptr<ShaderModuleObject> _vs;
+std::shared_ptr<ShaderModuleObject> _ps;
 
 Device _device;
 vk::DescriptorSetLayout g_descriptor_set_layout = nullptr;
@@ -65,8 +69,6 @@ vk::PipelineLayout g_pipeline_layout = nullptr;
 vk::DescriptorPool g_descriptor_pool = nullptr;
 VkDescriptorSet g_descriptor_set = nullptr;
 vk::RenderPass g_render_pass = nullptr;
-vk::ShaderModule g_vs = nullptr;
-vk::ShaderModule g_ps = nullptr;
 std::vector<vk::Framebuffer> g_frame_buffers;
 vk::Pipeline g_pipeline = nullptr;
 
@@ -335,29 +337,21 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
 
   auto vs_bin = get_binary(L"vspc.vert.spv");
 
-  auto vs_info = vk::ShaderModuleCreateInfo()
-    .setCodeSize(vs_bin.second)
-    .setPCode(reinterpret_cast<uint32_t*>(vs_bin.first.get()));
-
-  g_vs = _device.createShaderModule(vs_info);
+  _vs = _shader_module_factory.createObject(_device.getVkDevice(), vs_bin.second, reinterpret_cast<uint32_t*>(vs_bin.first.get()));
 
   auto ps_bin = get_binary(L"ps.frag.spv");
 
-  auto ps_info = vk::ShaderModuleCreateInfo()
-    .setCodeSize(ps_bin.second)
-    .setPCode(reinterpret_cast<uint32_t*>(ps_bin.first.get()));
-
-  g_ps = _device.createShaderModule(ps_info);
+  _ps = _shader_module_factory.createObject(_device.getVkDevice(), ps_bin.second, reinterpret_cast<uint32_t*>(ps_bin.first.get()));
 
   vk::PipelineShaderStageCreateInfo shader_stage_info[] = {
     vk::PipelineShaderStageCreateInfo()
     .setStage(vk::ShaderStageFlagBits::eVertex)
-    .setModule(g_vs)
+    .setModule(_vs->_vk_shader_module)
     .setPName("main"),
 
     vk::PipelineShaderStageCreateInfo()
     .setStage(vk::ShaderStageFlagBits::eFragment)
-    .setModule(g_ps)
+    .setModule(_ps->_vk_shader_module)
     .setPName("main")
   };
 
@@ -722,15 +716,9 @@ void uninitVulkan() {
   }
   g_frame_buffers.clear();
 
-  if (g_ps) {
-    _device.destroyShaderModule(g_ps);
-    g_ps = nullptr;
-  }
+  _shader_module_factory.destroyObject(_device.getVkDevice(), _ps);
 
-  if (g_vs) {
-    _device.destroyShaderModule(g_vs);
-    g_vs = nullptr;
-  }
+  _shader_module_factory.destroyObject(_device.getVkDevice(), _vs);
 
   if (g_render_pass) {
     _device.destroyRenderPass(g_render_pass);
