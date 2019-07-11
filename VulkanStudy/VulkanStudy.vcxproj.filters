@@ -149,5 +149,11 @@
     <ClInclude Include="RenderPassFactory.h">
       <Filter>header</Filter>
     </ClInclude>
+    <ClInclude Include="FramebufferObject.h">
+      <Filter>header</Filter>
+    </ClInclude>
+    <ClInclude Include="FramebufferFactory.h">
+      <Filter>header</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

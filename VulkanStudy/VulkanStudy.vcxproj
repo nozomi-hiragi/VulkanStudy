@@ -103,6 +103,8 @@
     <ClInclude Include="AbstractFactory.h" />
     <ClInclude Include="FenceFactory.h" />
     <ClInclude Include="FenceObject.h" />
+    <ClInclude Include="FramebufferFactory.h" />
+    <ClInclude Include="FramebufferObject.h" />
     <ClInclude Include="ImageObject.h" />
     <ClInclude Include="ImageFactory.h" />
     <ClInclude Include="ImageViewFactory.h" />

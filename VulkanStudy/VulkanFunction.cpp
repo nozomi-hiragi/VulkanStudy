@@ -23,6 +23,7 @@
 #include "CommandBufferObject.h"
 #include "ShaderModuleFactory.h"
 #include "RenderPassFactory.h"
+#include "FramebufferFactory.h"
 
 #include "Renderer.h"
 #include "Device.h"
@@ -44,6 +45,7 @@ SemaphoreFactory _semaphore_factory;
 CommandPoolFactory _command_pool_factory;
 ShaderModuleFactory _shader_module_factory;
 RenderPassFactory _render_pass_factory;
+FramebufferFactory _framebuffer_factory;
 
 std::shared_ptr<InstanceObject> _instance_object;
 std::shared_ptr<PhysicalDeviceObject> _physical_device_object;
@@ -65,13 +67,13 @@ std::shared_ptr<CommandBufferObject> _command_buffer;
 std::shared_ptr<ShaderModuleObject> _vs;
 std::shared_ptr<ShaderModuleObject> _ps;
 std::shared_ptr<RenderPassObject> _render_pass;
+std::vector<std::shared_ptr<FramebufferObject>> _framebuffers;
 
 Device _device;
 vk::DescriptorSetLayout g_descriptor_set_layout = nullptr;
 vk::PipelineLayout g_pipeline_layout = nullptr;
 vk::DescriptorPool g_descriptor_pool = nullptr;
 VkDescriptorSet g_descriptor_set = nullptr;
-std::vector<vk::Framebuffer> g_frame_buffers;
 vk::Pipeline g_pipeline = nullptr;
 
 uint32_t g_current_buffer = 0;
@@ -315,11 +317,17 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
     .setHeight(height)
     .setLayers(1);
 
-  g_frame_buffers.reserve(_swapchain->_swapchain_image_count);
+  _framebuffers.reserve(_swapchain->_swapchain_image_count);
 
   for (uint32_t i = 0; i < _swapchain->_swapchain_image_count; i++) {
     attachments[0] = _swapchain_image_views[i]->_vk_image_view;
-    g_frame_buffers.push_back(_device.createFramebuffer(frame_buffer_info));
+    _framebuffers.push_back(_framebuffer_factory.createObject(
+      _device.getVkDevice(),
+      _render_pass->_vk_render_pass,
+      _swapchain_image_views[i]->_vk_image_view,
+      _depth_image_view->_vk_image_view,
+      width,
+      height));
   }
 
   // Create Vertex buffer
@@ -470,7 +478,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
 
   auto render_begin_info = vk::RenderPassBeginInfo()
     .setRenderPass(_render_pass->_vk_render_pass)
-    .setFramebuffer(g_frame_buffers[g_current_buffer])
+    .setFramebuffer(_framebuffers[g_current_buffer]->_vk_framebuffer)
     .setRenderArea(vk::Rect2D(vk::Offset2D(0, 0), vk::Extent2D(width, height)))
     .setClearValueCount(2)
     .setPClearValues(clear_values);
@@ -574,7 +582,7 @@ void updateVulkan() {
 
   auto render_begin_info = vk::RenderPassBeginInfo()
     .setRenderPass(_render_pass->_vk_render_pass)
-    .setFramebuffer(g_frame_buffers[g_current_buffer])
+    .setFramebuffer(_framebuffers[g_current_buffer]->_vk_framebuffer)
     .setRenderArea(vk::Rect2D(vk::Offset2D(0, 0), vk::Extent2D(_width, _height)))
     .setClearValueCount(2)
     .setPClearValues(clear_values);
@@ -658,10 +666,10 @@ void uninitVulkan() {
 
   _buffer_factory.destroyBuffer(_device.getVkDevice(), _vertex_buffer);
 
-  for (auto frame_buffer : g_frame_buffers) {
-    _device.destroyFramebuffer(frame_buffer);
+  for (auto& framebuffer : _framebuffers) {
+    _framebuffer_factory.destroyObject(_device.getVkDevice(), framebuffer);
   }
-  g_frame_buffers.clear();
+  _framebuffers.clear();
 
   _shader_module_factory.destroyObject(_device.getVkDevice(), _ps);
 

@@ -37,15 +37,6 @@ public:
     _device.resetFences(fence);
   }
 
-  // for frame buffer
-  vk::Framebuffer createFramebuffer(const vk::FramebufferCreateInfo& frame_buffer_info) {
-    return _device.createFramebuffer(frame_buffer_info);
-  }
-
-  void destroyFramebuffer(const vk::Framebuffer frame_buffer) {
-    _device.destroyFramebuffer(frame_buffer);
-  }
-
   // for pipeline
   vk::Pipeline createGraphicsPipeline(const vk::PipelineCache pipeline_cache, const vk::GraphicsPipelineCreateInfo& pipeline_info) {
     return _device.createGraphicsPipeline(pipeline_cache, pipeline_info);
