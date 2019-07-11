@@ -155,5 +155,11 @@
     <ClInclude Include="FramebufferFactory.h">
       <Filter>header</Filter>
     </ClInclude>
+    <ClInclude Include="DescriptorSetLayoutObject.h">
+      <Filter>header</Filter>
+    </ClInclude>
+    <ClInclude Include="DescriptorSetLayoutFactory.h">
+      <Filter>header</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

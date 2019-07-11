@@ -97,6 +97,8 @@
     <ClInclude Include="CommandBufferObject.h" />
     <ClInclude Include="CommandPoolFactory.h" />
     <ClInclude Include="CommandPoolObject.h" />
+    <ClInclude Include="DescriptorSetLayoutFactory.h" />
+    <ClInclude Include="DescriptorSetLayoutObject.h" />
     <ClInclude Include="Device.h" />
     <ClInclude Include="DeviceMemoryFactory.h" />
     <ClInclude Include="DeviceMemoryObject.h" />

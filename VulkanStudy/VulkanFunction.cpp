@@ -24,6 +24,7 @@
 #include "ShaderModuleFactory.h"
 #include "RenderPassFactory.h"
 #include "FramebufferFactory.h"
+#include "DescriptorSetLayoutFactory.h"
 
 #include "Renderer.h"
 #include "Device.h"
@@ -46,6 +47,7 @@ CommandPoolFactory _command_pool_factory;
 ShaderModuleFactory _shader_module_factory;
 RenderPassFactory _render_pass_factory;
 FramebufferFactory _framebuffer_factory;
+DescriptorSetLayoutFactory _descriptor_set_layout_factory;
 
 std::shared_ptr<InstanceObject> _instance_object;
 std::shared_ptr<PhysicalDeviceObject> _physical_device_object;
@@ -68,9 +70,9 @@ std::shared_ptr<ShaderModuleObject> _vs;
 std::shared_ptr<ShaderModuleObject> _ps;
 std::shared_ptr<RenderPassObject> _render_pass;
 std::vector<std::shared_ptr<FramebufferObject>> _framebuffers;
+std::shared_ptr<DescriptorSetLayoutObject> _descriptor_set_layout;
 
 Device _device;
-vk::DescriptorSetLayout g_descriptor_set_layout = nullptr;
 vk::PipelineLayout g_pipeline_layout = nullptr;
 vk::DescriptorPool g_descriptor_pool = nullptr;
 VkDescriptorSet g_descriptor_set = nullptr;
@@ -206,21 +208,21 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
       .setBindingCount(1)
       .setPBindings(&descriptor_set_layout_binding);
 
-    g_descriptor_set_layout = _device.createDescriptorSetLayout(descriptor_set_layout_info);
+    _descriptor_set_layout = _descriptor_set_layout_factory.createObject(_device.getVkDevice());
   }
 
   // Create Pipeline layout
   {
-    auto range = vk::PushConstantRange()
-      .setStageFlags(vk::ShaderStageFlagBits::eVertex)
-      .setOffset(0)
-      .setSize(sizeof(g_mvp));
+    VkPushConstantRange range = {};
+    range.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+    range.offset = 0;
+    range.size = sizeof(g_mvp);
 
-    auto pipeline_layout_info = vk::PipelineLayoutCreateInfo()
-      .setPushConstantRangeCount(1)
-      .setPPushConstantRanges(&range)
-      .setSetLayoutCount(1)
-      .setPSetLayouts(&g_descriptor_set_layout);
+    VkPipelineLayoutCreateInfo pipeline_layout_info = { VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
+    pipeline_layout_info.pushConstantRangeCount = 1;
+    pipeline_layout_info.pPushConstantRanges = &range;
+    pipeline_layout_info.setLayoutCount = 1;
+    pipeline_layout_info.pSetLayouts = &_descriptor_set_layout->_vk_descriptor_set_layout;
 
     g_pipeline_layout = _device.createPipelineLayout(pipeline_layout_info);
   }
@@ -242,10 +244,10 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
 
   // Allocarte descriptor set
 
-  auto descriptor_set_info = vk::DescriptorSetAllocateInfo()
-    .setDescriptorPool(g_descriptor_pool)
-    .setDescriptorSetCount(1)
-    .setPSetLayouts(&g_descriptor_set_layout);
+  VkDescriptorSetAllocateInfo descriptor_set_info = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
+  descriptor_set_info.descriptorPool = g_descriptor_pool;
+  descriptor_set_info.descriptorSetCount = 1;
+  descriptor_set_info.pSetLayouts = &_descriptor_set_layout->_vk_descriptor_set_layout;
 
   g_descriptor_set = _device.allocateDescriptorSets(descriptor_set_info)[0];
 
@@ -687,10 +689,7 @@ void uninitVulkan() {
     g_pipeline_layout = nullptr;
   }
 
-  if (g_descriptor_set_layout) {
-    _device.destroyDescriptorSetLayout(g_descriptor_set_layout);
-    g_descriptor_set_layout = nullptr;
-  }
+  _descriptor_set_layout_factory.destroyObject(_device.getVkDevice(), _descriptor_set_layout);
 
   _device_memory_factory.destroyDeviceMemory(_device.getVkDevice(), _uniform_memory);
 

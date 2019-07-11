@@ -74,14 +74,6 @@ public:
   }
 
   // for descriptor
-  vk::DescriptorSetLayout createDescriptorSetLayout(const vk::DescriptorSetLayoutCreateInfo& descriptot_set_layout_info) {
-    return _device.createDescriptorSetLayout(descriptot_set_layout_info);
-  }
-
-  void destroyDescriptorSetLayout(const vk::DescriptorSetLayout descriptor_set_layout) {
-    _device.destroyDescriptorSetLayout(descriptor_set_layout);
-  }
-
   vk::DescriptorPool createDescriptorPool(const vk::DescriptorPoolCreateInfo& descriptor_pool_info) {
     return _device.createDescriptorPool(descriptor_pool_info);
   }
