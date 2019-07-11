@@ -196,20 +196,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
   }
 
   // Create descriptor set layout
-  {
-    auto descriptor_set_layout_binding = vk::DescriptorSetLayoutBinding()
-      .setBinding(0)
-      .setDescriptorType(vk::DescriptorType::eUniformBufferDynamic)
-      .setDescriptorCount(1)
-      .setStageFlags(vk::ShaderStageFlagBits::eVertex)
-      .setPImmutableSamplers(nullptr);
-
-    auto descriptor_set_layout_info = vk::DescriptorSetLayoutCreateInfo()
-      .setBindingCount(1)
-      .setPBindings(&descriptor_set_layout_binding);
-
-    _descriptor_set_layout = _descriptor_set_layout_factory.createObject(_device.getVkDevice());
-  }
+  _descriptor_set_layout = _descriptor_set_layout_factory.createObject(_device.getVkDevice());
 
   // Create Pipeline layout
   {
@@ -307,22 +294,8 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
   };
 
   //
-
-  vk::ImageView attachments[2];
-  attachments[1] = _depth_image_view->_vk_image_view;
-
-  auto const frame_buffer_info = vk::FramebufferCreateInfo()
-    .setRenderPass(_render_pass->_vk_render_pass)
-    .setAttachmentCount(2)
-    .setPAttachments(attachments)
-    .setWidth(width)
-    .setHeight(height)
-    .setLayers(1);
-
   _framebuffers.reserve(_swapchain->_swapchain_image_count);
-
   for (uint32_t i = 0; i < _swapchain->_swapchain_image_count; i++) {
-    attachments[0] = _swapchain_image_views[i]->_vk_image_view;
     _framebuffers.push_back(_framebuffer_factory.createObject(
       _device.getVkDevice(),
       _render_pass->_vk_render_pass,
@@ -333,12 +306,6 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
   }
 
   // Create Vertex buffer
-
-  auto vertex_buffer_info = vk::BufferCreateInfo()
-    .setUsage(vk::BufferUsageFlagBits::eVertexBuffer)
-    .setSize(sizeof(poly))
-    .setSharingMode(vk::SharingMode::eExclusive);
-
   _vertex_buffer = _buffer_factory.createBuffer(_device.getVkDevice(), sizeof(poly), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
 
   // Allocate vertex buffer memory
