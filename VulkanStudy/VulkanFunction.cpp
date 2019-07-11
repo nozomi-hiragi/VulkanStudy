@@ -25,6 +25,7 @@
 #include "RenderPassFactory.h"
 #include "FramebufferFactory.h"
 #include "DescriptorSetLayoutFactory.h"
+#include "DescriptorPoolFactory.h"
 
 #include "Renderer.h"
 #include "Device.h"
@@ -48,6 +49,7 @@ ShaderModuleFactory _shader_module_factory;
 RenderPassFactory _render_pass_factory;
 FramebufferFactory _framebuffer_factory;
 DescriptorSetLayoutFactory _descriptor_set_layout_factory;
+DescriptorPoolFactory _descriptor_pool_factory;
 
 std::shared_ptr<InstanceObject> _instance_object;
 std::shared_ptr<PhysicalDeviceObject> _physical_device_object;
@@ -71,10 +73,10 @@ std::shared_ptr<ShaderModuleObject> _ps;
 std::shared_ptr<RenderPassObject> _render_pass;
 std::vector<std::shared_ptr<FramebufferObject>> _framebuffers;
 std::shared_ptr<DescriptorSetLayoutObject> _descriptor_set_layout;
+std::shared_ptr<DescriptorPoolObject> _descriptor_pool;
 
 Device _device;
 vk::PipelineLayout g_pipeline_layout = nullptr;
-vk::DescriptorPool g_descriptor_pool = nullptr;
 VkDescriptorSet g_descriptor_set = nullptr;
 vk::Pipeline g_pipeline = nullptr;
 
@@ -215,24 +217,12 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
   }
 
   // Crearte descripter pool
-
-  vk::DescriptorPoolSize pool_sizes[] = {
-    vk::DescriptorPoolSize()
-    .setType(vk::DescriptorType::eUniformBufferDynamic)
-    .setDescriptorCount(1),
-  };
-
-  auto descriptor_pool_info = vk::DescriptorPoolCreateInfo()
-    .setMaxSets(1)
-    .setPoolSizeCount(1)
-    .setPPoolSizes(pool_sizes);
-
-  g_descriptor_pool = _device.createDescriptorPool(descriptor_pool_info);
+  _descriptor_pool = _descriptor_pool_factory.createObject(_device.getVkDevice());
 
   // Allocarte descriptor set
 
   VkDescriptorSetAllocateInfo descriptor_set_info = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
-  descriptor_set_info.descriptorPool = g_descriptor_pool;
+  descriptor_set_info.descriptorPool = _descriptor_pool->_vk_descriptor_pool;
   descriptor_set_info.descriptorSetCount = 1;
   descriptor_set_info.pSetLayouts = &_descriptor_set_layout->_vk_descriptor_set_layout;
 
@@ -646,10 +636,7 @@ void uninitVulkan() {
 
   _render_pass_factory.destroyObject(_device.getVkDevice(), _render_pass);
 
-  if (g_descriptor_pool) {
-    _device.destroyDescriptorPool(g_descriptor_pool);
-    g_descriptor_pool = nullptr;
-  }
+  _descriptor_pool_factory.destroyObject(_device.getVkDevice(), _descriptor_pool);
 
   if (g_pipeline_layout) {
     _device.destroyPipelineLayout(g_pipeline_layout);

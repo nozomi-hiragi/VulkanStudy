@@ -161,5 +161,11 @@
     <ClInclude Include="DescriptorSetLayoutFactory.h">
       <Filter>header</Filter>
     </ClInclude>
+    <ClInclude Include="DescriptorPoolFactory.h">
+      <Filter>header</Filter>
+    </ClInclude>
+    <ClInclude Include="DescriptorPoolObject.h">
+      <Filter>header</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

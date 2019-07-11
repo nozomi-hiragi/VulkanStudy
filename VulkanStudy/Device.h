@@ -74,14 +74,6 @@ public:
   }
 
   // for descriptor
-  vk::DescriptorPool createDescriptorPool(const vk::DescriptorPoolCreateInfo& descriptor_pool_info) {
-    return _device.createDescriptorPool(descriptor_pool_info);
-  }
-
-  void destroyDescriptorPool(const  vk::DescriptorPool descriptor_pool) {
-    _device.destroyDescriptorPool(descriptor_pool);
-  }
-
   std::vector<vk::DescriptorSet> allocateDescriptorSets(const vk::DescriptorSetAllocateInfo& descriptor_set_info) {
     return _device.allocateDescriptorSets(descriptor_set_info);
   }
