@@ -37,15 +37,6 @@ public:
     _device.resetFences(fence);
   }
 
-  // for render pass
-  vk::RenderPass createRenderPass(const vk::RenderPassCreateInfo& render_pass_info) {
-    return _device.createRenderPass(render_pass_info);
-  }
-
-  void destroyRenderPass(const vk::RenderPass render_pass) {
-    _device.destroyRenderPass(render_pass);
-  }
-
   // for frame buffer
   vk::Framebuffer createFramebuffer(const vk::FramebufferCreateInfo& frame_buffer_info) {
     return _device.createFramebuffer(frame_buffer_info);

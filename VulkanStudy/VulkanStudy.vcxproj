@@ -112,6 +112,8 @@
     <ClInclude Include="PhysicalDeviceObject.h" />
     <ClInclude Include="QueueObject.h" />
     <ClInclude Include="Renderer.h" />
+    <ClInclude Include="RenderPassFactory.h" />
+    <ClInclude Include="RenderPassObject.h" />
     <ClInclude Include="SemaphoreFactory.h" />
     <ClInclude Include="SemaphoreObject.h" />
     <ClInclude Include="ShaderModuleFactory.h" />

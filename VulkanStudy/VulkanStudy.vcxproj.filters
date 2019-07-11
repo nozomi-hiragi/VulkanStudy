@@ -143,5 +143,11 @@
     <ClInclude Include="ShaderModuleFactory.h">
       <Filter>header</Filter>
     </ClInclude>
+    <ClInclude Include="RenderPassObject.h">
+      <Filter>header</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderPassFactory.h">
+      <Filter>header</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

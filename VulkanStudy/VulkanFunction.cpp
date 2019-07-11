@@ -22,6 +22,7 @@
 #include "CommandPoolFactory.h"
 #include "CommandBufferObject.h"
 #include "ShaderModuleFactory.h"
+#include "RenderPassFactory.h"
 
 #include "Renderer.h"
 #include "Device.h"
@@ -42,6 +43,7 @@ FenceFactory _fence_factory;
 SemaphoreFactory _semaphore_factory;
 CommandPoolFactory _command_pool_factory;
 ShaderModuleFactory _shader_module_factory;
+RenderPassFactory _render_pass_factory;
 
 std::shared_ptr<InstanceObject> _instance_object;
 std::shared_ptr<PhysicalDeviceObject> _physical_device_object;
@@ -62,13 +64,13 @@ std::shared_ptr<CommandPoolObject> _command_pool;
 std::shared_ptr<CommandBufferObject> _command_buffer;
 std::shared_ptr<ShaderModuleObject> _vs;
 std::shared_ptr<ShaderModuleObject> _ps;
+std::shared_ptr<RenderPassObject> _render_pass;
 
 Device _device;
 vk::DescriptorSetLayout g_descriptor_set_layout = nullptr;
 vk::PipelineLayout g_pipeline_layout = nullptr;
 vk::DescriptorPool g_descriptor_pool = nullptr;
 VkDescriptorSet g_descriptor_set = nullptr;
-vk::RenderPass g_render_pass = nullptr;
 std::vector<vk::Framebuffer> g_frame_buffers;
 vk::Pipeline g_pipeline = nullptr;
 
@@ -263,62 +265,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
   _device.updateDescriptorSets(1, write_descriptor_sets, 0, nullptr);
 
   // Create render pass
-
-  VkAttachmentDescription attachment_description[] = {
-    {
-      0,
-      _swapchain->_vk_format,
-      VK_SAMPLE_COUNT_1_BIT,
-      VK_ATTACHMENT_LOAD_OP_CLEAR,  
-      VK_ATTACHMENT_STORE_OP_STORE,
-      VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-      VK_ATTACHMENT_STORE_OP_DONT_CARE,
-      VK_IMAGE_LAYOUT_UNDEFINED,
-      VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
-    },
-
-    {
-      0,
-      _depth_image->_vk_format,
-      VK_SAMPLE_COUNT_1_BIT,
-      VK_ATTACHMENT_LOAD_OP_CLEAR,
-      VK_ATTACHMENT_STORE_OP_DONT_CARE,
-      VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-      VK_ATTACHMENT_STORE_OP_DONT_CARE,
-      VK_IMAGE_LAYOUT_UNDEFINED,
-      VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-    }
-  };
-
-  VkAttachmentReference color_reference = {};
-  color_reference.attachment = 0;
-  color_reference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-  VkAttachmentReference depth_reference = {};
-  depth_reference.attachment = 1;
-  depth_reference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-  VkSubpassDescription subpass_description = {};
-  subpass_description.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-  subpass_description.inputAttachmentCount = 0;
-  subpass_description.pInputAttachments = nullptr;
-  subpass_description.colorAttachmentCount = 1;
-  subpass_description.pColorAttachments = &color_reference;
-  subpass_description.pResolveAttachments = nullptr;
-  subpass_description.pDepthStencilAttachment = &depth_reference;
-  subpass_description.preserveAttachmentCount = 0;
-  subpass_description.pPreserveAttachments = nullptr;
-
-  VkRenderPassCreateInfo render_pass_info = {};
-  render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-  render_pass_info.attachmentCount = 2;
-  render_pass_info.pAttachments = attachment_description;
-  render_pass_info.subpassCount = 1;
-  render_pass_info.pSubpasses = &subpass_description;
-  render_pass_info.dependencyCount = 0;
-  render_pass_info.pDependencies = nullptr;
-
-  g_render_pass = _device.createRenderPass(render_pass_info);
+  _render_pass = _render_pass_factory.createObject(_device.getVkDevice(), _swapchain->_vk_format, _depth_image->_vk_format);
 
   // Create shader module
 
@@ -361,7 +308,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
   attachments[1] = _depth_image_view->_vk_image_view;
 
   auto const frame_buffer_info = vk::FramebufferCreateInfo()
-    .setRenderPass(g_render_pass)
+    .setRenderPass(_render_pass->_vk_render_pass)
     .setAttachmentCount(2)
     .setPAttachments(attachments)
     .setWidth(width)
@@ -506,7 +453,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
     .setPColorBlendState(&color_blend_info)
     .setPDynamicState(nullptr/*&dynamic_state_info*/)
     .setLayout(g_pipeline_layout)
-    .setRenderPass(g_render_pass);
+    .setRenderPass(_render_pass->_vk_render_pass);
 
   g_pipeline = _device.createGraphicsPipeline(nullptr, pipeline_info);
 
@@ -522,7 +469,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
   };
 
   auto render_begin_info = vk::RenderPassBeginInfo()
-    .setRenderPass(g_render_pass)
+    .setRenderPass(_render_pass->_vk_render_pass)
     .setFramebuffer(g_frame_buffers[g_current_buffer])
     .setRenderArea(vk::Rect2D(vk::Offset2D(0, 0), vk::Extent2D(width, height)))
     .setClearValueCount(2)
@@ -626,7 +573,7 @@ void updateVulkan() {
   };
 
   auto render_begin_info = vk::RenderPassBeginInfo()
-    .setRenderPass(g_render_pass)
+    .setRenderPass(_render_pass->_vk_render_pass)
     .setFramebuffer(g_frame_buffers[g_current_buffer])
     .setRenderArea(vk::Rect2D(vk::Offset2D(0, 0), vk::Extent2D(_width, _height)))
     .setClearValueCount(2)
@@ -720,10 +667,7 @@ void uninitVulkan() {
 
   _shader_module_factory.destroyObject(_device.getVkDevice(), _vs);
 
-  if (g_render_pass) {
-    _device.destroyRenderPass(g_render_pass);
-    g_render_pass = nullptr;
-  }
+  _render_pass_factory.destroyObject(_device.getVkDevice(), _render_pass);
 
   if (g_descriptor_pool) {
     _device.destroyDescriptorPool(g_descriptor_pool);
