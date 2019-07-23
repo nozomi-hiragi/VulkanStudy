@@ -6,6 +6,12 @@
 template<class Object, class Parent, class... Params>
 class AbstractFactory {
 public:
+  virtual ~AbstractFactory() {
+    for (auto it : _container) {
+      destroyObject(it);
+    }
+  }
+
   auto createObject(const std::shared_ptr<Parent> parent, const Params&... params) {
     _parent = parent;
     auto object = _createCore(params...);

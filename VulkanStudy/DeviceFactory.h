@@ -4,11 +4,16 @@
 #include <memory>
 #include <set>
 
+#include "AbstractFactory.h"
 #include "DeviceObject.h"
 #include "PhysicalDeviceObject.h"
+#include "SurfaceObject.h"
 #include "QueueObject.h"
 
-class DeviceFactory {
+class DeviceFactory : public AbstractFactory<DeviceObject, void, const std::shared_ptr<PhysicalDeviceObject>, const std::shared_ptr<SurfaceObject>> {
+public:
+protected:
+private:
   static uint32_t _findPresentQueueFamilyIndex(std::shared_ptr<PhysicalDeviceObject> physical_device, VkSurfaceKHR surface) {
     std::vector<bool> support_surfaces(physical_device->_queue_family_properties.size());
     for (int i = 0; i < support_surfaces.size(); i++) {
@@ -38,8 +43,8 @@ class DeviceFactory {
     vkDestroyDevice(device, nullptr);
   }
 
-  std::shared_ptr<DeviceObject> _createCore(std::shared_ptr<PhysicalDeviceObject> physical_device, VkSurfaceKHR surface) {
-    auto present_queue_family_index = _findPresentQueueFamilyIndex(physical_device, surface);
+  std::shared_ptr<DeviceObject> _createCore(const std::shared_ptr<PhysicalDeviceObject> physical_device, const std::shared_ptr<SurfaceObject> surface) {
+    auto present_queue_family_index = _findPresentQueueFamilyIndex(physical_device, surface->_vk_surface);
     auto vk_device = _createVkDevice(physical_device->_physical_device, present_queue_family_index);
 
     VkQueue vk_queue;
@@ -52,27 +57,4 @@ class DeviceFactory {
   void _destroyCore(std::shared_ptr<DeviceObject> object) {
     _destroyVkDevice(object->_vk_device);
   }
-
-public:
-  std::shared_ptr<DeviceObject> createObject(std::shared_ptr<PhysicalDeviceObject> physical_device, VkSurfaceKHR surface) {
-    auto object = _createCore(physical_device, surface);
-    _container.insert(object);
-    return object;
-  }
-
-  void destroyObject(std::shared_ptr<DeviceObject>& object) {
-    if (!object) { return; }
-    auto before = _container.size();
-    _container.erase(object);
-    auto after = _container.size();
-
-    if (before != after) {
-      _destroyCore(object);
-      object.reset();
-    }
-  }
-
-protected:
-private:
-  std::set<std::shared_ptr<DeviceObject>> _container;
 };

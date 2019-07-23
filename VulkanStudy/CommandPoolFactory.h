@@ -4,9 +4,12 @@
 #include <memory>
 #include <set>
 
+#include "AbstractFactory.h"
 #include "CommandPoolObject.h"
+#include "DeviceObject.h"
+#include "QueueObject.h"
 
-class CommandPoolFactory {
+class CommandPoolFactory : public AbstractFactory<CommandPoolObject, DeviceObject, const std::shared_ptr<QueueObject>> {
   static auto _createVkCommandPool(VkDevice device, uint32_t queue_family_index) {
     VkCommandPoolCreateInfo command_pool_info = {};
     command_pool_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
@@ -22,23 +25,13 @@ class CommandPoolFactory {
   }
 
 public:
-  auto createCommandPool(VkDevice device, uint32_t queue_family_index) {
-    auto vk_command_pool = _createVkCommandPool(device, queue_family_index);
-    auto object = std::make_shared<CommandPoolObject>(vk_command_pool);
-    _container.insert(object);
-    return object;
+  std::shared_ptr<CommandPoolObject> _createCore(std::shared_ptr<QueueObject> queue) {
+    auto vk_command_pool = _createVkCommandPool(_parent->_vk_device, queue->_vk_queue_family_index);
+    return std::make_shared<CommandPoolObject>(vk_command_pool);
   }
 
-  void destroyCommandPool(VkDevice device, std::shared_ptr<CommandPoolObject>& object) {
-    if (!object) { return; }
-    auto before = _container.size();
-    _container.erase(object);
-    auto after = _container.size();
-
-    if (before != after) {
-      _destroyVkCommandPool(device, object->_vk_command_pool);
-      object.reset();
-    }
+  void _destroyCore(std::shared_ptr<CommandPoolObject> object) {
+    _destroyVkCommandPool(_parent->_vk_device, object->_vk_command_pool);
   }
 
   CommandPoolFactory() {
