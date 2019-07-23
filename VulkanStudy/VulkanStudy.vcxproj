@@ -78,7 +78,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Device.cpp" />
+    <ClCompile Include="DeviceFactory.cpp" />
     <ClCompile Include="InstanceFactory.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Renderer.cpp" />
@@ -97,10 +97,11 @@
     <ClInclude Include="DescriptorSetObject.h" />
     <ClInclude Include="DescriptorSetLayoutFactory.h" />
     <ClInclude Include="DescriptorSetLayoutObject.h" />
-    <ClInclude Include="Device.h" />
+    <ClInclude Include="DeviceFactory.h" />
     <ClInclude Include="DeviceMemoryFactory.h" />
     <ClInclude Include="DeviceMemoryObject.h" />
     <ClInclude Include="AbstractFactory.h" />
+    <ClInclude Include="DeviceObject.h" />
     <ClInclude Include="FenceFactory.h" />
     <ClInclude Include="FenceObject.h" />
     <ClInclude Include="FramebufferFactory.h" />

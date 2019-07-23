@@ -30,9 +30,6 @@
     <ClCompile Include="VulkanFunction.cpp">
       <Filter>source</Filter>
     </ClCompile>
-    <ClCompile Include="Device.cpp">
-      <Filter>source</Filter>
-    </ClCompile>
     <ClCompile Include="Renderer.cpp">
       <Filter>source</Filter>
     </ClCompile>
@@ -42,15 +39,15 @@
     <ClCompile Include="SurfaceFactory.cpp">
       <Filter>source\wrap</Filter>
     </ClCompile>
+    <ClCompile Include="DeviceFactory.cpp">
+      <Filter>source\wrap</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="WindowManager.h">
       <Filter>header</Filter>
     </ClInclude>
     <ClInclude Include="VulkanFunction.h">
-      <Filter>header</Filter>
-    </ClInclude>
-    <ClInclude Include="Device.h">
       <Filter>header</Filter>
     </ClInclude>
     <ClInclude Include="Renderer.h">
@@ -171,6 +168,12 @@
       <Filter>header\wrap</Filter>
     </ClInclude>
     <ClInclude Include="PipelineObject.h">
+      <Filter>header\wrap</Filter>
+    </ClInclude>
+    <ClInclude Include="DeviceFactory.h">
+      <Filter>header\wrap</Filter>
+    </ClInclude>
+    <ClInclude Include="DeviceObject.h">
       <Filter>header\wrap</Filter>
     </ClInclude>
   </ItemGroup>
