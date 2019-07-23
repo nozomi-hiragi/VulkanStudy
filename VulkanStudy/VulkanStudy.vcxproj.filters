@@ -13,6 +13,12 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="header\wrap">
+      <UniqueIdentifier>{e45d8c84-49b2-4657-8c68-8d9f5213162b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="source\wrap">
+      <UniqueIdentifier>{9ace0734-6fd6-4eba-960c-28e2a7d67676}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -27,29 +33,14 @@
     <ClCompile Include="Device.cpp">
       <Filter>source</Filter>
     </ClCompile>
-    <ClCompile Include="Queue.cpp">
-      <Filter>source</Filter>
-    </ClCompile>
-    <ClCompile Include="CommandPool.cpp">
-      <Filter>source</Filter>
-    </ClCompile>
-    <ClCompile Include="CommandBuffer.cpp">
-      <Filter>source</Filter>
-    </ClCompile>
     <ClCompile Include="Renderer.cpp">
       <Filter>source</Filter>
     </ClCompile>
     <ClCompile Include="InstanceFactory.cpp">
-      <Filter>source</Filter>
+      <Filter>source\wrap</Filter>
     </ClCompile>
     <ClCompile Include="SurfaceFactory.cpp">
-      <Filter>source</Filter>
-    </ClCompile>
-    <ClCompile Include="SwapchainFactory.cpp">
-      <Filter>source</Filter>
-    </ClCompile>
-    <ClCompile Include="ImageFactory.cpp">
-      <Filter>source</Filter>
+      <Filter>source\wrap</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -65,107 +56,113 @@
     <ClInclude Include="Renderer.h">
       <Filter>header</Filter>
     </ClInclude>
-    <ClInclude Include="InstanceObject.h">
-      <Filter>header</Filter>
-    </ClInclude>
-    <ClInclude Include="InstanceFactory.h">
-      <Filter>header</Filter>
-    </ClInclude>
-    <ClInclude Include="PhysicalDeviceObject.h">
-      <Filter>header</Filter>
-    </ClInclude>
-    <ClInclude Include="SurfaceObject.h">
-      <Filter>header</Filter>
-    </ClInclude>
-    <ClInclude Include="SurfaceFactory.h">
-      <Filter>header</Filter>
-    </ClInclude>
-    <ClInclude Include="SwapchainObject.h">
-      <Filter>header</Filter>
-    </ClInclude>
-    <ClInclude Include="SwapchainFactory.h">
-      <Filter>header</Filter>
-    </ClInclude>
-    <ClInclude Include="ImageFactory.h">
-      <Filter>header</Filter>
-    </ClInclude>
-    <ClInclude Include="ImageViewObject.h">
-      <Filter>header</Filter>
-    </ClInclude>
-    <ClInclude Include="ImageViewFactory.h">
-      <Filter>header</Filter>
-    </ClInclude>
-    <ClInclude Include="DeviceMemoryObject.h">
-      <Filter>header</Filter>
-    </ClInclude>
-    <ClInclude Include="DeviceMemoryFactory.h">
-      <Filter>header</Filter>
-    </ClInclude>
-    <ClInclude Include="BufferObject.h">
-      <Filter>header</Filter>
+    <ClInclude Include="AbstractFactory.h">
+      <Filter>header\wrap</Filter>
     </ClInclude>
     <ClInclude Include="BufferFactory.h">
-      <Filter>header</Filter>
+      <Filter>header\wrap</Filter>
     </ClInclude>
-    <ClInclude Include="FenceObject.h">
-      <Filter>header</Filter>
-    </ClInclude>
-    <ClInclude Include="FenceFactory.h">
-      <Filter>header</Filter>
-    </ClInclude>
-    <ClInclude Include="ImageObject.h">
-      <Filter>header</Filter>
-    </ClInclude>
-    <ClInclude Include="SemaphoreObject.h">
-      <Filter>header</Filter>
-    </ClInclude>
-    <ClInclude Include="SemaphoreFactory.h">
-      <Filter>header</Filter>
-    </ClInclude>
-    <ClInclude Include="QueueObject.h">
-      <Filter>header</Filter>
-    </ClInclude>
-    <ClInclude Include="CommandPoolObject.h">
-      <Filter>header</Filter>
-    </ClInclude>
-    <ClInclude Include="CommandPoolFactory.h">
-      <Filter>header</Filter>
-    </ClInclude>
-    <ClInclude Include="AbstractFactory.h">
-      <Filter>header</Filter>
+    <ClInclude Include="BufferObject.h">
+      <Filter>header\wrap</Filter>
     </ClInclude>
     <ClInclude Include="CommandBufferObject.h">
-      <Filter>header</Filter>
+      <Filter>header\wrap</Filter>
     </ClInclude>
-    <ClInclude Include="ShaderModuleObject.h">
-      <Filter>header</Filter>
+    <ClInclude Include="CommandPoolFactory.h">
+      <Filter>header\wrap</Filter>
     </ClInclude>
-    <ClInclude Include="ShaderModuleFactory.h">
-      <Filter>header</Filter>
-    </ClInclude>
-    <ClInclude Include="RenderPassObject.h">
-      <Filter>header</Filter>
-    </ClInclude>
-    <ClInclude Include="RenderPassFactory.h">
-      <Filter>header</Filter>
-    </ClInclude>
-    <ClInclude Include="FramebufferObject.h">
-      <Filter>header</Filter>
-    </ClInclude>
-    <ClInclude Include="FramebufferFactory.h">
-      <Filter>header</Filter>
-    </ClInclude>
-    <ClInclude Include="DescriptorSetLayoutObject.h">
-      <Filter>header</Filter>
-    </ClInclude>
-    <ClInclude Include="DescriptorSetLayoutFactory.h">
-      <Filter>header</Filter>
+    <ClInclude Include="CommandPoolObject.h">
+      <Filter>header\wrap</Filter>
     </ClInclude>
     <ClInclude Include="DescriptorPoolFactory.h">
-      <Filter>header</Filter>
+      <Filter>header\wrap</Filter>
     </ClInclude>
     <ClInclude Include="DescriptorPoolObject.h">
-      <Filter>header</Filter>
+      <Filter>header\wrap</Filter>
+    </ClInclude>
+    <ClInclude Include="DescriptorSetLayoutFactory.h">
+      <Filter>header\wrap</Filter>
+    </ClInclude>
+    <ClInclude Include="DescriptorSetLayoutObject.h">
+      <Filter>header\wrap</Filter>
+    </ClInclude>
+    <ClInclude Include="DeviceMemoryFactory.h">
+      <Filter>header\wrap</Filter>
+    </ClInclude>
+    <ClInclude Include="DeviceMemoryObject.h">
+      <Filter>header\wrap</Filter>
+    </ClInclude>
+    <ClInclude Include="FenceFactory.h">
+      <Filter>header\wrap</Filter>
+    </ClInclude>
+    <ClInclude Include="FenceObject.h">
+      <Filter>header\wrap</Filter>
+    </ClInclude>
+    <ClInclude Include="FramebufferFactory.h">
+      <Filter>header\wrap</Filter>
+    </ClInclude>
+    <ClInclude Include="FramebufferObject.h">
+      <Filter>header\wrap</Filter>
+    </ClInclude>
+    <ClInclude Include="ImageFactory.h">
+      <Filter>header\wrap</Filter>
+    </ClInclude>
+    <ClInclude Include="ImageObject.h">
+      <Filter>header\wrap</Filter>
+    </ClInclude>
+    <ClInclude Include="ImageViewFactory.h">
+      <Filter>header\wrap</Filter>
+    </ClInclude>
+    <ClInclude Include="ImageViewObject.h">
+      <Filter>header\wrap</Filter>
+    </ClInclude>
+    <ClInclude Include="InstanceFactory.h">
+      <Filter>header\wrap</Filter>
+    </ClInclude>
+    <ClInclude Include="InstanceObject.h">
+      <Filter>header\wrap</Filter>
+    </ClInclude>
+    <ClInclude Include="PhysicalDeviceObject.h">
+      <Filter>header\wrap</Filter>
+    </ClInclude>
+    <ClInclude Include="QueueObject.h">
+      <Filter>header\wrap</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderPassFactory.h">
+      <Filter>header\wrap</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderPassObject.h">
+      <Filter>header\wrap</Filter>
+    </ClInclude>
+    <ClInclude Include="SemaphoreFactory.h">
+      <Filter>header\wrap</Filter>
+    </ClInclude>
+    <ClInclude Include="SemaphoreObject.h">
+      <Filter>header\wrap</Filter>
+    </ClInclude>
+    <ClInclude Include="ShaderModuleFactory.h">
+      <Filter>header\wrap</Filter>
+    </ClInclude>
+    <ClInclude Include="ShaderModuleObject.h">
+      <Filter>header\wrap</Filter>
+    </ClInclude>
+    <ClInclude Include="SurfaceFactory.h">
+      <Filter>header\wrap</Filter>
+    </ClInclude>
+    <ClInclude Include="SurfaceObject.h">
+      <Filter>header\wrap</Filter>
+    </ClInclude>
+    <ClInclude Include="SwapchainFactory.h">
+      <Filter>header\wrap</Filter>
+    </ClInclude>
+    <ClInclude Include="SwapchainObject.h">
+      <Filter>header\wrap</Filter>
+    </ClInclude>
+    <ClInclude Include="PipelineLayoutFactory.h">
+      <Filter>header\wrap</Filter>
+    </ClInclude>
+    <ClInclude Include="PipelineLayoutObject.h">
+      <Filter>header\wrap</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

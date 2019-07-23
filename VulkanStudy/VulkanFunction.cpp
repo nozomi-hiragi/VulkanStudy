@@ -26,6 +26,7 @@
 #include "FramebufferFactory.h"
 #include "DescriptorSetLayoutFactory.h"
 #include "DescriptorPoolFactory.h"
+#include "PipelineLayoutFactory.h"
 
 #include "Renderer.h"
 #include "Device.h"
@@ -50,6 +51,7 @@ RenderPassFactory _render_pass_factory;
 FramebufferFactory _framebuffer_factory;
 DescriptorSetLayoutFactory _descriptor_set_layout_factory;
 DescriptorPoolFactory _descriptor_pool_factory;
+PipelineLayoutFactory _pipeline_layout_factory;
 
 std::shared_ptr<InstanceObject> _instance_object;
 std::shared_ptr<PhysicalDeviceObject> _physical_device_object;
@@ -74,9 +76,9 @@ std::shared_ptr<RenderPassObject> _render_pass;
 std::vector<std::shared_ptr<FramebufferObject>> _framebuffers;
 std::shared_ptr<DescriptorSetLayoutObject> _descriptor_set_layout;
 std::shared_ptr<DescriptorPoolObject> _descriptor_pool;
+std::shared_ptr<PipelineLayoutObject> _pipeline_layout;
 
 Device _device;
-vk::PipelineLayout g_pipeline_layout = nullptr;
 VkDescriptorSet g_descriptor_set = nullptr;
 vk::Pipeline g_pipeline = nullptr;
 
@@ -207,13 +209,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
     range.offset = 0;
     range.size = sizeof(g_mvp);
 
-    VkPipelineLayoutCreateInfo pipeline_layout_info = { VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
-    pipeline_layout_info.pushConstantRangeCount = 1;
-    pipeline_layout_info.pPushConstantRanges = &range;
-    pipeline_layout_info.setLayoutCount = 1;
-    pipeline_layout_info.pSetLayouts = &_descriptor_set_layout->_vk_descriptor_set_layout;
-
-    g_pipeline_layout = _device.createPipelineLayout(pipeline_layout_info);
+    _pipeline_layout = _pipeline_layout_factory.createObject(_device.getVkDevice(), range, _descriptor_set_layout->_vk_descriptor_set_layout);
   }
 
   // Crearte descripter pool
@@ -419,7 +415,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
     .setPDepthStencilState(&depth_stencil_info)
     .setPColorBlendState(&color_blend_info)
     .setPDynamicState(nullptr/*&dynamic_state_info*/)
-    .setLayout(g_pipeline_layout)
+    .setLayout(_pipeline_layout->_vk_pipeline_layout)
     .setRenderPass(_render_pass->_vk_render_pass);
 
   g_pipeline = _device.createGraphicsPipeline(nullptr, pipeline_info);
@@ -451,7 +447,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
   //
 
   uint32_t ofst = 0;
-  _command_buffer->bindDescriptorSets(VK_PIPELINE_BIND_POINT_GRAPHICS, g_pipeline_layout, 0, 1, &g_descriptor_set, 1, &ofst);
+  _command_buffer->bindDescriptorSets(VK_PIPELINE_BIND_POINT_GRAPHICS, _pipeline_layout->_vk_pipeline_layout, 0, 1, &g_descriptor_set, 1, &ofst);
 
   //
 
@@ -553,7 +549,7 @@ void updateVulkan() {
   _command_buffer->bindPipeline(VK_PIPELINE_BIND_POINT_GRAPHICS, g_pipeline);
 
   uint32_t ofst = 0;
-  _command_buffer->bindDescriptorSets(VK_PIPELINE_BIND_POINT_GRAPHICS, g_pipeline_layout, 0, 1, &g_descriptor_set, 1, &ofst);
+  _command_buffer->bindDescriptorSets(VK_PIPELINE_BIND_POINT_GRAPHICS, _pipeline_layout->_vk_pipeline_layout, 0, 1, &g_descriptor_set, 1, &ofst);
 
   auto viewport = vk::Viewport()
     .setWidth((float)_width)
@@ -571,7 +567,7 @@ void updateVulkan() {
   model = glm::translate(glm::mat4(1), glm::vec3(a, 0, 0));
   g_mvp = projection * view * model;
  
-  vkCmdPushConstants(_command_buffer->_vk_command_buffer, g_pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(g_mvp), &g_mvp);
+  vkCmdPushConstants(_command_buffer->_vk_command_buffer, _pipeline_layout->_vk_pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(g_mvp), &g_mvp);
 
   vk::DeviceSize vertex_offset = 0;
   _command_buffer->bindVertexBuffers(0, _vertex_buffer->_vk_buffer, vertex_offset);
@@ -638,10 +634,7 @@ void uninitVulkan() {
 
   _descriptor_pool_factory.destroyObject(_device.getVkDevice(), _descriptor_pool);
 
-  if (g_pipeline_layout) {
-    _device.destroyPipelineLayout(g_pipeline_layout);
-    g_pipeline_layout = nullptr;
-  }
+  _pipeline_layout_factory.destroyObject(_device.getVkDevice(), _pipeline_layout);
 
   _descriptor_set_layout_factory.destroyObject(_device.getVkDevice(), _descriptor_set_layout);
 

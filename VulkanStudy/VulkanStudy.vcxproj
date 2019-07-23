@@ -78,16 +78,11 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="CommandBuffer.cpp" />
-    <ClCompile Include="CommandPool.cpp" />
     <ClCompile Include="Device.cpp" />
-    <ClCompile Include="ImageFactory.cpp" />
     <ClCompile Include="InstanceFactory.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="Queue.cpp" />
     <ClCompile Include="Renderer.cpp" />
     <ClCompile Include="SurfaceFactory.cpp" />
-    <ClCompile Include="SwapchainFactory.cpp" />
     <ClCompile Include="VulkanFunction.cpp" />
     <ClCompile Include="WindowManager.cpp" />
   </ItemGroup>
@@ -116,6 +111,8 @@
     <ClInclude Include="InstanceFactory.h" />
     <ClInclude Include="InstanceObject.h" />
     <ClInclude Include="PhysicalDeviceObject.h" />
+    <ClInclude Include="PipelineLayoutFactory.h" />
+    <ClInclude Include="PipelineLayoutObject.h" />
     <ClInclude Include="QueueObject.h" />
     <ClInclude Include="Renderer.h" />
     <ClInclude Include="RenderPassFactory.h" />

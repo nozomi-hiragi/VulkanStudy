@@ -46,14 +46,6 @@ public:
     _device.destroyPipeline(pipeline);
   }
 
-  vk::PipelineLayout createPipelineLayout(const vk::PipelineLayoutCreateInfo& pipeline_layout_info) {
-    return _device.createPipelineLayout(pipeline_layout_info);
-  }
-
-  void destroyPipelineLayout(const vk::PipelineLayout pipeline_layout) {
-    _device.destroyPipelineLayout(pipeline_layout);
-  }
-
   // fom memory
   void* mapMemory(const vk::DeviceMemory memory, const uint64_t offset, const uint64_t size) {
     return _device.mapMemory(memory, offset, size);
