@@ -66,10 +66,6 @@ public:
   }
 
   // for descriptor
-  std::vector<vk::DescriptorSet> allocateDescriptorSets(const vk::DescriptorSetAllocateInfo& descriptor_set_info) {
-    return _device.allocateDescriptorSets(descriptor_set_info);
-  }
-
   void updateDescriptorSets(const uint32_t write_count, const vk::WriteDescriptorSet* writes, const uint32_t copy_count, const vk::CopyDescriptorSet* copies) {
     _device.updateDescriptorSets(write_count, writes, copy_count, copies);
   }

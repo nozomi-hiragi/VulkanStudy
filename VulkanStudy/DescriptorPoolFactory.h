@@ -14,6 +14,7 @@ class DescriptorPoolFactory {
     descriptor_pool_info.maxSets = 1;
     descriptor_pool_info.poolSizeCount = 1;
     descriptor_pool_info.pPoolSizes = pool_sizes;
+    descriptor_pool_info.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
 
     VkDescriptorPool descriptor_pool;
     auto result = vkCreateDescriptorPool(device, &descriptor_pool_info, nullptr, &descriptor_pool);

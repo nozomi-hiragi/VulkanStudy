@@ -20,7 +20,6 @@
 #include "FenceFactory.h"
 #include "SemaphoreFactory.h"
 #include "CommandPoolFactory.h"
-#include "CommandBufferObject.h"
 #include "ShaderModuleFactory.h"
 #include "RenderPassFactory.h"
 #include "FramebufferFactory.h"
@@ -77,9 +76,9 @@ std::vector<std::shared_ptr<FramebufferObject>> _framebuffers;
 std::shared_ptr<DescriptorSetLayoutObject> _descriptor_set_layout;
 std::shared_ptr<DescriptorPoolObject> _descriptor_pool;
 std::shared_ptr<PipelineLayoutObject> _pipeline_layout;
+std::shared_ptr<DescriptorSetObject> _descriptor_set;
 
 Device _device;
-VkDescriptorSet g_descriptor_set = nullptr;
 vk::Pipeline g_pipeline = nullptr;
 
 uint32_t g_current_buffer = 0;
@@ -216,13 +215,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
   _descriptor_pool = _descriptor_pool_factory.createObject(_device.getVkDevice());
 
   // Allocarte descriptor set
-
-  VkDescriptorSetAllocateInfo descriptor_set_info = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
-  descriptor_set_info.descriptorPool = _descriptor_pool->_vk_descriptor_pool;
-  descriptor_set_info.descriptorSetCount = 1;
-  descriptor_set_info.pSetLayouts = &_descriptor_set_layout->_vk_descriptor_set_layout;
-
-  g_descriptor_set = _device.allocateDescriptorSets(descriptor_set_info)[0];
+  _descriptor_set = _descriptor_pool->createObject(_device.getVkDevice(), _descriptor_set_layout->_vk_descriptor_set_layout);
 
   // Update descriptor sets
 
@@ -236,7 +229,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
     .setDescriptorCount(1)
     .setDescriptorType(vk::DescriptorType::eUniformBufferDynamic)
     .setPBufferInfo(&descriptor_buffer_info)
-    .setDstSet(g_descriptor_set)
+    .setDstSet(_descriptor_set->_vk_descriptor_set)
   };
 
   _device.updateDescriptorSets(1, write_descriptor_sets, 0, nullptr);
@@ -447,7 +440,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
   //
 
   uint32_t ofst = 0;
-  _command_buffer->bindDescriptorSets(VK_PIPELINE_BIND_POINT_GRAPHICS, _pipeline_layout->_vk_pipeline_layout, 0, 1, &g_descriptor_set, 1, &ofst);
+  _command_buffer->bindDescriptorSets(VK_PIPELINE_BIND_POINT_GRAPHICS, _pipeline_layout->_vk_pipeline_layout, 0, 1, &_descriptor_set->_vk_descriptor_set, 1, &ofst);
 
   //
 
@@ -549,7 +542,7 @@ void updateVulkan() {
   _command_buffer->bindPipeline(VK_PIPELINE_BIND_POINT_GRAPHICS, g_pipeline);
 
   uint32_t ofst = 0;
-  _command_buffer->bindDescriptorSets(VK_PIPELINE_BIND_POINT_GRAPHICS, _pipeline_layout->_vk_pipeline_layout, 0, 1, &g_descriptor_set, 1, &ofst);
+  _command_buffer->bindDescriptorSets(VK_PIPELINE_BIND_POINT_GRAPHICS, _pipeline_layout->_vk_pipeline_layout, 0, 1, &_descriptor_set->_vk_descriptor_set, 1, &ofst);
 
   auto viewport = vk::Viewport()
     .setWidth((float)_width)
@@ -631,6 +624,8 @@ void uninitVulkan() {
   _shader_module_factory.destroyObject(_device.getVkDevice(), _vs);
 
   _render_pass_factory.destroyObject(_device.getVkDevice(), _render_pass);
+
+  _descriptor_pool->destroyObject(_device.getVkDevice(), _descriptor_set);
 
   _descriptor_pool_factory.destroyObject(_device.getVkDevice(), _descriptor_pool);
 

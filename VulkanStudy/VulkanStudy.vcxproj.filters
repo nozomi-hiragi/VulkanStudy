@@ -164,5 +164,8 @@
     <ClInclude Include="PipelineLayoutObject.h">
       <Filter>header\wrap</Filter>
     </ClInclude>
+    <ClInclude Include="DescriptorSetObject.h">
+      <Filter>header\wrap</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
