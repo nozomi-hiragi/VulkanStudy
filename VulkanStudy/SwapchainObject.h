@@ -22,6 +22,10 @@ public:
   ~SwapchainObject() {
   }
 
+  static void vkAcquireNextImage_(VkDevice device, VkSwapchainKHR swapchain, const uint64_t timeout, const VkSemaphore semaphore, const VkFence fence, uint32_t* image_index) {
+    vkAcquireNextImageKHR(device, swapchain, timeout, semaphore, fence, image_index);
+  }
+
   const VkSwapchainKHR _vk_swapchain;
   const VkFormat _vk_format;
   const VkColorSpaceKHR _vk_color_space;

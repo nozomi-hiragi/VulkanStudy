@@ -12,6 +12,10 @@ public:
   ~BufferObject() {
   }
 
+  static void vkBindBufferMemory_(VkDevice device, const VkBuffer buffer, const VkDeviceMemory memory, const uint64_t offset) {
+    vkBindBufferMemory(device, buffer, memory, offset);
+  }
+
   const VkBuffer _vk_buffer;
   const VkMemoryRequirements _memory_requirements;
 protected:

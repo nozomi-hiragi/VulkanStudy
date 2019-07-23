@@ -41,7 +41,7 @@ public:
     auto after = _container.size();
 
     if (before != after) {
-      FenceObject::vkWaitForFence(device, object->_vk_fence, UINT32_MAX);
+      FenceObject::vkWaitForFence_(device, object->_vk_fence, UINT32_MAX);
       _destroyVkFence(device, object->_vk_fence);
       object.reset();
     }

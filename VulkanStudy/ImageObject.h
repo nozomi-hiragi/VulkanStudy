@@ -13,6 +13,10 @@ public:
   ~ImageObject() {
   }
 
+  static void vkBindImageMemory_(VkDevice device, const VkImage image, const VkDeviceMemory memory, const uint64_t offset) {
+    vkBindImageMemory(device, image, memory, offset);
+  }
+
   const VkImage _vk_image;
   const VkMemoryRequirements _memory_requirements;
   const VkFormat _vk_format;

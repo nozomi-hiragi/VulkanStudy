@@ -10,8 +10,12 @@ public:
   ~FenceObject() {
   }
 
-  static VkResult vkWaitForFence(VkDevice device, VkFence fence, uint64_t timeout) {
+  static VkResult vkWaitForFence_(VkDevice device, VkFence fence, uint64_t timeout) {
     return vkWaitForFences(device, 1, &fence, VK_FALSE, timeout);
+  }
+
+  static void vkResetFence_(VkDevice device, VkFence fence) {
+    vkResetFences(device, 1, &fence);
   }
 
   const VkFence _vk_fence;

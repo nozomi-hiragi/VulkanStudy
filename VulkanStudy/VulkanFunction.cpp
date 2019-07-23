@@ -161,7 +161,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
   }
 
   // Bind memory to depth image
-  _device.bindImageMemory(_depth_image->_vk_image, _depth_memory->_vk_device_memory, 0);
+  ImageObject::vkBindImageMemory_(_device.getVkDevice(), _depth_image->_vk_image, _depth_memory->_vk_device_memory, 0);
 
   // Create depth image view
   {
@@ -188,17 +188,15 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
 
   // Wrinte to memory
   {
-    auto data = _device.mapMemory(_uniform_memory->_vk_device_memory, 0, _uniform_buffer->_memory_requirements.size);
+    auto data = DeviceMemoryObject::vkMapMemory_(_device.getVkDevice(), _uniform_memory->_vk_device_memory, 0, _uniform_buffer->_memory_requirements.size);
 
     memcpy(data, &g_mvp, sizeof(g_mvp));
 
-    _device.unmapMemory(_uniform_memory->_vk_device_memory);
+    DeviceMemoryObject::vkUnmapMemory_(_device.getVkDevice(), _uniform_memory->_vk_device_memory);
   }
 
   // Bind memory to buffer
-  {
-    _device.bindBufferMemory(_uniform_buffer->_vk_buffer, _uniform_memory->_vk_device_memory, 0);
-  }
+  BufferObject::vkBindBufferMemory_(_device.getVkDevice(), _uniform_buffer->_vk_buffer, _uniform_memory->_vk_device_memory, 0);
 
   // Create descriptor set layout
   _descriptor_set_layout = _descriptor_set_layout_factory.createObject(_device.getVkDevice());
@@ -221,20 +219,12 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
 
   // Update descriptor sets
 
-  auto descriptor_buffer_info = vk::DescriptorBufferInfo()
-    .setOffset(0)
-    .setRange(sizeof(g_mvp))//VK_WHOLE_SIZE??
-    .setBuffer(_uniform_buffer->_vk_buffer);
+  VkDescriptorBufferInfo descriptor_buffer_info = {};
+  descriptor_buffer_info.buffer = _uniform_buffer->_vk_buffer;
+  descriptor_buffer_info.offset = 0;
+  descriptor_buffer_info.range = sizeof(g_mvp);//VK_WHOLE_SIZE??
 
-  vk::WriteDescriptorSet write_descriptor_sets[] = {
-    vk::WriteDescriptorSet()
-    .setDescriptorCount(1)
-    .setDescriptorType(vk::DescriptorType::eUniformBufferDynamic)
-    .setPBufferInfo(&descriptor_buffer_info)
-    .setDstSet(_descriptor_set->_vk_descriptor_set)
-  };
-
-  _device.updateDescriptorSets(1, write_descriptor_sets, 0, nullptr);
+  DescriptorSetObject::vkUpdateDescriptorSets_(_device.getVkDevice(), _descriptor_set->_vk_descriptor_set, descriptor_buffer_info);
 
   // Create render pass
   _render_pass = _render_pass_factory.createObject(_device.getVkDevice(), _swapchain->_vk_format, _depth_image->_vk_format);
@@ -308,18 +298,18 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
 
   // Store vertex buffer
 
-  auto vertex_map = _device.mapMemory(_vertex_memory->_vk_device_memory, 0, _vertex_buffer->_memory_requirements.size);
+  auto vertex_map = DeviceMemoryObject::vkMapMemory_(_device.getVkDevice(), _vertex_memory->_vk_device_memory, 0, _vertex_buffer->_memory_requirements.size);
 
   memcpy(vertex_map, &poly, sizeof(poly));
 
-  _device.unmapMemory(_vertex_memory->_vk_device_memory);
+  DeviceMemoryObject::vkUnmapMemory_(_device.getVkDevice(), _vertex_memory->_vk_device_memory);
 
-  _device.bindBufferMemory(_vertex_buffer->_vk_buffer, _vertex_memory->_vk_device_memory, 0);
+  BufferObject::vkBindBufferMemory_(_device.getVkDevice(), _vertex_buffer->_vk_buffer, _vertex_memory->_vk_device_memory, 0);
 
   // Create semaphore
   _image_semaphore = _semaphore_factory.createSemaphore(_device.getVkDevice());
 
-  _device.acquireNextImage(_swapchain->_vk_swapchain, UINT64_MAX, _image_semaphore->_vk_semaphore, nullptr, &g_current_buffer);
+  SwapchainObject::vkAcquireNextImage_(_device.getVkDevice(), _swapchain->_vk_swapchain, UINT64_MAX, _image_semaphore->_vk_semaphore, nullptr, &g_current_buffer);
 
   // Description
 
@@ -436,7 +426,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
   VkResult res;
 
   do {
-    res = FenceObject::vkWaitForFence(_device.getVkDevice(), _fence->_vk_fence, UINT64_MAX);
+    res = FenceObject::vkWaitForFence_(_device.getVkDevice(), _fence->_vk_fence, UINT64_MAX);
   } while (res == VK_TIMEOUT);
 
   //
@@ -454,10 +444,10 @@ float a = 0;
 void updateVulkan() {
 
 
-  _device.acquireNextImage(_swapchain->_vk_swapchain, UINT64_MAX, _image_semaphore->_vk_semaphore, nullptr, &g_current_buffer);
+  SwapchainObject::vkAcquireNextImage_(_device.getVkDevice(), _swapchain->_vk_swapchain, UINT64_MAX, _image_semaphore->_vk_semaphore, nullptr, &g_current_buffer);
 
-  FenceObject::vkWaitForFence(_device.getVkDevice(), _fence->_vk_fence, UINT64_MAX);
-  _device.resetFence(_fence->_vk_fence);
+  FenceObject::vkWaitForFence_(_device.getVkDevice(), _fence->_vk_fence, UINT64_MAX);
+  FenceObject::vkResetFence_(_device.getVkDevice(), _fence->_vk_fence);
 
 
   _command_buffer->begin();
