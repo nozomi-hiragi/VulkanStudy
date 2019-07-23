@@ -26,6 +26,7 @@
 #include "DescriptorSetLayoutFactory.h"
 #include "DescriptorPoolFactory.h"
 #include "PipelineLayoutFactory.h"
+#include "PipelineFactory.h"
 
 #include "Renderer.h"
 #include "Device.h"
@@ -51,6 +52,7 @@ FramebufferFactory _framebuffer_factory;
 DescriptorSetLayoutFactory _descriptor_set_layout_factory;
 DescriptorPoolFactory _descriptor_pool_factory;
 PipelineLayoutFactory _pipeline_layout_factory;
+PipelineFactory _pipeline_factory;
 
 std::shared_ptr<InstanceObject> _instance_object;
 std::shared_ptr<PhysicalDeviceObject> _physical_device_object;
@@ -77,9 +79,9 @@ std::shared_ptr<DescriptorSetLayoutObject> _descriptor_set_layout;
 std::shared_ptr<DescriptorPoolObject> _descriptor_pool;
 std::shared_ptr<PipelineLayoutObject> _pipeline_layout;
 std::shared_ptr<DescriptorSetObject> _descriptor_set;
+std::shared_ptr<PipelineObject> _pipeline;
 
 Device _device;
-vk::Pipeline g_pipeline = nullptr;
 
 uint32_t g_current_buffer = 0;
 
@@ -260,16 +262,25 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
 
   _ps = _shader_module_factory.createObject(_device.getVkDevice(), ps_bin.second, reinterpret_cast<uint32_t*>(ps_bin.first.get()));
 
-  vk::PipelineShaderStageCreateInfo shader_stage_info[] = {
-    vk::PipelineShaderStageCreateInfo()
-    .setStage(vk::ShaderStageFlagBits::eVertex)
-    .setModule(_vs->_vk_shader_module)
-    .setPName("main"),
-
-    vk::PipelineShaderStageCreateInfo()
-    .setStage(vk::ShaderStageFlagBits::eFragment)
-    .setModule(_ps->_vk_shader_module)
-    .setPName("main")
+  VkPipelineShaderStageCreateInfo shader_stage_info[] = {
+    {
+      VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+      nullptr,
+      0,
+      VkShaderStageFlagBits::VK_SHADER_STAGE_VERTEX_BIT,
+      _vs->_vk_shader_module,
+      "main",
+      nullptr
+    },
+    {
+      VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+      nullptr,
+      0,
+      VkShaderStageFlagBits::VK_SHADER_STAGE_FRAGMENT_BIT,
+      _ps->_vk_shader_module,
+      "main",
+      nullptr
+    }
   };
 
   //
@@ -305,113 +316,41 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
 
   _device.bindBufferMemory(_vertex_buffer->_vk_buffer, _vertex_memory->_vk_device_memory, 0);
 
-  // Description
-
-  auto vertex_binding_description = vk::VertexInputBindingDescription()
-    .setBinding(0)
-    .setInputRate(vk::VertexInputRate::eVertex)
-    .setStride(sizeof(Vertex));
-
-  vk::VertexInputAttributeDescription vertex_attribute_descriptions[] = {
-    vk::VertexInputAttributeDescription()
-    .setBinding(0)
-    .setLocation(0)
-    .setFormat(vk::Format::eR32G32B32A32Sfloat)
-    .setOffset(0),
-
-    vk::VertexInputAttributeDescription()
-    .setBinding(0)
-    .setLocation(1)
-    .setFormat(vk::Format::eR32G32B32A32Sfloat)
-    .setOffset(16)
-  };
-
   // Create semaphore
   _image_semaphore = _semaphore_factory.createSemaphore(_device.getVkDevice());
 
   _device.acquireNextImage(_swapchain->_vk_swapchain, UINT64_MAX, _image_semaphore->_vk_semaphore, nullptr, &g_current_buffer);
 
-  // Create pipeline
+  // Description
 
-  vk::DynamicState dynamic_states[2] = {
-    vk::DynamicState::eViewport,
-    vk::DynamicState::eScissor
+  VkVertexInputBindingDescription vertex_binding_description = {};
+  vertex_binding_description.binding = 0;
+  vertex_binding_description.inputRate = VkVertexInputRate::VK_VERTEX_INPUT_RATE_VERTEX;
+  vertex_binding_description.stride = sizeof(Vertex);
+
+  VkVertexInputAttributeDescription vertex_attribute_descriptions[] = {
+    {
+      0,
+      0,
+      VK_FORMAT_R32G32B32A32_SFLOAT,
+      0
+    },
+    {
+      1,
+      0,
+      VK_FORMAT_R32G32B32A32_SFLOAT,
+      16
+    }
   };
 
-  auto dynamic_state_info = vk::PipelineDynamicStateCreateInfo()
-    .setPDynamicStates(dynamic_states)
-    .setDynamicStateCount(2);
+  VkPipelineVertexInputStateCreateInfo vertex_input_info = { VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO };
+  vertex_input_info.vertexBindingDescriptionCount = 1;
+  vertex_input_info.pVertexBindingDescriptions = &vertex_binding_description;
+  vertex_input_info.vertexAttributeDescriptionCount = 2;
+  vertex_input_info.pVertexAttributeDescriptions = vertex_attribute_descriptions;
 
-  auto vertex_input_info = vk::PipelineVertexInputStateCreateInfo()
-    .setVertexBindingDescriptionCount(1)
-    .setPVertexBindingDescriptions(&vertex_binding_description)
-    .setVertexAttributeDescriptionCount(2)
-    .setPVertexAttributeDescriptions(vertex_attribute_descriptions);
-
-  auto input_assembly_info = vk::PipelineInputAssemblyStateCreateInfo()
-    .setTopology(vk::PrimitiveTopology::eTriangleList);
-
-  auto rasterization_info = vk::PipelineRasterizationStateCreateInfo()
-    .setDepthClampEnable(VK_FALSE)
-    .setRasterizerDiscardEnable(VK_FALSE)
-    .setPolygonMode(vk::PolygonMode::eFill)
-    .setCullMode(vk::CullModeFlagBits::eBack)
-    .setFrontFace(vk::FrontFace::eClockwise)
-    .setDepthBiasEnable(VK_FALSE)
-    .setLineWidth(1.0f);
-
-  vk::PipelineColorBlendAttachmentState color_blend_attachments[1] = {
-    vk::PipelineColorBlendAttachmentState()
-    .setColorWriteMask(vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA) };
-
-  auto color_blend_info = vk::PipelineColorBlendStateCreateInfo()
-    .setAttachmentCount(1)
-    .setPAttachments(color_blend_attachments);
-
-  auto viewport = vk::Viewport()
-    .setWidth((float)width)
-    .setHeight((float)height)
-    .setMinDepth((float)0.0f)
-    .setMaxDepth((float)1.0f);
-  vk::Rect2D scissor(vk::Offset2D(0, 0), vk::Extent2D(width, height));
-  auto viewport_info = vk::PipelineViewportStateCreateInfo()
-    .setViewportCount(1)
-    .setPViewports(&viewport)
-    .setScissorCount(1)
-    .setPScissors(&scissor);
-
-  auto stencil_op = vk::StencilOpState()
-    .setFailOp(vk::StencilOp::eKeep)
-    .setPassOp(vk::StencilOp::eKeep)
-    .setCompareOp(vk::CompareOp::eAlways);
-
-  auto depth_stencil_info = vk::PipelineDepthStencilStateCreateInfo()
-    .setDepthTestEnable(VK_TRUE)
-    .setDepthWriteEnable(VK_TRUE)
-    .setDepthCompareOp(vk::CompareOp::eLessOrEqual)
-    .setDepthBoundsTestEnable(VK_FALSE)
-    .setStencilTestEnable(VK_FALSE)
-    .setFront(stencil_op)
-    .setBack(stencil_op);
-
-  auto multisample_info = vk::PipelineMultisampleStateCreateInfo()
-    .setRasterizationSamples(vk::SampleCountFlagBits::e1);
-
-  auto pipeline_info = vk::GraphicsPipelineCreateInfo()
-    .setStageCount(2)
-    .setPStages(shader_stage_info)
-    .setPVertexInputState(&vertex_input_info)
-    .setPInputAssemblyState(&input_assembly_info)
-    .setPViewportState(&viewport_info)
-    .setPRasterizationState(&rasterization_info)
-    .setPMultisampleState(&multisample_info)
-    .setPDepthStencilState(&depth_stencil_info)
-    .setPColorBlendState(&color_blend_info)
-    .setPDynamicState(nullptr/*&dynamic_state_info*/)
-    .setLayout(_pipeline_layout->_vk_pipeline_layout)
-    .setRenderPass(_render_pass->_vk_render_pass);
-
-  g_pipeline = _device.createGraphicsPipeline(nullptr, pipeline_info);
+  // Create pipeline
+  _pipeline = _pipeline_factory.createObject(_device.getVkDevice(), nullptr, width, height, vertex_input_info, shader_stage_info, _pipeline_layout->_vk_pipeline_layout, _render_pass->_vk_render_pass);
 
   // Begin command
 
@@ -435,7 +374,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
 
   //
 
-  _command_buffer->bindPipeline(VK_PIPELINE_BIND_POINT_GRAPHICS, g_pipeline);
+  _command_buffer->bindPipeline(VK_PIPELINE_BIND_POINT_GRAPHICS, _pipeline->_vk_pipeline);
 
   //
 
@@ -539,7 +478,7 @@ void updateVulkan() {
 
   // ~~~
 
-  _command_buffer->bindPipeline(VK_PIPELINE_BIND_POINT_GRAPHICS, g_pipeline);
+  _command_buffer->bindPipeline(VK_PIPELINE_BIND_POINT_GRAPHICS, _pipeline->_vk_pipeline);
 
   uint32_t ofst = 0;
   _command_buffer->bindDescriptorSets(VK_PIPELINE_BIND_POINT_GRAPHICS, _pipeline_layout->_vk_pipeline_layout, 0, 1, &_descriptor_set->_vk_descriptor_set, 1, &ofst);
@@ -603,10 +542,7 @@ void uninitVulkan() {
 
   _fence_factory.destroyFence(_device.getVkDevice(), _fence);
 
-  if (g_pipeline) {
-    _device.destroyPipeline(g_pipeline);
-    g_pipeline = nullptr;
-  }
+  _pipeline_factory.destroyObject(_device.getVkDevice(), _pipeline);
 
   _semaphore_factory.destroySemaphore(_device.getVkDevice(), _image_semaphore);
 

@@ -37,15 +37,6 @@ public:
     _device.resetFences(fence);
   }
 
-  // for pipeline
-  vk::Pipeline createGraphicsPipeline(const vk::PipelineCache pipeline_cache, const vk::GraphicsPipelineCreateInfo& pipeline_info) {
-    return _device.createGraphicsPipeline(pipeline_cache, pipeline_info);
-  }
-
-  void destroyPipeline(const vk::Pipeline pipeline) {
-    _device.destroyPipeline(pipeline);
-  }
-
   // fom memory
   void* mapMemory(const vk::DeviceMemory memory, const uint64_t offset, const uint64_t size) {
     return _device.mapMemory(memory, offset, size);

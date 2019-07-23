@@ -167,5 +167,11 @@
     <ClInclude Include="DescriptorSetObject.h">
       <Filter>header\wrap</Filter>
     </ClInclude>
+    <ClInclude Include="PipelineFactory.h">
+      <Filter>header\wrap</Filter>
+    </ClInclude>
+    <ClInclude Include="PipelineObject.h">
+      <Filter>header\wrap</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
