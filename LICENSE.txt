@@ -1,0 +1,4 @@
+コピー禁止
+参考OK
+
+shaderc https://github.com/google/shaderc/blob/master/LICENSE
