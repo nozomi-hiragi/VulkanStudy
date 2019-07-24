@@ -4,9 +4,20 @@
 #include <memory>
 #include <set>
 
+#include "AbstractFactory.h"
 #include "DeviceMemoryObject.h"
+#include "DeviceObject.h"
 
-class DeviceMemoryFactory {
+class DeviceMemoryFactory : public AbstractFactory<DeviceMemoryObject, DeviceObject, const VkDeviceSize, const uint32_t> {
+public:
+  DeviceMemoryFactory() {
+  }
+
+  ~DeviceMemoryFactory() {
+  }
+
+protected:
+private:
   static auto _createVkDeviceMemory(VkDevice device, VkDeviceSize size, uint32_t type) {
     VkMemoryAllocateInfo device_memory_info = {};
     device_memory_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
@@ -22,33 +33,13 @@ class DeviceMemoryFactory {
     vkFreeMemory(device, device_memory, nullptr);
   }
 
-public:
-  DeviceMemoryFactory() {
+  std::shared_ptr<DeviceMemoryObject> _createCore(VkDeviceSize size, uint32_t type) {
+    auto vk_device_memory = _createVkDeviceMemory(_parent->_vk_device, size, type);
+    return std::make_shared<DeviceMemoryObject>(vk_device_memory);
   }
 
-  ~DeviceMemoryFactory() {
+  void _destroyCore(std::shared_ptr<DeviceMemoryObject> object) {
+    _destroyVkDeviceMemory(_parent->_vk_device, object->_vk_device_memory);
   }
 
-  auto createDeviceMemory(VkDevice device, VkDeviceSize size, uint32_t type) {
-    auto vk_device_memory = _createVkDeviceMemory(device, size, type);
-    auto object = std::make_shared<DeviceMemoryObject>(vk_device_memory);
-    _container.insert(object);
-    return object;
-  }
-
-  void destroyDeviceMemory(VkDevice device, std::shared_ptr<DeviceMemoryObject>& object) {
-    if (!object) { return; }
-    auto before = _container.size();
-    _container.erase(object);
-    auto after = _container.size();
-
-    if (before != after) {
-      _destroyVkDeviceMemory(device, object->_vk_device_memory);
-      object.reset();
-    }
-  }
-
-protected:
-private:
-  std::set<std::shared_ptr<DeviceMemoryObject>> _container;
 };

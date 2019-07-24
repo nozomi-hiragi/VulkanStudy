@@ -4,9 +4,22 @@
 #include <memory>
 #include <set>
 
+#include "AbstractFactory.h"
 #include "SwapchainObject.h"
+#include "DeviceObject.h"
+#include "PhysicalDeviceObject.h"
+#include "SurfaceObject.h"
 
-class SwapchainFactory {
+class SwapchainFactory : public AbstractFactory<SwapchainObject, DeviceObject, const std::shared_ptr<SurfaceObject>, const std::shared_ptr<PhysicalDeviceObject>, const uint32_t, const uint32_t> {
+public:
+  SwapchainFactory() {
+  }
+
+  ~SwapchainFactory() {
+  }
+
+protected:
+private:
   static VkSurfaceCapabilitiesKHR _getSurfaceCapabilities(VkPhysicalDevice physical_device, VkSurfaceKHR surface) {
     VkSurfaceCapabilitiesKHR surface_capabilities;
     auto result = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physical_device, surface, &surface_capabilities);
@@ -68,7 +81,7 @@ class SwapchainFactory {
     swapchain_info.imageArrayLayers = 1;
     swapchain_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
     swapchain_info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-    swapchain_info.queueFamilyIndexCount = 0; // Ç†ÇÍÅH
+    swapchain_info.queueFamilyIndexCount = 0;
     swapchain_info.pQueueFamilyIndices = nullptr;
     swapchain_info.preTransform = pre_transform;
     swapchain_info.compositeAlpha = composite_alpha;
@@ -92,48 +105,28 @@ class SwapchainFactory {
     return std::move(memory_requirements);
   }
 
-public:
-  std::shared_ptr<SwapchainObject> createSwapchain(VkDevice device, VkSurfaceKHR surface, VkPhysicalDevice physical_device, const uint32_t width, const uint32_t height) {
-    auto surface_capabilities = _getSurfaceCapabilities(physical_device, surface);
-    auto surface_format = _getFixSurfaceFormat(physical_device, surface);
-    auto vk_swapchain = _createVkSwapchain(device, surface, surface_capabilities, surface_format, width, height);
-    auto vk_swapchain_images = _getVkSwapchainImages(device, vk_swapchain);
+  std::shared_ptr<SwapchainObject> _createCore(const std::shared_ptr<SurfaceObject> surface, const std::shared_ptr<PhysicalDeviceObject> physical_device, const uint32_t width, const uint32_t height) {
+    auto surface_capabilities = _getSurfaceCapabilities(physical_device->_vk_physical_device, surface->_vk_surface);
+    auto surface_format = _getFixSurfaceFormat(physical_device->_vk_physical_device, surface->_vk_surface);
+    auto vk_swapchain = _createVkSwapchain(_parent->_vk_device, surface->_vk_surface, surface_capabilities, surface_format, width, height);
+    auto vk_swapchain_images = _getVkSwapchainImages(_parent->_vk_device, vk_swapchain);
 
     std::vector<std::shared_ptr<ImageObject>> swapchain_images;
     swapchain_images.reserve(vk_swapchain_images.size());
     for (auto it : vk_swapchain_images) {
-      auto memory_requirements = _getVkImageMemoryRequirements(device, it);
-      swapchain_images.push_back(std::make_shared<ImageObject>(it, std::move(memory_requirements), surface_format.format));
+      auto memory_requirements = _getVkImageMemoryRequirements(_parent->_vk_device, it);
+      swapchain_images.push_back(std::make_shared<ImageObject>(it, std::move(memory_requirements), surface_format.format, VK_IMAGE_ASPECT_COLOR_BIT));
     }
 
-    auto object = std::make_shared<SwapchainObject>(
+    return std::make_shared<SwapchainObject>(
       vk_swapchain,
       surface_format.format,
       surface_format.colorSpace,
       std::move(swapchain_images));
-    _container.insert(object);
-    return object;
   }
 
-  void destroySwapchain(VkDevice device, std::shared_ptr<SwapchainObject>& object) {
-    if (!object) { return; }
-    auto before = _container.size();
-    _container.erase(object);
-    auto after = _container.size();
-
-    if (before != after) {
-      _destroyVkSwapchain(device, object->_vk_swapchain);
-      object.reset();
-    }
+  void _destroyCore(std::shared_ptr<SwapchainObject> object) {
+    _destroyVkSwapchain(_parent->_vk_device, object->_vk_swapchain);
   }
 
-  SwapchainFactory() {
-  }
-
-  ~SwapchainFactory() {
-  }
-
-protected:
-private:
-  std::set<std::shared_ptr<SwapchainObject>> _container;
 };

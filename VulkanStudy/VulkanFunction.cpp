@@ -36,14 +36,6 @@ const uint32_t APP_VERSION = 0;
 
 Renderer _renderer;
 
-//InstanceFactory _instance_factory;
-//SurfaceFactory _surface_factory;
-//DeviceFactory _device_factory;
-//CommandPoolFactory _command_pool_factory;
-SwapchainFactory _swapchain_factory;
-ImageFactory _image_factory;
-ImageViewFactory _image_view_factory;
-DeviceMemoryFactory _device_memory_factory;
 BufferFactory _buffer_factory;
 FenceFactory _fence_factory;
 SemaphoreFactory _semaphore_factory;
@@ -55,18 +47,6 @@ DescriptorPoolFactory _descriptor_pool_factory;
 PipelineLayoutFactory _pipeline_layout_factory;
 PipelineFactory _pipeline_factory;
 
-//std::shared_ptr<InstanceObject> _instance_object;
-//std::shared_ptr<PhysicalDeviceObject> _physical_device_object;
-//std::shared_ptr<SurfaceObject> _surface_object;
-//std::shared_ptr<DeviceObject> _device;
-//std::shared_ptr<QueueObject> _queue;
-//std::shared_ptr<CommandPoolObject> _command_pool;
-//std::shared_ptr<CommandBufferObject> _command_buffer;
-std::shared_ptr<SwapchainObject> _swapchain;
-std::shared_ptr<ImageObject> _depth_image;
-std::vector<std::shared_ptr<ImageViewObject>> _swapchain_image_views;
-std::shared_ptr<ImageViewObject> _depth_image_view;
-std::shared_ptr<DeviceMemoryObject> _depth_memory;
 std::shared_ptr<DeviceMemoryObject> _uniform_memory;
 std::shared_ptr<DeviceMemoryObject> _vertex_memory;
 std::shared_ptr<BufferObject> _uniform_buffer;
@@ -112,64 +92,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
   _width = width;
   _height = height;
 
-  _renderer.init(APP_NAME, APP_VERSION, hinstance, hwnd);
-
-  // init
-  //_instance_object = _instance_factory.createObject(nullptr, APP_NAME, APP_VERSION);
-
-  //_physical_device_object = _instance_object->_physical_devices[PRIMALY_PHYSICAL_DEVICE_INDEX];
-
-  // Create Surface
-//#if defined(VK_USE_PLATFORM_WIN32_KHR)
-//  _surface_object = _surface_factory.createObject(_renderer._instance_object, hinstance, hwnd);
-//#endif
-
-  // Create Device
-  //_device = _device_factory.createObject(nullptr, _renderer._physical_device_object, _renderer._surface_object->_vk_surface);
-
-  // Get queue
-  //_queue = _renderer._device_object->_queue;
-
-  // Create Command pool
-  //_command_pool = _command_pool_factory.createObject(_renderer._device_object, _renderer._queue_object);
-
-  // Create primaly Command buffer
-  //_command_buffer = _renderer._command_pool_object->createObject(_renderer._device_object);
-
-  // Create Swapchain
-  _swapchain = _swapchain_factory.createSwapchain(_renderer._device_object->_vk_device, _renderer._surface_object->_vk_surface, _renderer._physical_device_object->_physical_device, width, height);
-
-  // Create Swapchain image
-  _swapchain_image_views.reserve(_swapchain->_swapchain_image_count);
-
-  // Create Swapchain image view
-  for (auto image : _swapchain->_swapchain_images) {
-    VkImageSubresourceRange subresource_range = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
-    _swapchain_image_views.push_back(_image_view_factory.createImageView(_renderer._device_object->_vk_device, image, subresource_range));
-  }
-
-  // Create Depth image
-  _depth_image = _image_factory.createImage(
-    _renderer._device_object->_vk_device,
-    VK_FORMAT_D16_UNORM,
-    VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-    width,
-    height);
-
-  // Allocate depth memory
-  {
-    auto memory_type_index = _renderer._physical_device_object->findProperties(_depth_image->_memory_requirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    _depth_memory = _device_memory_factory.createDeviceMemory(_renderer._device_object->_vk_device, _depth_image->_memory_requirements.size, memory_type_index);
-  }
-
-  // Bind memory to depth image
-  ImageObject::vkBindImageMemory_(_renderer._device_object->_vk_device, _depth_image->_vk_image, _depth_memory->_vk_device_memory, 0);
-
-  // Create depth image view
-  {
-    VkImageSubresourceRange subresource_range = { VK_IMAGE_ASPECT_DEPTH_BIT, 0, 1, 0, 1 };
-    _depth_image_view = _image_view_factory.createImageView(_renderer._device_object->_vk_device, _depth_image, subresource_range);
-  }
+  _renderer.init(APP_NAME, APP_VERSION, width, height, hinstance, hwnd);
 
   // Create matrix
   {
@@ -184,13 +107,13 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
 
   // Allocate uniform memory
   {
-    auto memory_type_index = _renderer._physical_device_object->findProperties(_uniform_buffer->_memory_requirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-    _uniform_memory = _device_memory_factory.createDeviceMemory(_renderer._device_object->_vk_device, _uniform_buffer->_memory_requirements.size, memory_type_index);
+    auto memory_type_index = _renderer._physical_device_object->findProperties(_uniform_buffer, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    _uniform_memory = _renderer._device_memory_factory.createObject(_renderer._device_object, _uniform_buffer->_vk_memory_requirements.size, memory_type_index);
   }
 
   // Wrinte to memory
   {
-    auto data = DeviceMemoryObject::vkMapMemory_(_renderer._device_object->_vk_device, _uniform_memory->_vk_device_memory, 0, _uniform_buffer->_memory_requirements.size);
+    auto data = DeviceMemoryObject::vkMapMemory_(_renderer._device_object->_vk_device, _uniform_memory->_vk_device_memory, 0, _uniform_buffer->_vk_memory_requirements.size);
 
     memcpy(data, &g_mvp, sizeof(g_mvp));
 
@@ -229,7 +152,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
   DescriptorSetObject::vkUpdateDescriptorSets_(_renderer._device_object->_vk_device, _descriptor_set->_vk_descriptor_set, descriptor_buffer_info);
 
   // Create render pass
-  _render_pass = _render_pass_factory.createObject(_renderer._device_object->_vk_device, _swapchain->_vk_format, _depth_image->_vk_format);
+  _render_pass = _render_pass_factory.createObject(_renderer._device_object->_vk_device, _renderer._swapchain_object->_vk_format, _renderer._depth_image_object->_vk_format);
 
   // Create shader module
 
@@ -276,13 +199,13 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
   };
 
   //
-  _framebuffers.reserve(_swapchain->_swapchain_image_count);
-  for (uint32_t i = 0; i < _swapchain->_swapchain_image_count; i++) {
+  _framebuffers.reserve(_renderer._swapchain_object->_swapchain_image_count);
+  for (uint32_t i = 0; i < _renderer._swapchain_object->_swapchain_image_count; i++) {
     _framebuffers.push_back(_framebuffer_factory.createObject(
       _renderer._device_object->_vk_device,
       _render_pass->_vk_render_pass,
-      _swapchain_image_views[i]->_vk_image_view,
-      _depth_image_view->_vk_image_view,
+      _renderer._swapchain_image_view_objects[i]->_vk_image_view,
+      _renderer._depth_image_view_object->_vk_image_view,
       width,
       height));
   }
@@ -292,15 +215,14 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
 
   // Allocate vertex buffer memory
 
-  auto memory_type_bits = _vertex_buffer->_memory_requirements.memoryTypeBits;
   auto memory_property_bits = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-  auto memory_type_index = _renderer._physical_device_object->findProperties(memory_type_bits, memory_property_bits);
+  auto memory_type_index = _renderer._physical_device_object->findProperties(_vertex_buffer, memory_property_bits);
 
-  _vertex_memory = _device_memory_factory.createDeviceMemory(_renderer._device_object->_vk_device, _vertex_buffer->_memory_requirements.size, memory_type_index);
+  _vertex_memory = _renderer._device_memory_factory.createObject(_renderer._device_object, _vertex_buffer->_vk_memory_requirements.size, memory_type_index);
 
   // Store vertex buffer
 
-  auto vertex_map = DeviceMemoryObject::vkMapMemory_(_renderer._device_object->_vk_device, _vertex_memory->_vk_device_memory, 0, _vertex_buffer->_memory_requirements.size);
+  auto vertex_map = DeviceMemoryObject::vkMapMemory_(_renderer._device_object->_vk_device, _vertex_memory->_vk_device_memory, 0, _vertex_buffer->_vk_memory_requirements.size);
 
   memcpy(vertex_map, &poly, sizeof(poly));
 
@@ -311,7 +233,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
   // Create semaphore
   _image_semaphore = _semaphore_factory.createSemaphore(_renderer._device_object->_vk_device);
 
-  SwapchainObject::vkAcquireNextImage_(_renderer._device_object->_vk_device, _swapchain->_vk_swapchain, UINT64_MAX, _image_semaphore->_vk_semaphore, nullptr, &g_current_buffer);
+  SwapchainObject::vkAcquireNextImage_(_renderer._device_object->_vk_device, _renderer._swapchain_object->_vk_swapchain, UINT64_MAX, _image_semaphore->_vk_semaphore, nullptr, &g_current_buffer);
 
   // Description
 
@@ -436,7 +358,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
   VkPresentInfoKHR present_info = {};
   present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
   present_info.swapchainCount = 1;
-  present_info.pSwapchains = &_swapchain->_vk_swapchain;
+  present_info.pSwapchains = &_renderer._swapchain_object->_vk_swapchain;
   present_info.pImageIndices = &g_current_buffer;
 
   vkQueuePresentKHR(_renderer._queue_object->_vk_queue, &present_info);
@@ -446,7 +368,7 @@ float a = 0;
 void updateVulkan() {
 
 
-  SwapchainObject::vkAcquireNextImage_(_renderer._device_object->_vk_device, _swapchain->_vk_swapchain, UINT64_MAX, _image_semaphore->_vk_semaphore, nullptr, &g_current_buffer);
+  SwapchainObject::vkAcquireNextImage_(_renderer._device_object->_vk_device, _renderer._swapchain_object->_vk_swapchain, UINT64_MAX, _image_semaphore->_vk_semaphore, nullptr, &g_current_buffer);
 
   FenceObject::vkWaitForFence_(_renderer._device_object->_vk_device, _fence->_vk_fence, UINT64_MAX);
   FenceObject::vkResetFence_(_renderer._device_object->_vk_device, _fence->_vk_fence);
@@ -524,7 +446,7 @@ void updateVulkan() {
   VkPresentInfoKHR present_info = {};
   present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
   present_info.swapchainCount = 1;
-  present_info.pSwapchains = &_swapchain->_vk_swapchain;
+  present_info.pSwapchains = &_renderer._swapchain_object->_vk_swapchain;
   present_info.pImageIndices = &g_current_buffer;
 
   vkQueuePresentKHR(_renderer._queue_object->_vk_queue, &present_info);
@@ -538,7 +460,7 @@ void uninitVulkan() {
 
   _semaphore_factory.destroySemaphore(_renderer._device_object->_vk_device, _image_semaphore);
 
-  _device_memory_factory.destroyDeviceMemory(_renderer._device_object->_vk_device, _vertex_memory);
+  _renderer._device_memory_factory.destroyObject(_vertex_memory);
 
   _buffer_factory.destroyBuffer(_renderer._device_object->_vk_device, _vertex_buffer);
 
@@ -561,32 +483,9 @@ void uninitVulkan() {
 
   _descriptor_set_layout_factory.destroyObject(_renderer._device_object->_vk_device, _descriptor_set_layout);
 
-  _device_memory_factory.destroyDeviceMemory(_renderer._device_object->_vk_device, _uniform_memory);
+  _renderer._device_memory_factory.destroyObject(_uniform_memory);
 
   _buffer_factory.destroyBuffer(_renderer._device_object->_vk_device, _uniform_buffer);
-
-  _image_view_factory.destroyImageView(_renderer._device_object->_vk_device, _depth_image_view);
-
-  _device_memory_factory.destroyDeviceMemory(_renderer._device_object->_vk_device, _depth_memory);
-
-  _image_factory.destroyImage(_renderer._device_object->_vk_device, _depth_image);
-
-  for (auto& image_view : _swapchain_image_views) {
-    _image_view_factory.destroyImageView(_renderer._device_object->_vk_device, image_view);
-  } 
-  _swapchain_image_views.clear();
-
-  _swapchain_factory.destroySwapchain(_renderer._device_object->_vk_device, _swapchain);
-
-  //_renderer._command_pool_object->destroyObject(_command_buffer);
-
-  //_command_pool_factory.destroyObject(_command_pool);
-
-  //_device_factory.destroyObject(_device);
-
-  //_surface_factory.destroyObject(_surface_object);
-
-  //_instance_factory.destroyObject(_instance_object);
 
   _renderer.uninit();
 }

@@ -15,16 +15,16 @@ public:
 protected:
 private:
   static uint32_t _findPresentQueueFamilyIndex(std::shared_ptr<PhysicalDeviceObject> physical_device, VkSurfaceKHR surface) {
-    std::vector<bool> support_surfaces(physical_device->_queue_family_properties.size());
+    std::vector<bool> support_surfaces(physical_device->_vk_queue_family_properties.size());
     for (int i = 0; i < support_surfaces.size(); i++) {
       VkBool32 result;
-      vkGetPhysicalDeviceSurfaceSupportKHR(physical_device->_physical_device, i, surface, &result);
+      vkGetPhysicalDeviceSurfaceSupportKHR(physical_device->_vk_physical_device, i, surface, &result);
       support_surfaces[i] = result == VK_TRUE;
     }
 
     auto present_queue_family_index = UINT32_MAX;
-    for (uint32_t i = 0; i < physical_device->_queue_family_properties.size(); i++) {
-      auto is_graphycs_queue_family = (physical_device->_queue_family_properties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) == VK_QUEUE_GRAPHICS_BIT;
+    for (uint32_t i = 0; i < physical_device->_vk_queue_family_properties.size(); i++) {
+      auto is_graphycs_queue_family = (physical_device->_vk_queue_family_properties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) == VK_QUEUE_GRAPHICS_BIT;
       auto is_support_surface = support_surfaces[i];
       if (is_graphycs_queue_family && is_support_surface) {
         present_queue_family_index = i;
@@ -45,7 +45,7 @@ private:
 
   std::shared_ptr<DeviceObject> _createCore(const std::shared_ptr<PhysicalDeviceObject> physical_device, const std::shared_ptr<SurfaceObject> surface) {
     auto present_queue_family_index = _findPresentQueueFamilyIndex(physical_device, surface->_vk_surface);
-    auto vk_device = _createVkDevice(physical_device->_physical_device, present_queue_family_index);
+    auto vk_device = _createVkDevice(physical_device->_vk_physical_device, present_queue_family_index);
 
     VkQueue vk_queue;
     vkGetDeviceQueue(vk_device, present_queue_family_index, 0, &vk_queue);

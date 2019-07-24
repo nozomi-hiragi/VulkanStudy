@@ -10,13 +10,13 @@ public:
   ~DeviceMemoryObject() {
   }
 
-  static void* vkMapMemory_(VkDevice device, const vk::DeviceMemory memory, const uint64_t offset, const uint64_t size) {
+  static void* vkMapMemory_(VkDevice device, const VkDeviceMemory memory, const uint64_t offset, const uint64_t size) {
     void* data;
     vkMapMemory(device, memory, offset, size, 0, &data);
     return data;
   }
 
-  static void vkUnmapMemory_(VkDevice device, const vk::DeviceMemory memory) {
+  static void vkUnmapMemory_(VkDevice device, const VkDeviceMemory memory) {
     vkUnmapMemory(device, memory);
   }
 

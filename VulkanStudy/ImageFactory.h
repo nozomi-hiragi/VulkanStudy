@@ -4,9 +4,20 @@
 #include <memory>
 #include <set>
 
+#include "AbstractFactory.h"
 #include "ImageObject.h"
+#include "DeviceObject.h"
 
-class ImageFactory {
+class ImageFactory : public AbstractFactory<ImageObject, DeviceObject, const VkFormat, const VkImageUsageFlags, const uint32_t, const uint32_t, const VkImageAspectFlags> {
+public:
+  ImageFactory() {
+  }
+
+  ~ImageFactory() {
+  }
+
+protected:
+private:
   static auto _createVkImage(VkDevice device, VkFormat format, VkImageUsageFlags usage, uint32_t width, uint32_t height) {
     VkImageCreateInfo image_info = {};
     image_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -40,34 +51,14 @@ class ImageFactory {
     return std::move(memory_requirements);
   }
 
-public:
-  ImageFactory() {
+  std::shared_ptr<ImageObject> _createCore(VkFormat format, VkImageUsageFlags usage, uint32_t width, uint32_t height, VkImageAspectFlags image_aspect_flags) {
+    auto vk_image = _createVkImage(_parent->_vk_device, format, usage, width, height);
+    auto memory_requirements = _getVkImageMemoryRequirements(_parent->_vk_device, vk_image);
+    return std::make_shared<ImageObject>(vk_image, std::move(memory_requirements), format, image_aspect_flags);
   }
 
-  ~ImageFactory() {
+  void _destroyCore(std::shared_ptr<ImageObject> object) {
+    _destroyVkImage(_parent->_vk_device, object->_vk_image);
   }
 
-  auto createImage(VkDevice device, VkFormat format, VkImageUsageFlags usage, uint32_t width, uint32_t height) {
-    auto vk_image = _createVkImage(device, format, usage, width, height);
-    auto memory_requirements = _getVkImageMemoryRequirements(device, vk_image);
-    auto object = std::make_shared<ImageObject>(vk_image, std::move(memory_requirements), format);
-    _container.insert(object);
-    return object;
-  }
-
-  void destroyImage(VkDevice device, std::shared_ptr<ImageObject>& object) {
-    if (!object) { return; }
-    auto before = _container.size();
-    _container.erase(object);
-    auto after = _container.size();
-
-    if (before != after) {
-      _destroyVkImage(device, object->_vk_image);
-      object.reset();
-    }
-  }
-
-protected:
-private:
-  std::set<std::shared_ptr<ImageObject>> _container;
 };
