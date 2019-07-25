@@ -1,21 +1,24 @@
 #pragma once
 
 #include <vulkan/vulkan.h>
-#include <memory>
-#include <set>
 
+#include "AbstractFactory.h"
 #include "PipelineObject.h"
+#include "DeviceObject.h"
 
-class PipelineFactory {
-  static VkPipeline _createVkGraphicsPipeline(VkDevice device, const VkPipelineCache pipeline_cache, uint32_t width, uint32_t height, VkPipelineVertexInputStateCreateInfo& vertex_input_info, VkPipelineShaderStageCreateInfo* shader_stages, VkPipelineLayout pipeline_layout, VkRenderPass render_pass) {
-    //VkDynamicState dynamic_states[2] = {
-    //  VK_DYNAMIC_STATE_VIEWPORT,
-    //  VK_DYNAMIC_STATE_SCISSOR
-    //};
+class PipelineFactory : public AbstractFactory<PipelineObject, DeviceObject, const VkPipelineCache, VkPipelineVertexInputStateCreateInfo&, VkPipelineShaderStageCreateInfo*, const VkPipelineLayout, const VkRenderPass> {
+public:
+protected:
+private:
+  static VkPipeline _createVkGraphicsPipeline(VkDevice device, const VkPipelineCache pipeline_cache, VkPipelineVertexInputStateCreateInfo& vertex_input_info, VkPipelineShaderStageCreateInfo* shader_stages, VkPipelineLayout pipeline_layout, VkRenderPass render_pass) {
+    VkDynamicState dynamic_states[2] = {
+      VK_DYNAMIC_STATE_VIEWPORT,
+      VK_DYNAMIC_STATE_SCISSOR
+    };
 
-    //VkPipelineDynamicStateCreateInfo dynamic_state_info = { VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO };
-    //dynamic_state_info.pDynamicStates = dynamic_states;
-    //dynamic_state_info.dynamicStateCount = 2;
+    VkPipelineDynamicStateCreateInfo dynamic_state_info = { VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO };
+    dynamic_state_info.pDynamicStates = dynamic_states;
+    dynamic_state_info.dynamicStateCount = 2;
 
     VkPipelineInputAssemblyStateCreateInfo input_assembly_info = { VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO };
     input_assembly_info.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
@@ -46,22 +49,9 @@ class PipelineFactory {
     color_blend_info.attachmentCount = 1;
     color_blend_info.pAttachments = color_blend_attachments;
 
-    VkViewport viewport = {};
-    viewport.width = (float)width;
-    viewport.height = (float)height;
-    viewport.minDepth = (float)0.0f;
-    viewport.maxDepth = (float)1.0f;
-
-    VkRect2D scissor = {
-      VkOffset2D { 0, 0 },
-      VkExtent2D { width, height }
-    };
-
     VkPipelineViewportStateCreateInfo viewport_info = { VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO };
     viewport_info.viewportCount = 1;
-    viewport_info.pViewports = &viewport;
     viewport_info.scissorCount = 1;
-    viewport_info.pScissors = &scissor;
 
     VkStencilOpState stencil_op = {};
     stencil_op.failOp = VK_STENCIL_OP_KEEP;
@@ -90,7 +80,7 @@ class PipelineFactory {
     pipeline_info.pMultisampleState = &multisample_info;
     pipeline_info.pDepthStencilState = &depth_stencil_info;
     pipeline_info.pColorBlendState = &color_blend_info;
-    pipeline_info.pDynamicState = nullptr/*&dynamic_state_info*/;
+    pipeline_info.pDynamicState = &dynamic_state_info;
     pipeline_info.layout = pipeline_layout;
     pipeline_info.renderPass = render_pass;
 
@@ -103,35 +93,13 @@ class PipelineFactory {
     vkDestroyPipeline(device, pipeline, nullptr);
   }
 
-  std::shared_ptr<PipelineObject> _createCore(VkDevice device, const VkPipelineCache pipeline_cache, uint32_t width, uint32_t height, VkPipelineVertexInputStateCreateInfo& vertex_input_info, VkPipelineShaderStageCreateInfo* shader_stages, VkPipelineLayout pipeline_layout, VkRenderPass render_pass) {
-    auto vk_descriptor_pool = _createVkGraphicsPipeline(device, pipeline_cache, width, height, vertex_input_info, shader_stages, pipeline_layout, render_pass);
+  std::shared_ptr<PipelineObject> _createCore(const VkPipelineCache pipeline_cache, VkPipelineVertexInputStateCreateInfo& vertex_input_info, VkPipelineShaderStageCreateInfo* shader_stages, const VkPipelineLayout pipeline_layout, const VkRenderPass render_pass) {
+    auto vk_descriptor_pool = _createVkGraphicsPipeline(_parent->_vk_device, pipeline_cache, vertex_input_info, shader_stages, pipeline_layout, render_pass);
     return std::make_shared<PipelineObject>(vk_descriptor_pool);
   }
 
-  void _destroyCore(VkDevice device, std::shared_ptr<PipelineObject> object) {
-    _destroyVkPipeline(device, object->_vk_pipeline);
+  void _destroyCore(std::shared_ptr<PipelineObject> object) {
+    _destroyVkPipeline(_parent->_vk_device, object->_vk_pipeline);
   }
 
-public:
-  std::shared_ptr<PipelineObject> createObject(VkDevice device, const VkPipelineCache pipeline_cache, uint32_t width, uint32_t height, VkPipelineVertexInputStateCreateInfo& vertex_input_info, VkPipelineShaderStageCreateInfo* shader_stages, VkPipelineLayout pipeline_layout, VkRenderPass render_pass) {
-    auto object = _createCore(device, pipeline_cache, width, height, vertex_input_info, shader_stages, pipeline_layout, render_pass);
-    _container.insert(object);
-    return object;
-  }
-
-  void destroyObject(VkDevice device, std::shared_ptr<PipelineObject>& object) {
-    if (!object) { return; }
-    auto before = _container.size();
-    _container.erase(object);
-    auto after = _container.size();
-
-    if (before != after) {
-      _destroyCore(device, object);
-      object.reset();
-    }
-  }
-
-protected:
-private:
-  std::set<std::shared_ptr<PipelineObject>> _container;
 };

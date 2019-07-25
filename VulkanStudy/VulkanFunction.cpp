@@ -94,37 +94,40 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
 
   _renderer.init(APP_NAME, APP_VERSION, width, height, hinstance, hwnd);
 
-  // Create matrix
+  // Uniform buffer
   {
-    projection = glm::perspectiveFov(glm::radians(45.f), static_cast<float>(width), static_cast<float>(height), 0.1f, 100.f);
-    view = glm::lookAt(glm::vec3(0, 0, -10), glm::vec3(0, 0, 0), glm::vec3(0, -1, 0));
-    model = glm::translate(glm::mat4(1), glm::vec3(0, 0, 0));
-    g_mvp = projection * view * model;
+    // Create matrix
+    {
+      projection = glm::perspectiveFov(glm::radians(45.f), static_cast<float>(width), static_cast<float>(height), 0.1f, 100.f);
+      view = glm::lookAt(glm::vec3(0, 0, -10), glm::vec3(0, 0, 0), glm::vec3(0, -1, 0));
+      model = glm::translate(glm::mat4(1), glm::vec3(0, 0, 0));
+      g_mvp = projection * view * model;
+    }
+
+    // Create uniform buffer
+    _uniform_buffer = _buffer_factory.createBuffer(_renderer._device_object->_vk_device, sizeof(g_mvp), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
+
+    // Allocate uniform memory
+    {
+      auto memory_type_index = _renderer._physical_device_object->findProperties(_uniform_buffer, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+      _uniform_memory = _renderer._device_memory_factory.createObject(_renderer._device_object, _uniform_buffer->_vk_memory_requirements.size, memory_type_index);
+    }
+
+    // Wrinte to memory
+    {
+      auto data = DeviceMemoryObject::vkMapMemory_(_renderer._device_object->_vk_device, _uniform_memory->_vk_device_memory, 0, _uniform_buffer->_vk_memory_requirements.size);
+
+      memcpy(data, &g_mvp, sizeof(g_mvp));
+
+      DeviceMemoryObject::vkUnmapMemory_(_renderer._device_object->_vk_device, _uniform_memory->_vk_device_memory);
+    }
+
+    // Bind memory to buffer
+    BufferObject::vkBindBufferMemory_(_renderer._device_object->_vk_device, _uniform_buffer->_vk_buffer, _uniform_memory->_vk_device_memory, 0);
+
+    // Create descriptor set layout
+    _descriptor_set_layout = _descriptor_set_layout_factory.createObject(_renderer._device_object->_vk_device);
   }
-
-  // Create uniform buffer
-  _uniform_buffer = _buffer_factory.createBuffer(_renderer._device_object->_vk_device, sizeof(g_mvp), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
-
-  // Allocate uniform memory
-  {
-    auto memory_type_index = _renderer._physical_device_object->findProperties(_uniform_buffer, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-    _uniform_memory = _renderer._device_memory_factory.createObject(_renderer._device_object, _uniform_buffer->_vk_memory_requirements.size, memory_type_index);
-  }
-
-  // Wrinte to memory
-  {
-    auto data = DeviceMemoryObject::vkMapMemory_(_renderer._device_object->_vk_device, _uniform_memory->_vk_device_memory, 0, _uniform_buffer->_vk_memory_requirements.size);
-
-    memcpy(data, &g_mvp, sizeof(g_mvp));
-
-    DeviceMemoryObject::vkUnmapMemory_(_renderer._device_object->_vk_device, _uniform_memory->_vk_device_memory);
-  }
-
-  // Bind memory to buffer
-  BufferObject::vkBindBufferMemory_(_renderer._device_object->_vk_device, _uniform_buffer->_vk_buffer, _uniform_memory->_vk_device_memory, 0);
-
-  // Create descriptor set layout
-  _descriptor_set_layout = _descriptor_set_layout_factory.createObject(_renderer._device_object->_vk_device);
 
   // Create Pipeline layout
   {
@@ -177,26 +180,17 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
 
   _ps = _shader_module_factory.createObject(_renderer._device_object->_vk_device, ps_bin.second, reinterpret_cast<uint32_t*>(ps_bin.first.get()));
 
-  VkPipelineShaderStageCreateInfo shader_stage_info[] = {
-    {
-      VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-      nullptr,
-      0,
-      VkShaderStageFlagBits::VK_SHADER_STAGE_VERTEX_BIT,
-      _vs->_vk_shader_module,
-      "main",
-      nullptr
-    },
-    {
-      VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-      nullptr,
-      0,
-      VkShaderStageFlagBits::VK_SHADER_STAGE_FRAGMENT_BIT,
-      _ps->_vk_shader_module,
-      "main",
-      nullptr
-    }
-  };
+  VkPipelineShaderStageCreateInfo vertex_shader_stage_info = { VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO };
+  vertex_shader_stage_info.flags = 0;
+  vertex_shader_stage_info.stage = VK_SHADER_STAGE_VERTEX_BIT;
+  vertex_shader_stage_info.module = _vs->_vk_shader_module;
+  vertex_shader_stage_info.pName = "main";
+
+  VkPipelineShaderStageCreateInfo fragment_shader_stage_info = { VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO };
+  fragment_shader_stage_info.flags = 0;
+  fragment_shader_stage_info.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+  fragment_shader_stage_info.module = _ps->_vk_shader_module;
+  fragment_shader_stage_info.pName = "main";
 
   //
   _framebuffers.reserve(_renderer._swapchain_object->_swapchain_image_count);
@@ -263,8 +257,13 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
   vertex_input_info.vertexAttributeDescriptionCount = 2;
   vertex_input_info.pVertexAttributeDescriptions = vertex_attribute_descriptions;
 
+  VkPipelineShaderStageCreateInfo shader_stage_info[] = {
+    vertex_shader_stage_info,
+    fragment_shader_stage_info
+  };
+
   // Create pipeline
-  _pipeline = _pipeline_factory.createObject(_renderer._device_object->_vk_device, nullptr, width, height, vertex_input_info, shader_stage_info, _pipeline_layout->_vk_pipeline_layout, _render_pass->_vk_render_pass);
+  _pipeline = _pipeline_factory.createObject(_renderer._device_object, nullptr, vertex_input_info, shader_stage_info, _pipeline_layout->_vk_pipeline_layout, _render_pass->_vk_render_pass);
 
   // Begin command
 
@@ -272,17 +271,16 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
 
   // Begin render pass
 
-  vk::ClearValue clear_values[2] = {
-    vk::ClearColorValue(std::array<float, 4>({{0.2f, 0.2f, 0.2f, 0.2f}})),
-    vk::ClearDepthStencilValue(1.0f, 0u)
-  };
+  VkClearValue clear_values[2];
+  clear_values[0].color = VkClearColorValue({ {0.2f, 0.2f, 0.2f, 0.2f} });
+  clear_values[1].depthStencil = VkClearDepthStencilValue({ 1.0f, 0 });
 
-  auto render_begin_info = vk::RenderPassBeginInfo()
-    .setRenderPass(_render_pass->_vk_render_pass)
-    .setFramebuffer(_framebuffers[g_current_buffer]->_vk_framebuffer)
-    .setRenderArea(vk::Rect2D(vk::Offset2D(0, 0), vk::Extent2D(width, height)))
-    .setClearValueCount(2)
-    .setPClearValues(clear_values);
+  VkRenderPassBeginInfo render_begin_info = { VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
+  render_begin_info.renderPass = _render_pass->_vk_render_pass;
+  render_begin_info.framebuffer = _framebuffers[g_current_buffer]->_vk_framebuffer;
+  render_begin_info.renderArea = VkRect2D({ VkOffset2D({0, 0}), VkExtent2D({_width, _height}) });
+  render_begin_info.clearValueCount = 2;
+  render_begin_info.pClearValues = clear_values;
 
   _renderer._command_buffer_object->beginRenderPass(render_begin_info, VK_SUBPASS_CONTENTS_INLINE);
 
@@ -297,17 +295,23 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
 
   //
 
+  VkViewport viewport = {};
+  viewport.width = (float)_width;
+  viewport.height = (float)_height;
+  viewport.minDepth = 0;
+  viewport.maxDepth = 1;
+  VkRect2D scissor = {
+    VkOffset2D { 0, 0 },
+    VkExtent2D { width, height }
+  };
 
-  //myCommandBuffer.setViewport(0, 1, &viewport);
+  _renderer._command_buffer_object->setViewport(0, 1, &viewport);
+  _renderer._command_buffer_object->setScissor(0, scissor);
 
   // Bind vertex buffer
 
   vk::DeviceSize vertex_offset = 0;
   _renderer._command_buffer_object->bindVertexBuffers(0, _vertex_buffer->_vk_buffer, vertex_offset);
-
-  //
-
-  //myCommandBuffer.setScissor(0, scissor);
 
   //
 
@@ -376,17 +380,16 @@ void updateVulkan() {
 
   _renderer._command_buffer_object->begin();
 
-  vk::ClearValue clear_values[2] = {
-    vk::ClearColorValue(std::array<float, 4>({{0.2f, 0.2f, 0.2f, 0.2f}})),
-    vk::ClearDepthStencilValue(1.0f, 0u)
-  };
+  VkClearValue clear_values[2];
+  clear_values[0].color = VkClearColorValue({{0.2f, 0.2f, 0.2f, 0.2f}});
+  clear_values[1].depthStencil = VkClearDepthStencilValue({ 1.0f, 0 });
 
-  auto render_begin_info = vk::RenderPassBeginInfo()
-    .setRenderPass(_render_pass->_vk_render_pass)
-    .setFramebuffer(_framebuffers[g_current_buffer]->_vk_framebuffer)
-    .setRenderArea(vk::Rect2D(vk::Offset2D(0, 0), vk::Extent2D(_width, _height)))
-    .setClearValueCount(2)
-    .setPClearValues(clear_values);
+  VkRenderPassBeginInfo render_begin_info = { VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
+  render_begin_info.renderPass = _render_pass->_vk_render_pass;
+  render_begin_info.framebuffer = _framebuffers[g_current_buffer]->_vk_framebuffer;
+  render_begin_info.renderArea = VkRect2D({ VkOffset2D({0, 0}), VkExtent2D({_width, _height}) });
+  render_begin_info.clearValueCount = 2;
+  render_begin_info.pClearValues = clear_values;
 
   _renderer._command_buffer_object->beginRenderPass(render_begin_info, VK_SUBPASS_CONTENTS_INLINE);
 
@@ -397,17 +400,18 @@ void updateVulkan() {
   uint32_t ofst = 0;
   _renderer._command_buffer_object->bindDescriptorSets(VK_PIPELINE_BIND_POINT_GRAPHICS, _pipeline_layout->_vk_pipeline_layout, 0, 1, &_descriptor_set->_vk_descriptor_set, 1, &ofst);
 
-  auto viewport = vk::Viewport()
-    .setWidth((float)_width)
-    .setHeight((float)_height)
-    .setMinDepth((float)0.0f)
-    .setMaxDepth((float)1.0f);
+  VkViewport viewport = {};
+  viewport.width = (float)_width;
+  viewport.height = (float)_height;
+  viewport.minDepth = 0;
+  viewport.maxDepth = 1;
+  VkRect2D scissor = {
+    VkOffset2D { 0, 0 },
+    VkExtent2D { _width, _height }
+  };
 
-  //myCommandBuffer.setViewport(0, 1, &viewport);
-
-  vk::Rect2D scissor(vk::Offset2D(0, 0), vk::Extent2D(_width, _height));
-
-  //myCommandBuffer.setScissor(0, scissor);
+  _renderer._command_buffer_object->setViewport(0, 1, &viewport);
+  _renderer._command_buffer_object->setScissor(0, scissor);
   
   a+=0.01f;
   model = glm::translate(glm::mat4(1), glm::vec3(a, 0, 0));
@@ -456,7 +460,7 @@ void uninitVulkan() {
 
   _fence_factory.destroyFence(_renderer._device_object->_vk_device, _fence);
 
-  _pipeline_factory.destroyObject(_renderer._device_object->_vk_device, _pipeline);
+  _pipeline_factory.destroyObject(_pipeline);
 
   _semaphore_factory.destroySemaphore(_renderer._device_object->_vk_device, _image_semaphore);
 
