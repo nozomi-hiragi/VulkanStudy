@@ -54,7 +54,7 @@ private:
   std::shared_ptr<ImageObject> _createCore(VkFormat format, VkImageUsageFlags usage, uint32_t width, uint32_t height, VkImageAspectFlags image_aspect_flags) {
     auto vk_image = _createVkImage(_parent->_vk_device, format, usage, width, height);
     auto memory_requirements = _getVkImageMemoryRequirements(_parent->_vk_device, vk_image);
-    return std::make_shared<ImageObject>(vk_image, std::move(memory_requirements), format, image_aspect_flags);
+    return std::make_shared<ImageObject>(vk_image, std::move(memory_requirements), format, image_aspect_flags, width, height);
   }
 
   void _destroyCore(std::shared_ptr<ImageObject> object) {

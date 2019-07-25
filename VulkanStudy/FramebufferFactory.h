@@ -4,20 +4,30 @@
 #include <memory>
 #include <set>
 
+#include "AbstractFactory.h"
 #include "FramebufferObject.h"
+#include "DeviceObject.h"
+#include "RenderPassObject.h"
+#include "ImageViewObject.h"
 
-class FramebufferFactory {
-  static VkFramebuffer _createVkFramebuffer(VkDevice device, VkRenderPass render_pass, VkImageView color_image_view, VkImageView depth_image_view, uint32_t width, uint32_t height) {
-    VkImageView attachments[2];
-    attachments[0] = color_image_view;
-    attachments[1] = depth_image_view;
+class FramebufferFactory : public AbstractFactory<FramebufferObject, DeviceObject, const std::shared_ptr<RenderPassObject>, const std::vector<std::shared_ptr<ImageViewObject>>&> {
+  static VkFramebuffer _createVkFramebuffer(VkDevice device, VkRenderPass render_pass, const std::vector<std::shared_ptr<ImageViewObject>>& image_views) {
+    if (image_views.size() <= 0) {
+      return nullptr;
+    }
+
+    std::vector<VkImageView> attachments;
+    attachments.reserve(image_views.size());
+    for (const auto& it : image_views) {
+      attachments.push_back(it->_vk_image_view);
+    }
 
     VkFramebufferCreateInfo framebuffer_info = { VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO };
     framebuffer_info.renderPass = render_pass;
-    framebuffer_info.attachmentCount = 2;
-    framebuffer_info.pAttachments = attachments;
-    framebuffer_info.width = width;
-    framebuffer_info.height = height;
+    framebuffer_info.attachmentCount = static_cast<uint32_t>(attachments.size());
+    framebuffer_info.pAttachments = attachments.data();
+    framebuffer_info.width = image_views[0]->_image_object->_width;
+    framebuffer_info.height = image_views[0]->_image_object->_height;
     framebuffer_info.layers = 1;
 
     VkFramebuffer framebuffer;
@@ -29,35 +39,16 @@ class FramebufferFactory {
     vkDestroyFramebuffer(device, framebuffer, nullptr);
   }
 
-  std::shared_ptr<FramebufferObject> _createCore(VkDevice device, VkRenderPass render_pass, VkImageView color_image_view, VkImageView depth_image_view, uint32_t width, uint32_t height) {
-    auto vk_framebuffer = _createVkFramebuffer(device, render_pass, color_image_view, depth_image_view, width, height);
+  std::shared_ptr<FramebufferObject> _createCore(const std::shared_ptr<RenderPassObject> render_pass, const std::vector<std::shared_ptr<ImageViewObject>>& image_views) {
+    auto vk_framebuffer = _createVkFramebuffer(_parent->_vk_device, render_pass->_vk_render_pass, image_views);
     return std::make_shared<FramebufferObject>(vk_framebuffer);
   }
 
-  void _destroyCore(VkDevice device, std::shared_ptr<FramebufferObject> object) {
-    _destroyVkFramebuffer(device, object->_vk_framebuffer);
+  void _destroyCore(std::shared_ptr<FramebufferObject> object) {
+    _destroyVkFramebuffer(_parent->_vk_device, object->_vk_framebuffer);
   }
 
 public:
-  std::shared_ptr<FramebufferObject> createObject(VkDevice device, VkRenderPass render_pass, VkImageView color_image_view, VkImageView depth_image_view, uint32_t width, uint32_t height) {
-    auto object = _createCore(device, render_pass, color_image_view, depth_image_view, width, height);
-    _container.insert(object);
-    return object;
-  }
-
-  void destroyObject(VkDevice device, std::shared_ptr<FramebufferObject>& object) {
-    if (!object) { return; }
-    auto before = _container.size();
-    _container.erase(object);
-    auto after = _container.size();
-
-    if (before != after) {
-      _destroyCore(device, object);
-      object.reset();
-    }
-  }
-
 protected:
 private:
-  std::set<std::shared_ptr<FramebufferObject>> _container;
 };

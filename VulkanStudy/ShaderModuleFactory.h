@@ -4,10 +4,14 @@
 #include <memory>
 #include <set>
 
+#include "AbstractFactory.h"
 #include "ShaderModuleObject.h"
+#include "DeviceObject.h"
 
-class ShaderModuleFactory {
+class ShaderModuleFactory : public AbstractFactory<ShaderModuleObject, DeviceObject, const size_t, const uint32_t*, const VkShaderStageFlagBits, const char*const> {
 public:
+protected:
+private:
   static VkShaderModule _createVkShaderModule(VkDevice device, const size_t size, const uint32_t* code) {
     VkShaderModuleCreateInfo shader_module_info = { VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO };
     shader_module_info.codeSize = size;
@@ -22,34 +26,13 @@ public:
     vkDestroyShaderModule(device, shader_module, nullptr);
   }
 
-  std::shared_ptr<ShaderModuleObject> _createCore(VkDevice device, const size_t size, const uint32_t* code) {
-    auto vk_shader_module = _createVkShaderModule(device, size, code);
-    return std::make_shared<ShaderModuleObject>(vk_shader_module);
+  std::shared_ptr<ShaderModuleObject> _createCore(const size_t size, const uint32_t* code, const VkShaderStageFlagBits shader_stage, const char*const entry) {
+    auto vk_shader_module = _createVkShaderModule(_parent->_vk_device, size, code);
+    return std::make_shared<ShaderModuleObject>(vk_shader_module, shader_stage, entry);
   }
 
-  void _destroyCore(VkDevice device, std::shared_ptr<ShaderModuleObject> object) {
-    _destroyVkShaderModule(device, object->_vk_shader_module);
+  void _destroyCore(std::shared_ptr<ShaderModuleObject> object) {
+    _destroyVkShaderModule(_parent->_vk_device, object->_vk_shader_module);
   }
 
-  auto createObject(VkDevice device, const size_t size, const uint32_t* code) {
-    auto object = _createCore(device, size, code);
-    _container.insert(object);
-    return object;
-  }
-
-  void destroyObject(VkDevice device, std::shared_ptr<ShaderModuleObject>& object) {
-    if (!object) { return; }
-    auto before = _container.size();
-    _container.erase(object);
-    auto after = _container.size();
-
-    if (before != after) {
-      _destroyCore(device, object);
-      object.reset();
-    }
-  }
-
-protected:
-private:
-  std::set<std::shared_ptr<ShaderModuleObject>> _container;
 };

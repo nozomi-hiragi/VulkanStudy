@@ -8,7 +8,7 @@
 
 #include "RenderPassInfoDeport.h"
 
-class RenderPassFactory : public AbstractFactory<RenderPassObject, DeviceObject, const std::vector<std::string>&> {
+class RenderPassFactory : public AbstractFactory<RenderPassObject, DeviceObject, const std::vector<std::string>&, const std::vector<std::string>&> {
 public:
   auto& getAttachmentDescriptionDepot() {
     return _attachment_description_depot;
@@ -32,9 +32,15 @@ private:
     vkDestroyRenderPass(device, render_pass, nullptr);
   }
 
-  std::shared_ptr<RenderPassObject> _createCore(const std::vector<std::string>& subpass_description_names) {
+  std::shared_ptr<RenderPassObject> _createCore(const std::vector<std::string>& attachment_names, const std::vector<std::string>& subpass_description_names) {
 
+    std::vector<VkAttachmentDescription> attachment_descriptions(attachment_names.size());
     std::map<std::string, uint32_t> attachment_description_index;
+    for (uint32_t i = 0; i < attachment_names.size(); i++) {
+      attachment_descriptions[i] = _attachment_description_depot.get(attachment_names[i]);
+      attachment_description_index.insert(std::pair<std::string, uint32_t>(attachment_names[i], i));
+    }
+
     std::vector<std::shared_ptr<std::vector<VkAttachmentReference>>> tmp_input_attachment_references;
     std::vector<std::shared_ptr<std::vector<VkAttachmentReference>>> tmp_color_attachment_references;
     std::vector<std::shared_ptr<std::vector<VkAttachmentReference>>> tmp_resolve_attachment_references;
@@ -61,10 +67,6 @@ private:
         attachment_references->reserve(count);
         for (uint32_t i = 0; i < count; i++) {
           const auto& arg_attachment_reference = _attachment_reference_depot.get(names[i]);
-          if (attachment_description_index.find(arg_attachment_reference.attachment) == attachment_description_index.end()) {
-            auto index_pair = std::pair<std::string, uint32_t>(arg_attachment_reference.attachment, static_cast<uint32_t>(attachment_description_index.size()));
-            attachment_description_index.insert(index_pair);
-          }
           attachment_references->push_back(
             {
               attachment_description_index[arg_attachment_reference.attachment],
@@ -81,10 +83,6 @@ private:
 
       const auto& arg_depth_attachment_reference = _attachment_reference_depot.get(arg_subpass.depth_stencil_sttachment);
 
-      if (attachment_description_index.find(arg_depth_attachment_reference.attachment) == attachment_description_index.end()) {
-        auto index_pair = std::pair<std::string, uint32_t>(arg_depth_attachment_reference.attachment, static_cast<uint32_t>(attachment_description_index.size()));
-        attachment_description_index.insert(index_pair);
-      }
       auto depth_attachment_reference = std::make_shared<VkAttachmentReference>(
         VkAttachmentReference{
           attachment_description_index[arg_depth_attachment_reference.attachment],
@@ -116,11 +114,6 @@ private:
       subpass_descriptions.push_back(create_vk_subpass_description(it));
     }
 
-    std::vector<VkAttachmentDescription> attachment_descriptions(attachment_description_index.size());
-    for (const auto& it : attachment_description_index) {
-      attachment_descriptions[it.second] = _attachment_description_depot.get(it.first);
-    }
-
     VkRenderPassCreateInfo render_pass_info = { VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO };
     render_pass_info.attachmentCount = static_cast<uint32_t>(attachment_descriptions.size());
     render_pass_info.pAttachments = attachment_descriptions.data();
@@ -130,7 +123,7 @@ private:
     render_pass_info.pDependencies = nullptr;
 
     auto vk_render_pass = _createVkRenderPass(_parent->_vk_device, render_pass_info);
-    return std::make_shared<RenderPassObject>(vk_render_pass);
+    return std::make_shared<RenderPassObject>(vk_render_pass, std::move(attachment_description_index));
   }
 
   void _destroyCore(std::shared_ptr<RenderPassObject> object) {

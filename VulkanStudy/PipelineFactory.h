@@ -5,8 +5,9 @@
 #include "AbstractFactory.h"
 #include "PipelineObject.h"
 #include "DeviceObject.h"
+#include "ShaderModuleObject.h"
 
-class PipelineFactory : public AbstractFactory<PipelineObject, DeviceObject, const VkPipelineCache, VkPipelineVertexInputStateCreateInfo&, VkPipelineShaderStageCreateInfo*, const VkPipelineLayout, const VkRenderPass> {
+class PipelineFactory : public AbstractFactory<PipelineObject, DeviceObject, const VkPipelineCache, VkPipelineVertexInputStateCreateInfo&, const std::vector<std::shared_ptr<ShaderModuleObject>>&, const VkPipelineLayout, const VkRenderPass> {
 public:
 protected:
 private:
@@ -93,8 +94,17 @@ private:
     vkDestroyPipeline(device, pipeline, nullptr);
   }
 
-  std::shared_ptr<PipelineObject> _createCore(const VkPipelineCache pipeline_cache, VkPipelineVertexInputStateCreateInfo& vertex_input_info, VkPipelineShaderStageCreateInfo* shader_stages, const VkPipelineLayout pipeline_layout, const VkRenderPass render_pass) {
-    auto vk_descriptor_pool = _createVkGraphicsPipeline(_parent->_vk_device, pipeline_cache, vertex_input_info, shader_stages, pipeline_layout, render_pass);
+  std::shared_ptr<PipelineObject> _createCore(const VkPipelineCache pipeline_cache, VkPipelineVertexInputStateCreateInfo& vertex_input_info, const std::vector<std::shared_ptr<ShaderModuleObject>>& shader_modules, const VkPipelineLayout pipeline_layout, const VkRenderPass render_pass) {
+    std::vector<VkPipelineShaderStageCreateInfo> shader_stages;
+    shader_stages.reserve(shader_modules.size());
+    for (const auto& it : shader_modules) {
+      VkPipelineShaderStageCreateInfo shader_stage_info = { VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO };
+      shader_stage_info.stage = it->_vk_shader_stage;
+      shader_stage_info.module = it->_vk_shader_module;
+      shader_stage_info.pName = it->_entry;
+      shader_stages.push_back(shader_stage_info);
+    }
+    auto vk_descriptor_pool = _createVkGraphicsPipeline(_parent->_vk_device, pipeline_cache, vertex_input_info, shader_stages.data(), pipeline_layout, render_pass);
     return std::make_shared<PipelineObject>(vk_descriptor_pool);
   }
 

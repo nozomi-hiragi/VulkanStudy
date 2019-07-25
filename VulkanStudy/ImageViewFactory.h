@@ -43,7 +43,7 @@ private:
 
   std::shared_ptr<ImageViewObject> _createCore(std::shared_ptr<ImageObject> image) {
     auto vk_image_view = _createVkImageView(_parent->_vk_device, image, image->_vk_image_aspect_flags);
-    return std::make_shared<ImageViewObject>(vk_image_view);
+    return std::make_shared<ImageViewObject>(vk_image_view, image);
   }
 
   void _destroyCore(std::shared_ptr<ImageViewObject> object) {
