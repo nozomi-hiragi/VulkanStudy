@@ -176,5 +176,11 @@
     <ClInclude Include="DeviceObject.h">
       <Filter>header\wrap</Filter>
     </ClInclude>
+    <ClInclude Include="RenderPassInfoDeport.h">
+      <Filter>header</Filter>
+    </ClInclude>
+    <ClInclude Include="AbstractDepot.h">
+      <Filter>header</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

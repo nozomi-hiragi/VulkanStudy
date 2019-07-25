@@ -155,7 +155,47 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
   DescriptorSetObject::vkUpdateDescriptorSets_(_renderer._device_object->_vk_device, _descriptor_set->_vk_descriptor_set, descriptor_buffer_info);
 
   // Create render pass
-  _render_pass = _render_pass_factory.createObject(_renderer._device_object->_vk_device, _renderer._swapchain_object->_vk_format, _renderer._depth_image_object->_vk_format);
+  _render_pass_factory.getAttachmentDescriptionDepot().add("ColorDefault",
+    _renderer._swapchain_object->_vk_format,
+    VK_SAMPLE_COUNT_1_BIT,
+    VK_ATTACHMENT_LOAD_OP_CLEAR,
+    VK_ATTACHMENT_STORE_OP_STORE,
+    VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+    VK_ATTACHMENT_STORE_OP_DONT_CARE,
+    VK_IMAGE_LAYOUT_UNDEFINED,
+    VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
+  );
+  _render_pass_factory.getAttachmentDescriptionDepot().add("DepthDefault",
+    _renderer._depth_image_object->_vk_format,
+    VK_SAMPLE_COUNT_1_BIT,
+    VK_ATTACHMENT_LOAD_OP_CLEAR,
+    VK_ATTACHMENT_STORE_OP_DONT_CARE,
+    VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+    VK_ATTACHMENT_STORE_OP_DONT_CARE,
+    VK_IMAGE_LAYOUT_UNDEFINED,
+    VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
+  );
+
+  _render_pass_factory.getAttachmentReferenceDepot().add("ColorDefault",
+    "ColorDefault",
+    VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+  _render_pass_factory.getAttachmentReferenceDepot().add("DepthDefault",
+    "DepthDefault",
+    VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+
+  std::vector<const char*> color_attachment_names = { "ColorDefault" };
+  _render_pass_factory.getSubpassDescriptionDepot().add("SubpassDefault",
+    0,
+    nullptr,
+    static_cast<uint32_t>(color_attachment_names.size()),
+    color_attachment_names.data(),
+    nullptr,
+    "DepthDefault",
+    0,
+    nullptr
+  );
+
+  _render_pass = _render_pass_factory.createObject(_renderer._device_object, { "SubpassDefault" });
 
   // Create shader module
 
@@ -477,7 +517,7 @@ void uninitVulkan() {
 
   _shader_module_factory.destroyObject(_renderer._device_object->_vk_device, _vs);
 
-  _render_pass_factory.destroyObject(_renderer._device_object->_vk_device, _render_pass);
+  _render_pass_factory.destroyObject(_render_pass);
 
   _descriptor_pool->destroyObject(_renderer._device_object->_vk_device, _descriptor_set);
 
