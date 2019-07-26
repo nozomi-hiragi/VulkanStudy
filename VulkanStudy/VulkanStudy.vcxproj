@@ -131,6 +131,7 @@
     <ClInclude Include="SurfaceObject.h" />
     <ClInclude Include="SwapchainFactory.h" />
     <ClInclude Include="SwapchainObject.h" />
+    <ClInclude Include="Transporter.h" />
     <ClInclude Include="VulkanFunction.h" />
     <ClInclude Include="WindowManager.h" />
   </ItemGroup>

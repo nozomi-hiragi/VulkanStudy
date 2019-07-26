@@ -4,9 +4,20 @@
 #include <memory>
 #include <set>
 
+#include "AbstractFactory.h"
 #include "BufferObject.h"
+#include "DeviceObject.h"
 
-class BufferFactory {
+class BufferFactory : public AbstractFactory<BufferObject, DeviceObject, const VkDeviceSize, const VkBufferUsageFlags > {
+public:
+  BufferFactory() {
+  }
+
+  ~BufferFactory() {
+  }
+
+protected:
+private:
   static auto _createVkBuffer(VkDevice device, VkDeviceSize size, VkBufferUsageFlags usage) {
     VkBufferCreateInfo buffer_info = {};
     buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -29,34 +40,14 @@ class BufferFactory {
     return std::move(memory_requirements);
   }
 
-public:
-  BufferFactory() {
+  std::shared_ptr<BufferObject> _createCore(const VkDeviceSize size, const VkBufferUsageFlags usage) {
+    auto vk_buffer = _createVkBuffer(_parent->_vk_device, size, usage);
+    auto memory_requirements = _getVkBufferMemoryRequirements(_parent->_vk_device, vk_buffer);
+    return std::make_shared<BufferObject>(vk_buffer, std::move(memory_requirements));
   }
 
-  ~BufferFactory() {
+  void _destroyCore(std::shared_ptr<BufferObject> object) {
+    _destroyVkBuffer(_parent->_vk_device, object->_vk_buffer);
   }
 
-  auto createBuffer(VkDevice device, VkDeviceSize size, VkBufferUsageFlags usage) {
-    auto vk_buffer = _createVkBuffer(device, size, usage);
-    auto memory_requirements = _getVkBufferMemoryRequirements(device, vk_buffer);
-    auto object = std::make_shared<BufferObject>(vk_buffer, std::move(memory_requirements));
-    _container.insert(object);
-    return object;
-  }
-
-  void destroyBuffer(VkDevice device, std::shared_ptr<BufferObject>& object) {
-    if (!object) { return; }
-    auto before = _container.size();
-    _container.erase(object);
-    auto after = _container.size();
-
-    if (before != after) {
-      _destroyVkBuffer(device, object->_vk_buffer);
-      object.reset();
-    }
-  }
-
-protected:
-private:
-  std::set<std::shared_ptr<BufferObject>> _container;
 };

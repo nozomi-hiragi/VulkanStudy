@@ -1,7 +1,7 @@
 
 #include "VulkanFunction.h"
 #include <vector>
-#include <fstream>
+#include <iostream>
 
 #include <Windows.h>
 #define VK_USE_PLATFORM_WIN32_KHR
@@ -9,6 +9,9 @@
 #include <vulkan/vk_sdk_platform.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <shaderc/shaderc.h>
+
+#include "Transporter.h"
 
 #include "InstanceFactory.h"
 #include "SurfaceFactory.h"
@@ -48,13 +51,16 @@ PipelineLayoutFactory _pipeline_layout_factory;
 PipelineFactory _pipeline_factory;
 
 std::shared_ptr<DeviceMemoryObject> _uniform_memory;
-std::shared_ptr<DeviceMemoryObject> _vertex_memory;
 std::shared_ptr<BufferObject> _uniform_buffer;
-std::shared_ptr<BufferObject> _vertex_buffer;
+
+std::shared_ptr<BufferObject> _mesh_vertex_buffer_vertex;
+std::shared_ptr<BufferObject> _mesh_vertex_buffer_color;
+std::shared_ptr<DeviceMemoryObject> _vertex_memory;
+
 std::shared_ptr<FenceObject> _fence;
 std::shared_ptr<SemaphoreObject> _image_semaphore;
-std::shared_ptr<ShaderModuleObject> _vs;
-std::shared_ptr<ShaderModuleObject> _ps;
+std::shared_ptr<ShaderModuleObject> _vertex_shader;
+std::shared_ptr<ShaderModuleObject> _pixel_shader;
 std::shared_ptr<RenderPassObject> _render_pass;
 std::vector<std::shared_ptr<FramebufferObject>> _framebuffers;
 std::shared_ptr<DescriptorSetLayoutObject> _descriptor_set_layout;
@@ -67,19 +73,16 @@ uint32_t g_current_buffer = 0;
 
 glm::mat4 g_mvp;
 
-struct Vertex {
-  glm::vec4 pos;
-  glm::vec4 col;
+glm::vec4 verts[] = {
+  glm::vec4(-1, +1, 1, 1),
+  glm::vec4(+1, +1, 1, 1),
+  glm::vec4(-1, -1, 1, 1),
 };
 
-Vertex poly[] = {
-  { glm::vec4(-1, +1, 1, 1), glm::vec4(1, 0, 0, 0) },
-  { glm::vec4(+1, +1, 1, 1), glm::vec4(0, 1, 0, 0) },
-  { glm::vec4(-1, -1, 1, 1), glm::vec4(0, 0, 1, 0) },
-
-  { glm::vec4(-1, +10, 1, 1), glm::vec4(1, 0, 0, 0) },
-  { glm::vec4(-1, -1, 1, 1), glm::vec4(0, 1, 0, 0) },
-  { glm::vec4(+1, -1, 1, 1), glm::vec4(0, 0, 1, 0) },
+glm::vec4 colors[] = {
+  glm::vec4(1, 0, 0, 0),
+  glm::vec4(0, 1, 0, 0),
+  glm::vec4(0, 0, 1, 0),
 };
 
 uint32_t _width;
@@ -105,7 +108,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
     }
 
     // Create uniform buffer
-    _uniform_buffer = _buffer_factory.createBuffer(_renderer._device_object->_vk_device, sizeof(g_mvp), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
+    _uniform_buffer = _buffer_factory.createObject(_renderer._device_object, sizeof(g_mvp), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
 
     // Allocate uniform memory
     {
@@ -212,77 +215,107 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
 
   // Create shader module
   {
-    auto get_binary = [](const wchar_t* filename) {
-      FILE* fp;
-      if (_wfopen_s(&fp, filename, L"rb") != 0) throw std::runtime_error("File not found");
+    std::string vs_code =
+      "#version 450\n"
+      "#extension GL_ARB_separate_shader_objects : enable\n"
+      "#extension GL_ARB_shading_language_420pack : enable\n"
+      "layout (push_constant) uniform bufferVals {\n"
+      "    mat4 mvp;\n"
+      "} myBufferVals;\n"
+      "layout (location = 0) in vec4 pos;\n"
+      "layout (location = 1) in vec4 inColor;\n"
+      "layout (location = 0) out vec4 outColor;\n"
+      "void main() {\n"
+      "   outColor = vec4(inColor.x,inColor.z,inColor.y,1);//inColor;\n"
+      "   gl_Position = myBufferVals.mvp * pos;\n"
+      "}\n"
+      ;
 
-      fseek(fp, 0, SEEK_END);
-      auto size = ftell(fp);
-      fseek(fp, 0, SEEK_SET);
-      auto buf = std::make_unique<unsigned char[]>(size);
-      fread(buf.get(), sizeof(unsigned char), size, fp);
-      fclose(fp);
-      return std::pair<std::unique_ptr<unsigned char[]>, size_t>(std::move(buf), size);
-    };
+    shaderc_compiler_t compiler = shaderc_compiler_initialize();
+    shaderc_compilation_result_t result = shaderc_compile_into_spv(
+      compiler, vs_code.c_str(), vs_code.size(),
+      shaderc_glsl_vertex_shader, "vs_code", "main", nullptr);
 
-    auto vs_bin = get_binary(L"vspc.vert.spv");
-    auto ps_bin = get_binary(L"ps.frag.spv");
+    if (shaderc_result_get_compilation_status(result) != shaderc_compilation_status_success) {
+      std::cerr << shaderc_result_get_error_message(result) << std::endl;
+    } 
 
-    _vs = _shader_module_factory.createObject(_renderer._device_object, vs_bin.second, reinterpret_cast<uint32_t*>(vs_bin.first.get()), VK_SHADER_STAGE_VERTEX_BIT, "main");
-    _ps = _shader_module_factory.createObject(_renderer._device_object, ps_bin.second, reinterpret_cast<uint32_t*>(ps_bin.first.get()), VK_SHADER_STAGE_FRAGMENT_BIT, "main");
+    //auto vs_bin = GetBinary(L"vspc.vert.spv");
+    auto ps_bin = GetBinary(L"ps.frag.spv");
+
+    _vertex_shader = _shader_module_factory.createObject(_renderer._device_object, shaderc_result_get_length(result), reinterpret_cast<const uint32_t*>(shaderc_result_get_bytes(result)), VK_SHADER_STAGE_VERTEX_BIT, "main");
+    //_vertex_shader = _shader_module_factory.createObject(_renderer._device_object, vs_bin.second, reinterpret_cast<uint32_t*>(vs_bin.first.get()), VK_SHADER_STAGE_VERTEX_BIT, "main");
+    _pixel_shader = _shader_module_factory.createObject(_renderer._device_object, ps_bin.second, reinterpret_cast<uint32_t*>(ps_bin.first.get()), VK_SHADER_STAGE_FRAGMENT_BIT, "main");
+
+    shaderc_result_release(result);
+    shaderc_compiler_release(compiler);
   }
 
   // Create Vertex buffer
-  _vertex_buffer = _buffer_factory.createBuffer(_renderer._device_object->_vk_device, sizeof(poly), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
+  _mesh_vertex_buffer_vertex = _buffer_factory.createObject(_renderer._device_object, sizeof(verts), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
+  _mesh_vertex_buffer_color = _buffer_factory.createObject(_renderer._device_object, sizeof(colors), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
 
   // Allocate vertex buffer memory
+  uint64_t vertexies_memory_size = (sizeof(verts) + sizeof(colors) + 0xff);
+  vertexies_memory_size &= ~0xff;
   {
     auto memory_property_bits = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-    auto memory_type_index = _renderer._physical_device_object->findProperties(_vertex_buffer, memory_property_bits);
-    _vertex_memory = _renderer._device_memory_factory.createObject(_renderer._device_object, _vertex_buffer->_vk_memory_requirements.size, memory_type_index);
+    auto memory_type_index = _renderer._physical_device_object->findProperties(_mesh_vertex_buffer_vertex, memory_property_bits);
+    _vertex_memory= _renderer._device_memory_factory.createObject(_renderer._device_object, vertexies_memory_size, memory_type_index);
   }
 
   // Store vertex buffer
 
-  auto vertex_map = DeviceMemoryObject::vkMapMemory_(_renderer._device_object->_vk_device, _vertex_memory->_vk_device_memory, 0, _vertex_buffer->_vk_memory_requirements.size);
-
-  memcpy(vertex_map, &poly, sizeof(poly));
-
+  auto vertex_map = DeviceMemoryObject::vkMapMemory_(_renderer._device_object->_vk_device, _vertex_memory->_vk_device_memory, 0, vertexies_memory_size);
+  memcpy(vertex_map, &verts, sizeof(verts));
+  memcpy(static_cast<char*>(vertex_map) + sizeof(verts), &colors, sizeof(colors));
   DeviceMemoryObject::vkUnmapMemory_(_renderer._device_object->_vk_device, _vertex_memory->_vk_device_memory);
 
-  BufferObject::vkBindBufferMemory_(_renderer._device_object->_vk_device, _vertex_buffer->_vk_buffer, _vertex_memory->_vk_device_memory, 0);
-
+  BufferObject::vkBindBufferMemory_(_renderer._device_object->_vk_device, _mesh_vertex_buffer_vertex->_vk_buffer, _vertex_memory->_vk_device_memory, 0);
+  BufferObject::vkBindBufferMemory_(_renderer._device_object->_vk_device, _mesh_vertex_buffer_color->_vk_buffer, _vertex_memory->_vk_device_memory, 0);
 
   // Description
 
-  VkVertexInputBindingDescription vertex_binding_description = {};
-  vertex_binding_description.binding = 0;
-  vertex_binding_description.inputRate = VkVertexInputRate::VK_VERTEX_INPUT_RATE_VERTEX;
-  vertex_binding_description.stride = sizeof(Vertex);
+  VkVertexInputBindingDescription vertex_binding_description_vert = {};
+  vertex_binding_description_vert.binding = 0;
+  vertex_binding_description_vert.inputRate = VkVertexInputRate::VK_VERTEX_INPUT_RATE_VERTEX;
+  vertex_binding_description_vert.stride = sizeof(glm::vec4);
+
+  VkVertexInputBindingDescription vertex_binding_description_color = {};
+  vertex_binding_description_color.binding = 1;
+  vertex_binding_description_color.inputRate = VkVertexInputRate::VK_VERTEX_INPUT_RATE_VERTEX;
+  vertex_binding_description_color.stride = sizeof(glm::vec4);
+
+  VkVertexInputBindingDescription vertex_binding_descriptions[] = {
+    vertex_binding_description_vert,
+    vertex_binding_description_color
+  };
+
+  VkVertexInputAttributeDescription vertex_attribute_description_vertex;
+  vertex_attribute_description_vertex.location = 0;
+  vertex_attribute_description_vertex.binding = 0;
+  vertex_attribute_description_vertex.format = VK_FORMAT_R32G32B32A32_SFLOAT;
+  vertex_attribute_description_vertex.offset = 0;
+
+  VkVertexInputAttributeDescription vertex_attribute_description_color;
+  vertex_attribute_description_color.location = 1;
+  vertex_attribute_description_color.binding = 1;
+  vertex_attribute_description_color.format = VK_FORMAT_R32G32B32A32_SFLOAT;
+  vertex_attribute_description_color.offset = 0;
 
   VkVertexInputAttributeDescription vertex_attribute_descriptions[] = {
-    {
-      0,
-      0,
-      VK_FORMAT_R32G32B32A32_SFLOAT,
-      0
-    },
-    {
-      1,
-      0,
-      VK_FORMAT_R32G32B32A32_SFLOAT,
-      16
-    }
+    vertex_attribute_description_vertex,
+    vertex_attribute_description_color,
   };
 
   VkPipelineVertexInputStateCreateInfo vertex_input_info = { VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO };
-  vertex_input_info.vertexBindingDescriptionCount = 1;
-  vertex_input_info.pVertexBindingDescriptions = &vertex_binding_description;
-  vertex_input_info.vertexAttributeDescriptionCount = 2;
+  vertex_input_info.vertexBindingDescriptionCount = sizeof(vertex_binding_descriptions) / sizeof(VkVertexInputBindingDescription);
+  vertex_input_info.pVertexBindingDescriptions = vertex_binding_descriptions;
+  vertex_input_info.vertexAttributeDescriptionCount = sizeof(vertex_attribute_descriptions) / sizeof(VkVertexInputAttributeDescription);
   vertex_input_info.pVertexAttributeDescriptions = vertex_attribute_descriptions;
 
   // Create pipeline
-  _pipeline = _pipeline_factory.createObject(_renderer._device_object, nullptr, vertex_input_info, {_vs, _ps}, _pipeline_layout->_vk_pipeline_layout, _render_pass->_vk_render_pass);
+  _pipeline = _pipeline_factory.createObject(_renderer._device_object, nullptr, vertex_input_info, { _vertex_shader, _pixel_shader }, _pipeline_layout->_vk_pipeline_layout, _render_pass->_vk_render_pass);
 
   // Create semaphore
   _image_semaphore = _semaphore_factory.createSemaphore(_renderer._device_object->_vk_device);
@@ -338,7 +371,9 @@ void updateVulkan() {
   vkCmdPushConstants(_renderer._command_buffer_object->_vk_command_buffer, _pipeline_layout->_vk_pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(g_mvp), &g_mvp);
 
   vk::DeviceSize vertex_offset = 0;
-  _renderer._command_buffer_object->bindVertexBuffers(0, _vertex_buffer->_vk_buffer, vertex_offset);
+  _renderer._command_buffer_object->bindVertexBuffers(0, _mesh_vertex_buffer_vertex->_vk_buffer, vertex_offset);
+  vertex_offset = sizeof(verts);
+  _renderer._command_buffer_object->bindVertexBuffers(1, _mesh_vertex_buffer_color->_vk_buffer, vertex_offset);
 
 
   uint32_t vertex_count = 2 * 3;
@@ -387,16 +422,17 @@ void uninitVulkan() {
 
   _renderer._device_memory_factory.destroyObject(_vertex_memory);
 
-  _buffer_factory.destroyBuffer(_renderer._device_object->_vk_device, _vertex_buffer);
+  _buffer_factory.destroyObject(_mesh_vertex_buffer_vertex);
+  _buffer_factory.destroyObject(_mesh_vertex_buffer_color);
 
   for (auto& framebuffer : _framebuffers) {
     _framebuffer_factory.destroyObject(framebuffer);
   }
   _framebuffers.clear();
 
-  _shader_module_factory.destroyObject(_ps);
+  _shader_module_factory.destroyObject(_pixel_shader);
 
-  _shader_module_factory.destroyObject(_vs);
+  _shader_module_factory.destroyObject(_vertex_shader);
 
   _render_pass_factory.destroyObject(_render_pass);
 
@@ -410,7 +446,7 @@ void uninitVulkan() {
 
   _renderer._device_memory_factory.destroyObject(_uniform_memory);
 
-  _buffer_factory.destroyBuffer(_renderer._device_object->_vk_device, _uniform_buffer);
+  _buffer_factory.destroyObject(_uniform_buffer);
 
   _renderer.uninit();
 }

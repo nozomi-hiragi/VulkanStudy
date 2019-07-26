@@ -182,5 +182,8 @@
     <ClInclude Include="AbstractDepot.h">
       <Filter>header</Filter>
     </ClInclude>
+    <ClInclude Include="Transporter.h">
+      <Filter>header</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
