@@ -34,6 +34,8 @@
 
 #include "Renderer.h"
 
+#include "Mesh.h"
+
 const char* const APP_NAME = "VulkanStudy";
 const uint32_t APP_VERSION = 0;
 
@@ -53,9 +55,7 @@ PipelineFactory _pipeline_factory;
 std::shared_ptr<DeviceMemoryObject> _uniform_memory;
 std::shared_ptr<BufferObject> _uniform_buffer;
 
-std::shared_ptr<BufferObject> _mesh_vertex_buffer_vertex;
-std::shared_ptr<BufferObject> _mesh_vertex_buffer_color;
-std::shared_ptr<DeviceMemoryObject> _vertex_memory;
+std::shared_ptr<Mesh> _mesh;
 
 std::shared_ptr<FenceObject> _fence;
 std::shared_ptr<SemaphoreObject> _image_semaphore;
@@ -72,18 +72,6 @@ std::shared_ptr<PipelineObject> _pipeline;
 uint32_t g_current_buffer = 0;
 
 glm::mat4 g_mvp;
-
-glm::vec4 verts[] = {
-  glm::vec4(-1, +1, 1, 1),
-  glm::vec4(+1, +1, 1, 1),
-  glm::vec4(-1, -1, 1, 1),
-};
-
-glm::vec4 colors[] = {
-  glm::vec4(1, 0, 0, 0),
-  glm::vec4(0, 1, 0, 0),
-  glm::vec4(0, 0, 1, 0),
-};
 
 uint32_t _width;
 uint32_t _height;
@@ -222,12 +210,14 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
       "layout (push_constant) uniform bufferVals {\n"
       "    mat4 mvp;\n"
       "} myBufferVals;\n"
-      "layout (location = 0) in vec4 pos;\n"
-      "layout (location = 1) in vec4 inColor;\n"
+      "layout (location = 0) in vec3 pos;\n"
+      "layout (location = 1) in vec3 nor;\n"
+      "layout (location = 2) in vec4 inColor;\n"
+      "layout (location = 3) in vec2 tex;\n"
       "layout (location = 0) out vec4 outColor;\n"
       "void main() {\n"
-      "   outColor = vec4(inColor.x,inColor.z,inColor.y,1);//inColor;\n"
-      "   gl_Position = myBufferVals.mvp * pos;\n"
+      "   outColor = vec4(inColor.x,inColor.y,inColor.z, inColor.w);//inColor;\n"
+      "   gl_Position = myBufferVals.mvp * vec4(pos.xyz, 1);\n"
       "}\n"
       ;
 
@@ -251,61 +241,93 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
     shaderc_compiler_release(compiler);
   }
 
-  // Create Vertex buffer
-  _mesh_vertex_buffer_vertex = _buffer_factory.createObject(_renderer._device_object, sizeof(verts), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
-  _mesh_vertex_buffer_color = _buffer_factory.createObject(_renderer._device_object, sizeof(colors), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
-
-  // Allocate vertex buffer memory
-  uint64_t vertexies_memory_size = (sizeof(verts) + sizeof(colors) + 0xff);
-  vertexies_memory_size &= ~0xff;
+  // Create mesh
   {
-    auto memory_property_bits = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-    auto memory_type_index = _renderer._physical_device_object->findProperties(_mesh_vertex_buffer_vertex, memory_property_bits);
-    _vertex_memory= _renderer._device_memory_factory.createObject(_renderer._device_object, vertexies_memory_size, memory_type_index);
+    std::vector<glm::vec3> pos = {
+      glm::vec3(-1, +1, 0),
+      glm::vec3(+1, +1, 0),
+      glm::vec3(-1, -1, 0),
+    };
+
+    std::vector<glm::vec3> nor = {
+    glm::vec3(0, 0, 1),
+    glm::vec3(0, 0, 1),
+    glm::vec3(0, 0, 1),
+    };
+
+    std::vector<glm::vec4> col = {
+    glm::vec4(1, 0, 0, 1),
+    glm::vec4(0, 1, 0, 1),
+    glm::vec4(0, 0, 1, 1),
+    };
+
+    std::vector<glm::vec2> tex = {
+    glm::vec2(0, 0),
+    glm::vec2(1, 0),
+    glm::vec2(0, 1),
+    };
+
+    _mesh = std::make_shared<Mesh>(pos, nor, col, tex, _buffer_factory, _renderer._device_memory_factory, _renderer._physical_device_object, _renderer._device_object);
   }
-
-  // Store vertex buffer
-
-  auto vertex_map = DeviceMemoryObject::vkMapMemory_(_renderer._device_object->_vk_device, _vertex_memory->_vk_device_memory, 0, vertexies_memory_size);
-  memcpy(vertex_map, &verts, sizeof(verts));
-  memcpy(static_cast<char*>(vertex_map) + sizeof(verts), &colors, sizeof(colors));
-  DeviceMemoryObject::vkUnmapMemory_(_renderer._device_object->_vk_device, _vertex_memory->_vk_device_memory);
-
-  BufferObject::vkBindBufferMemory_(_renderer._device_object->_vk_device, _mesh_vertex_buffer_vertex->_vk_buffer, _vertex_memory->_vk_device_memory, 0);
-  BufferObject::vkBindBufferMemory_(_renderer._device_object->_vk_device, _mesh_vertex_buffer_color->_vk_buffer, _vertex_memory->_vk_device_memory, 0);
 
   // Description
 
   VkVertexInputBindingDescription vertex_binding_description_vert = {};
   vertex_binding_description_vert.binding = 0;
   vertex_binding_description_vert.inputRate = VkVertexInputRate::VK_VERTEX_INPUT_RATE_VERTEX;
-  vertex_binding_description_vert.stride = sizeof(glm::vec4);
+  vertex_binding_description_vert.stride = sizeof(glm::vec3);
+
+  VkVertexInputBindingDescription vertex_binding_description_normal = {};
+  vertex_binding_description_normal.binding = 1;
+  vertex_binding_description_normal.inputRate = VkVertexInputRate::VK_VERTEX_INPUT_RATE_VERTEX;
+  vertex_binding_description_normal.stride = sizeof(glm::vec3);
 
   VkVertexInputBindingDescription vertex_binding_description_color = {};
-  vertex_binding_description_color.binding = 1;
+  vertex_binding_description_color.binding = 2;
   vertex_binding_description_color.inputRate = VkVertexInputRate::VK_VERTEX_INPUT_RATE_VERTEX;
   vertex_binding_description_color.stride = sizeof(glm::vec4);
 
+  VkVertexInputBindingDescription vertex_binding_description_texcoord = {};
+  vertex_binding_description_texcoord.binding = 3;
+  vertex_binding_description_texcoord.inputRate = VkVertexInputRate::VK_VERTEX_INPUT_RATE_VERTEX;
+  vertex_binding_description_texcoord.stride = sizeof(glm::vec2);
+
   VkVertexInputBindingDescription vertex_binding_descriptions[] = {
     vertex_binding_description_vert,
-    vertex_binding_description_color
+    vertex_binding_description_normal,
+    vertex_binding_description_color,
+    vertex_binding_description_texcoord
   };
 
   VkVertexInputAttributeDescription vertex_attribute_description_vertex;
   vertex_attribute_description_vertex.location = 0;
   vertex_attribute_description_vertex.binding = 0;
-  vertex_attribute_description_vertex.format = VK_FORMAT_R32G32B32A32_SFLOAT;
+  vertex_attribute_description_vertex.format = VK_FORMAT_R32G32B32_SFLOAT;
   vertex_attribute_description_vertex.offset = 0;
 
+  VkVertexInputAttributeDescription vertex_attribute_description_normal;
+  vertex_attribute_description_normal.location = 1;
+  vertex_attribute_description_normal.binding = 1;
+  vertex_attribute_description_normal.format = VK_FORMAT_R32G32B32_SFLOAT;
+  vertex_attribute_description_normal.offset = 0;
+
   VkVertexInputAttributeDescription vertex_attribute_description_color;
-  vertex_attribute_description_color.location = 1;
-  vertex_attribute_description_color.binding = 1;
+  vertex_attribute_description_color.location = 2;
+  vertex_attribute_description_color.binding = 2;
   vertex_attribute_description_color.format = VK_FORMAT_R32G32B32A32_SFLOAT;
   vertex_attribute_description_color.offset = 0;
 
+  VkVertexInputAttributeDescription vertex_attribute_description_texcoord;
+  vertex_attribute_description_texcoord.location = 3;
+  vertex_attribute_description_texcoord.binding = 3;
+  vertex_attribute_description_texcoord.format = VK_FORMAT_R32G32_SFLOAT;
+  vertex_attribute_description_texcoord.offset = 0;
+
   VkVertexInputAttributeDescription vertex_attribute_descriptions[] = {
     vertex_attribute_description_vertex,
+    vertex_attribute_description_normal,
     vertex_attribute_description_color,
+    vertex_attribute_description_texcoord,
   };
 
   VkPipelineVertexInputStateCreateInfo vertex_input_info = { VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO };
@@ -370,18 +392,7 @@ void updateVulkan() {
  
   vkCmdPushConstants(_renderer._command_buffer_object->_vk_command_buffer, _pipeline_layout->_vk_pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(g_mvp), &g_mvp);
 
-  vk::DeviceSize vertex_offset = 0;
-  _renderer._command_buffer_object->bindVertexBuffers(0, _mesh_vertex_buffer_vertex->_vk_buffer, vertex_offset);
-  vertex_offset = sizeof(verts);
-  _renderer._command_buffer_object->bindVertexBuffers(1, _mesh_vertex_buffer_color->_vk_buffer, vertex_offset);
-
-
-  uint32_t vertex_count = 2 * 3;
-  uint32_t instance_count = 1;
-  uint32_t first_vertex = 0;
-  uint32_t first_instance = 0;
-
-  _renderer._command_buffer_object->draw(vertex_count, instance_count, first_vertex, first_instance);
+  _mesh->draw(_renderer._command_buffer_object);
 
   // ~~~~
 
@@ -413,17 +424,13 @@ void updateVulkan() {
 }
 
 void uninitVulkan() {
+  _mesh.reset();
 
   _fence_factory.destroyFence(_renderer._device_object->_vk_device, _fence);
 
   _pipeline_factory.destroyObject(_pipeline);
 
   _semaphore_factory.destroySemaphore(_renderer._device_object->_vk_device, _image_semaphore);
-
-  _renderer._device_memory_factory.destroyObject(_vertex_memory);
-
-  _buffer_factory.destroyObject(_mesh_vertex_buffer_vertex);
-  _buffer_factory.destroyObject(_mesh_vertex_buffer_color);
 
   for (auto& framebuffer : _framebuffers) {
     _framebuffer_factory.destroyObject(framebuffer);

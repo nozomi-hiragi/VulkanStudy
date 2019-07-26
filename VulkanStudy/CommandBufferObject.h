@@ -42,8 +42,8 @@ public:
     vkCmdSetViewport(_vk_command_buffer,first, count, viewports);
   }
 
-  void bindVertexBuffers(uint32_t first, const VkBuffer buffer, const VkDeviceSize offset) {
-    vkCmdBindVertexBuffers(_vk_command_buffer, first, 1, &buffer, &offset);
+  void bindVertexBuffers(uint32_t first, const uint32_t count, const VkBuffer* buffers, const VkDeviceSize* offset) {
+    vkCmdBindVertexBuffers(_vk_command_buffer, first, count, buffers, offset);
   }
 
   void setScissor(uint32_t first, const VkRect2D& scissor) {

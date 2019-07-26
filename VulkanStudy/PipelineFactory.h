@@ -33,21 +33,22 @@ private:
     rasterization_info.depthBiasEnable = VK_FALSE;
     rasterization_info.lineWidth = 1.0f;
 
-    VkPipelineColorBlendAttachmentState color_blend_attachments[1] = {
-      {
-        VK_FALSE,
-        VK_BLEND_FACTOR_ZERO,
-        VK_BLEND_FACTOR_ZERO,
-        VK_BLEND_OP_ADD,
-        VK_BLEND_FACTOR_ZERO,
-        VK_BLEND_FACTOR_ZERO,
-        VK_BLEND_OP_ADD,
-        VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT
-      }
+    VkPipelineColorBlendAttachmentState color_blend_attachment = {};
+    color_blend_attachment.blendEnable         = VK_TRUE;
+    color_blend_attachment.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
+    color_blend_attachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE;
+    color_blend_attachment.colorBlendOp = VK_BLEND_OP_MULTIPLY_EXT;
+    color_blend_attachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+    color_blend_attachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+    color_blend_attachment.alphaBlendOp = VK_BLEND_OP_MULTIPLY_EXT;
+    color_blend_attachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+
+    VkPipelineColorBlendAttachmentState color_blend_attachments[] = {
+      color_blend_attachment
     };
 
     VkPipelineColorBlendStateCreateInfo color_blend_info = { VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO };
-    color_blend_info.attachmentCount = 1;
+    color_blend_info.attachmentCount = sizeof(color_blend_attachments) / sizeof(VkPipelineColorBlendAttachmentState);
     color_blend_info.pAttachments = color_blend_attachments;
 
     VkPipelineViewportStateCreateInfo viewport_info = { VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO };

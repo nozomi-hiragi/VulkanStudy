@@ -185,5 +185,8 @@
     <ClInclude Include="Transporter.h">
       <Filter>header</Filter>
     </ClInclude>
+    <ClInclude Include="Mesh.h">
+      <Filter>header</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

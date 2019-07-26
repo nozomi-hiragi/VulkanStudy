@@ -113,6 +113,7 @@
     <ClInclude Include="ImageViewObject.h" />
     <ClInclude Include="InstanceFactory.h" />
     <ClInclude Include="InstanceObject.h" />
+    <ClInclude Include="Mesh.h" />
     <ClInclude Include="PhysicalDeviceObject.h" />
     <ClInclude Include="PipelineFactory.h" />
     <ClInclude Include="PipelineLayoutFactory.h" />
