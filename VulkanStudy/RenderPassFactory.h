@@ -6,7 +6,7 @@
 #include "RenderPassObject.h"
 #include "DeviceObject.h"
 
-#include "RenderPassInfoDeport.h"
+#include "RenderPassDeport.h"
 
 class RenderPassFactory : public AbstractFactory<RenderPassObject, DeviceObject, const std::vector<std::string>&, const std::vector<std::string>&> {
 public:

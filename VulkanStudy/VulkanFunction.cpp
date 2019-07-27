@@ -272,72 +272,21 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
 
   // Description
 
-  VkVertexInputBindingDescription vertex_binding_description_vert = {};
-  vertex_binding_description_vert.binding = 0;
-  vertex_binding_description_vert.inputRate = VkVertexInputRate::VK_VERTEX_INPUT_RATE_VERTEX;
-  vertex_binding_description_vert.stride = sizeof(glm::vec3);
+  _pipeline_factory.getVertexInputBindingDescriptionDepot().add("Vertex",   0, sizeof(glm::vec3), VK_VERTEX_INPUT_RATE_VERTEX);
+  _pipeline_factory.getVertexInputBindingDescriptionDepot().add("Normal",   1, sizeof(glm::vec3), VK_VERTEX_INPUT_RATE_VERTEX);
+  _pipeline_factory.getVertexInputBindingDescriptionDepot().add("Color",    2, sizeof(glm::vec4), VK_VERTEX_INPUT_RATE_VERTEX);
+  _pipeline_factory.getVertexInputBindingDescriptionDepot().add("Texcoord", 3, sizeof(glm::vec2), VK_VERTEX_INPUT_RATE_VERTEX);
 
-  VkVertexInputBindingDescription vertex_binding_description_normal = {};
-  vertex_binding_description_normal.binding = 1;
-  vertex_binding_description_normal.inputRate = VkVertexInputRate::VK_VERTEX_INPUT_RATE_VERTEX;
-  vertex_binding_description_normal.stride = sizeof(glm::vec3);
+  _pipeline_factory.getVertexInputAttributeDescriptionDepot().add("Vertex",   0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0);
+  _pipeline_factory.getVertexInputAttributeDescriptionDepot().add("Normal",   1, 1, VK_FORMAT_R32G32B32_SFLOAT, 0);
+  _pipeline_factory.getVertexInputAttributeDescriptionDepot().add("Color",    2, 2, VK_FORMAT_R32G32B32A32_SFLOAT, 0);
+  _pipeline_factory.getVertexInputAttributeDescriptionDepot().add("Texcoord", 3, 3, VK_FORMAT_R32G32_SFLOAT, 0);
 
-  VkVertexInputBindingDescription vertex_binding_description_color = {};
-  vertex_binding_description_color.binding = 2;
-  vertex_binding_description_color.inputRate = VkVertexInputRate::VK_VERTEX_INPUT_RATE_VERTEX;
-  vertex_binding_description_color.stride = sizeof(glm::vec4);
-
-  VkVertexInputBindingDescription vertex_binding_description_texcoord = {};
-  vertex_binding_description_texcoord.binding = 3;
-  vertex_binding_description_texcoord.inputRate = VkVertexInputRate::VK_VERTEX_INPUT_RATE_VERTEX;
-  vertex_binding_description_texcoord.stride = sizeof(glm::vec2);
-
-  VkVertexInputBindingDescription vertex_binding_descriptions[] = {
-    vertex_binding_description_vert,
-    vertex_binding_description_normal,
-    vertex_binding_description_color,
-    vertex_binding_description_texcoord
-  };
-
-  VkVertexInputAttributeDescription vertex_attribute_description_vertex;
-  vertex_attribute_description_vertex.location = 0;
-  vertex_attribute_description_vertex.binding = 0;
-  vertex_attribute_description_vertex.format = VK_FORMAT_R32G32B32_SFLOAT;
-  vertex_attribute_description_vertex.offset = 0;
-
-  VkVertexInputAttributeDescription vertex_attribute_description_normal;
-  vertex_attribute_description_normal.location = 1;
-  vertex_attribute_description_normal.binding = 1;
-  vertex_attribute_description_normal.format = VK_FORMAT_R32G32B32_SFLOAT;
-  vertex_attribute_description_normal.offset = 0;
-
-  VkVertexInputAttributeDescription vertex_attribute_description_color;
-  vertex_attribute_description_color.location = 2;
-  vertex_attribute_description_color.binding = 2;
-  vertex_attribute_description_color.format = VK_FORMAT_R32G32B32A32_SFLOAT;
-  vertex_attribute_description_color.offset = 0;
-
-  VkVertexInputAttributeDescription vertex_attribute_description_texcoord;
-  vertex_attribute_description_texcoord.location = 3;
-  vertex_attribute_description_texcoord.binding = 3;
-  vertex_attribute_description_texcoord.format = VK_FORMAT_R32G32_SFLOAT;
-  vertex_attribute_description_texcoord.offset = 0;
-
-  VkVertexInputAttributeDescription vertex_attribute_descriptions[] = {
-    vertex_attribute_description_vertex,
-    vertex_attribute_description_normal,
-    vertex_attribute_description_color,
-    vertex_attribute_description_texcoord,
-  };
-
-  VkPipelineVertexInputStateCreateInfo vertex_input_info = { VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO };
-  vertex_input_info.vertexBindingDescriptionCount = sizeof(vertex_binding_descriptions) / sizeof(VkVertexInputBindingDescription);
-  vertex_input_info.pVertexBindingDescriptions = vertex_binding_descriptions;
-  vertex_input_info.vertexAttributeDescriptionCount = sizeof(vertex_attribute_descriptions) / sizeof(VkVertexInputAttributeDescription);
-  vertex_input_info.pVertexAttributeDescriptions = vertex_attribute_descriptions;
+  std::vector<std::string> vertex_input_binding_description_names = { "Vertex", "Normal", "Color", "Texcoord" };
+  std::vector<std::string> vertex_input_attribute_description_names = { "Vertex", "Normal", "Color", "Texcoord" };
 
   // Create pipeline
-  _pipeline = _pipeline_factory.createObject(_renderer._device_object, nullptr, vertex_input_info, { _vertex_shader, _pixel_shader }, _pipeline_layout->_vk_pipeline_layout, _render_pass->_vk_render_pass);
+  _pipeline = _pipeline_factory.createObject(_renderer._device_object, nullptr, vertex_input_binding_description_names, vertex_input_attribute_description_names, { _vertex_shader, _pixel_shader }, _pipeline_layout->_vk_pipeline_layout, _render_pass->_vk_render_pass);
 
   // Create semaphore
   _image_semaphore = _semaphore_factory.createSemaphore(_renderer._device_object->_vk_device);

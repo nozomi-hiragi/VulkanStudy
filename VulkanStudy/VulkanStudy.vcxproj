@@ -119,10 +119,11 @@
     <ClInclude Include="PipelineLayoutFactory.h" />
     <ClInclude Include="PipelineLayoutObject.h" />
     <ClInclude Include="PipelineObject.h" />
+    <ClInclude Include="PipelineVertexInputStateDepot.h" />
     <ClInclude Include="QueueObject.h" />
     <ClInclude Include="Renderer.h" />
     <ClInclude Include="RenderPassFactory.h" />
-    <ClInclude Include="RenderPassInfoDeport.h" />
+    <ClInclude Include="RenderPassDeport.h" />
     <ClInclude Include="RenderPassObject.h" />
     <ClInclude Include="SemaphoreFactory.h" />
     <ClInclude Include="SemaphoreObject.h" />

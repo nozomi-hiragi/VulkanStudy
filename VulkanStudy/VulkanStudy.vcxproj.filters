@@ -176,9 +176,6 @@
     <ClInclude Include="DeviceObject.h">
       <Filter>header\wrap</Filter>
     </ClInclude>
-    <ClInclude Include="RenderPassInfoDeport.h">
-      <Filter>header</Filter>
-    </ClInclude>
     <ClInclude Include="AbstractDepot.h">
       <Filter>header</Filter>
     </ClInclude>
@@ -186,6 +183,12 @@
       <Filter>header</Filter>
     </ClInclude>
     <ClInclude Include="Mesh.h">
+      <Filter>header</Filter>
+    </ClInclude>
+    <ClInclude Include="PipelineVertexInputStateDepot.h">
+      <Filter>header</Filter>
+    </ClInclude>
+    <ClInclude Include="RenderPassDeport.h">
       <Filter>header</Filter>
     </ClInclude>
   </ItemGroup>
