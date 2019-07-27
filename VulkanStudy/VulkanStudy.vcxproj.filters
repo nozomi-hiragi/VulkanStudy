@@ -191,5 +191,8 @@
     <ClInclude Include="RenderPassDeport.h">
       <Filter>header</Filter>
     </ClInclude>
+    <ClInclude Include="DescriptorSetLayoutDepot.h">
+      <Filter>header</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

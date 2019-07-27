@@ -19,8 +19,7 @@ public:
 protected:
 private:
   static auto _createVkDeviceMemory(VkDevice device, VkDeviceSize size, uint32_t type) {
-    VkMemoryAllocateInfo device_memory_info = {};
-    device_memory_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    VkMemoryAllocateInfo device_memory_info = { VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO };
     device_memory_info.allocationSize = size;
     device_memory_info.memoryTypeIndex = type;
 

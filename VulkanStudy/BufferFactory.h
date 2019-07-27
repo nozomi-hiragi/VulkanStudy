@@ -8,7 +8,7 @@
 #include "BufferObject.h"
 #include "DeviceObject.h"
 
-class BufferFactory : public AbstractFactory<BufferObject, DeviceObject, const VkDeviceSize, const VkBufferUsageFlags > {
+class BufferFactory : public AbstractFactory<BufferObject, DeviceObject, const VkDeviceSize, const VkBufferUsageFlags, const VkSharingMode> {
 public:
   BufferFactory() {
   }
@@ -18,12 +18,11 @@ public:
 
 protected:
 private:
-  static auto _createVkBuffer(VkDevice device, VkDeviceSize size, VkBufferUsageFlags usage) {
-    VkBufferCreateInfo buffer_info = {};
-    buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+  static auto _createVkBuffer(VkDevice device, VkDeviceSize size, VkBufferUsageFlags usage, VkSharingMode sharing_mode) {
+    VkBufferCreateInfo buffer_info = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
     buffer_info.size = size;
     buffer_info.usage = usage;
-    buffer_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    buffer_info.sharingMode = sharing_mode;
 
     VkBuffer buffer;
     auto result = vkCreateBuffer(device, &buffer_info, nullptr, &buffer);
@@ -40,8 +39,8 @@ private:
     return std::move(memory_requirements);
   }
 
-  std::shared_ptr<BufferObject> _createCore(const VkDeviceSize size, const VkBufferUsageFlags usage) {
-    auto vk_buffer = _createVkBuffer(_parent->_vk_device, size, usage);
+  std::shared_ptr<BufferObject> _createCore(const VkDeviceSize size, const VkBufferUsageFlags usage, const VkSharingMode sharing_mode) {
+    auto vk_buffer = _createVkBuffer(_parent->_vk_device, size, usage, sharing_mode);
     auto memory_requirements = _getVkBufferMemoryRequirements(_parent->_vk_device, vk_buffer);
     return std::make_shared<BufferObject>(vk_buffer, std::move(memory_requirements));
   }

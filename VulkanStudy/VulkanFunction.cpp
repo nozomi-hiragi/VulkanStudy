@@ -85,7 +85,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
 
   _renderer.init(APP_NAME, APP_VERSION, width, height, hinstance, hwnd);
 
-  // Uniform buffer
+  // Create uniform buffer
   {
     // Create matrix
     {
@@ -96,7 +96,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
     }
 
     // Create uniform buffer
-    _uniform_buffer = _buffer_factory.createObject(_renderer._device_object, sizeof(g_mvp), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
+    _uniform_buffer = _buffer_factory.createObject(_renderer._device_object, sizeof(g_mvp), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE);
 
     // Allocate uniform memory
     {
@@ -107,17 +107,26 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
     // Wrinte to memory
     {
       auto data = DeviceMemoryObject::vkMapMemory_(_renderer._device_object->_vk_device, _uniform_memory->_vk_device_memory, 0, _uniform_buffer->_vk_memory_requirements.size);
-
       memcpy(data, &g_mvp, sizeof(g_mvp));
-
       DeviceMemoryObject::vkUnmapMemory_(_renderer._device_object->_vk_device, _uniform_memory->_vk_device_memory);
     }
 
     // Bind memory to buffer
     BufferObject::vkBindBufferMemory_(_renderer._device_object->_vk_device, _uniform_buffer->_vk_buffer, _uniform_memory->_vk_device_memory, 0);
+  }
 
-    // Create descriptor set layout
-    _descriptor_set_layout = _descriptor_set_layout_factory.createObject(_renderer._device_object->_vk_device);
+  // Create descriptor set layout
+  {
+    _descriptor_set_layout_factory.getDescriptorSetLayoutBindingDepot().add("Uniform",
+      0,
+      VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
+      1,
+      VK_SHADER_STAGE_VERTEX_BIT,
+      nullptr
+    );
+
+    std::vector<std::string> descriptor_set_layout_binding_names = { "Uniform" };
+    _descriptor_set_layout = _descriptor_set_layout_factory.createObject(_renderer._device_object, descriptor_set_layout_binding_names);
   }
 
   // Create Pipeline layout
@@ -214,6 +223,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
       "layout (location = 1) in vec3 nor;\n"
       "layout (location = 2) in vec4 inColor;\n"
       "layout (location = 3) in vec2 tex;\n"
+      "\n"
       "layout (location = 0) out vec4 outColor;\n"
       "void main() {\n"
       "   outColor = vec4(inColor.x,inColor.y,inColor.z, inColor.w);//inColor;\n"
@@ -241,6 +251,39 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
     shaderc_compiler_release(compiler);
   }
 
+  // Define vertex input
+  {
+    _pipeline_factory.getVertexInputBindingDescriptionDepot().add("Vertex", 0, sizeof(glm::vec3), VK_VERTEX_INPUT_RATE_VERTEX);
+    _pipeline_factory.getVertexInputBindingDescriptionDepot().add("Normal", 1, sizeof(glm::vec3), VK_VERTEX_INPUT_RATE_VERTEX);
+    _pipeline_factory.getVertexInputBindingDescriptionDepot().add("Color", 2, sizeof(glm::vec4), VK_VERTEX_INPUT_RATE_VERTEX);
+    _pipeline_factory.getVertexInputBindingDescriptionDepot().add("Texcoord", 3, sizeof(glm::vec2), VK_VERTEX_INPUT_RATE_VERTEX);
+
+    _pipeline_factory.getVertexInputAttributeDescriptionDepot().add("Vertex", 0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0);
+    _pipeline_factory.getVertexInputAttributeDescriptionDepot().add("Normal", 1, 1, VK_FORMAT_R32G32B32_SFLOAT, 0);
+    _pipeline_factory.getVertexInputAttributeDescriptionDepot().add("Color", 2, 2, VK_FORMAT_R32G32B32A32_SFLOAT, 0);
+    _pipeline_factory.getVertexInputAttributeDescriptionDepot().add("Texcoord", 3, 3, VK_FORMAT_R32G32_SFLOAT, 0);
+  }
+
+  // Create pipeline
+  {
+    std::vector<std::string> vertex_input_binding_description_names = { "Vertex", "Normal", "Color", "Texcoord" };
+    std::vector<std::string> vertex_input_attribute_description_names = { "Vertex", "Normal", "Color", "Texcoord" };
+    std::vector<std::shared_ptr<ShaderModuleObject>> shader_objects = { _vertex_shader, _pixel_shader };
+    _pipeline = _pipeline_factory.createObject(_renderer._device_object,
+      nullptr,
+      vertex_input_binding_description_names,
+      vertex_input_attribute_description_names,
+      shader_objects,
+      _pipeline_layout->_vk_pipeline_layout,
+      _render_pass->_vk_render_pass);
+  }
+
+  // Create semaphore
+  _image_semaphore = _semaphore_factory.createSemaphore(_renderer._device_object->_vk_device);
+
+  // Create fence
+  _fence = _fence_factory.createFence(_renderer._device_object->_vk_device);
+
   // Create mesh
   {
     std::vector<glm::vec3> pos = {
@@ -250,49 +293,25 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
     };
 
     std::vector<glm::vec3> nor = {
-    glm::vec3(0, 0, 1),
-    glm::vec3(0, 0, 1),
-    glm::vec3(0, 0, 1),
+      glm::vec3(0, 0, 1),
+      glm::vec3(0, 0, 1),
+      glm::vec3(0, 0, 1),
     };
 
     std::vector<glm::vec4> col = {
-    glm::vec4(1, 0, 0, 1),
-    glm::vec4(0, 1, 0, 1),
-    glm::vec4(0, 0, 1, 1),
+      glm::vec4(1, 0, 0, 1),
+      glm::vec4(0, 1, 0, 1),
+      glm::vec4(0, 0, 1, 1),
     };
 
     std::vector<glm::vec2> tex = {
-    glm::vec2(0, 0),
-    glm::vec2(1, 0),
-    glm::vec2(0, 1),
+      glm::vec2(0, 0),
+      glm::vec2(1, 0),
+      glm::vec2(0, 1),
     };
 
     _mesh = std::make_shared<Mesh>(pos, nor, col, tex, _buffer_factory, _renderer._device_memory_factory, _renderer._physical_device_object, _renderer._device_object);
   }
-
-  // Description
-
-  _pipeline_factory.getVertexInputBindingDescriptionDepot().add("Vertex",   0, sizeof(glm::vec3), VK_VERTEX_INPUT_RATE_VERTEX);
-  _pipeline_factory.getVertexInputBindingDescriptionDepot().add("Normal",   1, sizeof(glm::vec3), VK_VERTEX_INPUT_RATE_VERTEX);
-  _pipeline_factory.getVertexInputBindingDescriptionDepot().add("Color",    2, sizeof(glm::vec4), VK_VERTEX_INPUT_RATE_VERTEX);
-  _pipeline_factory.getVertexInputBindingDescriptionDepot().add("Texcoord", 3, sizeof(glm::vec2), VK_VERTEX_INPUT_RATE_VERTEX);
-
-  _pipeline_factory.getVertexInputAttributeDescriptionDepot().add("Vertex",   0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0);
-  _pipeline_factory.getVertexInputAttributeDescriptionDepot().add("Normal",   1, 1, VK_FORMAT_R32G32B32_SFLOAT, 0);
-  _pipeline_factory.getVertexInputAttributeDescriptionDepot().add("Color",    2, 2, VK_FORMAT_R32G32B32A32_SFLOAT, 0);
-  _pipeline_factory.getVertexInputAttributeDescriptionDepot().add("Texcoord", 3, 3, VK_FORMAT_R32G32_SFLOAT, 0);
-
-  std::vector<std::string> vertex_input_binding_description_names = { "Vertex", "Normal", "Color", "Texcoord" };
-  std::vector<std::string> vertex_input_attribute_description_names = { "Vertex", "Normal", "Color", "Texcoord" };
-
-  // Create pipeline
-  _pipeline = _pipeline_factory.createObject(_renderer._device_object, nullptr, vertex_input_binding_description_names, vertex_input_attribute_description_names, { _vertex_shader, _pixel_shader }, _pipeline_layout->_vk_pipeline_layout, _render_pass->_vk_render_pass);
-
-  // Create semaphore
-  _image_semaphore = _semaphore_factory.createSemaphore(_renderer._device_object->_vk_device);
-
-  // Create fence
-  _fence = _fence_factory.createFence(_renderer._device_object->_vk_device);
 }
 float a = 0;
 void updateVulkan() {
@@ -398,7 +417,7 @@ void uninitVulkan() {
 
   _pipeline_layout_factory.destroyObject(_renderer._device_object->_vk_device, _pipeline_layout);
 
-  _descriptor_set_layout_factory.destroyObject(_renderer._device_object->_vk_device, _descriptor_set_layout);
+  _descriptor_set_layout_factory.destroyObject(_descriptor_set_layout);
 
   _renderer._device_memory_factory.destroyObject(_uniform_memory);
 

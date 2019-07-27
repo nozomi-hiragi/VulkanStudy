@@ -34,10 +34,10 @@ public:
     const auto size_color    = _vertex_count * size_vec4;
     const auto size_texcoord = _vertex_count * size_vec2;
 
-    _buffer_position = _buffer_factory.createObject(device, size_position, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
-    _buffer_normal   = _buffer_factory.createObject(device, size_normal,   VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
-    _buffer_color    = _buffer_factory.createObject(device, size_color,    VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
-    _buffer_texcoord = _buffer_factory.createObject(device, size_texcoord, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
+    _buffer_position = _buffer_factory.createObject(device, size_position, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE);
+    _buffer_normal   = _buffer_factory.createObject(device, size_normal,   VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE);
+    _buffer_color    = _buffer_factory.createObject(device, size_color,    VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE);
+    _buffer_texcoord = _buffer_factory.createObject(device, size_texcoord, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE);
 
     auto memory_property_bits = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
     auto memory_type_index = physical_device->findProperties(_buffer_position, memory_property_bits);
