@@ -136,7 +136,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
     range.offset = 0;
     range.size = sizeof(g_mvp);
 
-    _pipeline_layout = _pipeline_layout_factory.createObject(_renderer._device_object->_vk_device, range, _descriptor_set_layout->_vk_descriptor_set_layout);
+    _pipeline_layout = _pipeline_layout_factory.createObject(_renderer._device_object, range, _descriptor_set_layout->_vk_descriptor_set_layout);
   }
 
   // Crearte descripter pool
@@ -415,7 +415,7 @@ void uninitVulkan() {
 
   _descriptor_pool_factory.destroyObject(_renderer._device_object->_vk_device, _descriptor_pool);
 
-  _pipeline_layout_factory.destroyObject(_renderer._device_object->_vk_device, _pipeline_layout);
+  _pipeline_layout_factory.destroyObject(_pipeline_layout);
 
   _descriptor_set_layout_factory.destroyObject(_descriptor_set_layout);
 

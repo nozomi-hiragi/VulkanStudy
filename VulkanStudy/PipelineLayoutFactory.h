@@ -4,9 +4,14 @@
 #include <memory>
 #include <set>
 
+#include "AbstractFactory.h"
 #include "PipelineLayoutObject.h"
+#include "DeviceObject.h"
 
-class PipelineLayoutFactory {
+class PipelineLayoutFactory : public AbstractFactory<PipelineLayoutObject, DeviceObject, const VkPushConstantRange&, VkDescriptorSetLayout > {
+public:
+protected:
+private:
   static VkPipelineLayout _createVkPipelineLayout(VkDevice device, const VkPushConstantRange& range, VkDescriptorSetLayout descriptor_set_layout) {
     VkPipelineLayoutCreateInfo pipeline_layout_info = { VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
     pipeline_layout_info.pushConstantRangeCount = 1;
@@ -23,35 +28,13 @@ class PipelineLayoutFactory {
     vkDestroyPipelineLayout(device, pipeline_layout, nullptr);
   }
 
-  std::shared_ptr<PipelineLayoutObject> _createCore(VkDevice device, const VkPushConstantRange& range, VkDescriptorSetLayout descriptor_set_layout) {
-    auto vk_pipeline_layout = _createVkPipelineLayout(device, range, descriptor_set_layout);
+  std::shared_ptr<PipelineLayoutObject> _createCore(const VkPushConstantRange& range, VkDescriptorSetLayout descriptor_set_layout) {
+    auto vk_pipeline_layout = _createVkPipelineLayout(_parent->_vk_device, range, descriptor_set_layout);
     return std::make_shared<PipelineLayoutObject>(vk_pipeline_layout);
   }
 
-  void _destroyCore(VkDevice device, std::shared_ptr<PipelineLayoutObject> object) {
-    _destroyVkPipelineLayout(device, object->_vk_pipeline_layout);
+  void _destroyCore(std::shared_ptr<PipelineLayoutObject> object) {
+    _destroyVkPipelineLayout(_parent->_vk_device, object->_vk_pipeline_layout);
   }
 
-public:
-  std::shared_ptr<PipelineLayoutObject> createObject(VkDevice device, const VkPushConstantRange& range, VkDescriptorSetLayout descriptor_set_layout) {
-    auto object = _createCore(device, range, descriptor_set_layout);
-    _container.insert(object);
-    return object;
-  }
-
-  void destroyObject(VkDevice device, std::shared_ptr<PipelineLayoutObject>& object) {
-    if (!object) { return; }
-    auto before = _container.size();
-    _container.erase(object);
-    auto after = _container.size();
-
-    if (before != after) {
-      _destroyCore(device, object);
-      object.reset();
-    }
-  }
-
-protected:
-private:
-  std::set<std::shared_ptr<PipelineLayoutObject>> _container;
 };
