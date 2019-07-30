@@ -60,12 +60,20 @@ public:
     vkCmdBindVertexBuffers(_vk_command_buffer, first, count, buffers, offset);
   }
 
+  void bindIndexBuffer(const VkBuffer buffer, const VkDeviceSize offset) {
+    vkCmdBindIndexBuffer(_vk_command_buffer, buffer, offset, VK_INDEX_TYPE_UINT16);
+  }
+
   void setScissor(uint32_t first, const VkRect2D& scissor) {
     vkCmdSetScissor(_vk_command_buffer, first, 1, &scissor);
   }
 
   void draw(uint32_t vertex_count, uint32_t instance_count, uint32_t first_vertex, uint32_t first_instance) {
     vkCmdDraw(_vk_command_buffer, vertex_count, instance_count, first_vertex, first_instance);
+  }
+
+  void drawIndexed(uint32_t index_count, uint32_t instance_count, uint32_t first_index, uint32_t vertex_offset, uint32_t first_instance) {
+    vkCmdDrawIndexed(_vk_command_buffer, index_count, instance_count, first_index, vertex_offset, first_instance);
   }
 
   void setViewport(const float width, const float height) {

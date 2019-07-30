@@ -236,9 +236,11 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
       glm::vec3(-1, +1, 0),
       glm::vec3(+1, +1, 0),
       glm::vec3(-1, -1, 0),
+      glm::vec3(+1, -1, 0),
     };
 
     std::vector<glm::vec3> nor = {
+      glm::vec3(0, 0, 1),
       glm::vec3(0, 0, 1),
       glm::vec3(0, 0, 1),
       glm::vec3(0, 0, 1),
@@ -248,15 +250,22 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
       glm::vec4(1, 0, 0, 1),
       glm::vec4(0, 1, 0, 1),
       glm::vec4(0, 0, 1, 1),
+      glm::vec4(1, 1, 1, 1),
     };
 
     std::vector<glm::vec2> tex = {
       glm::vec2(0, 0),
       glm::vec2(1, 0),
       glm::vec2(0, 1),
+      glm::vec2(1, 1),
     };
 
-    _mesh = std::make_shared<Mesh>(pos, nor, col, tex, _buffer_factory, _renderer._device_memory_factory, _renderer._physical_device_object, _renderer._device_object);
+    std::vector<uint16_t> idx = {
+      0, 1, 2,
+      3, 2, 1,
+    };
+
+    _mesh = std::make_shared<Mesh>(pos, nor, col, tex, idx, _buffer_factory, _renderer._device_memory_factory, _renderer._physical_device_object, _renderer._device_object);
   }
 }
 float a = 0;
