@@ -85,36 +85,6 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
 
   _renderer.init(APP_NAME, APP_VERSION, width, height, hinstance, hwnd);
 
-  // Create uniform buffer
-  {
-    // Create matrix
-    {
-      projection = glm::perspectiveFov(glm::radians(45.f), static_cast<float>(width), static_cast<float>(height), 0.1f, 100.f);
-      view = glm::lookAt(glm::vec3(0, 0, -10), glm::vec3(0, 0, 0), glm::vec3(0, -1, 0));
-      model = glm::translate(glm::mat4(1), glm::vec3(0, 0, 0));
-      g_mvp = projection * view * model;
-    }
-
-    // Create uniform buffer
-    _uniform_buffer = _buffer_factory.createObject(_renderer._device_object, sizeof(g_mvp), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE);
-
-    // Allocate uniform memory
-    {
-      auto memory_type_index = _renderer._physical_device_object->findProperties(_uniform_buffer, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-      _uniform_memory = _renderer._device_memory_factory.createObject(_renderer._device_object, _uniform_buffer->_vk_memory_requirements.size, memory_type_index);
-    }
-
-    // Wrinte to memory
-    {
-      auto data = DeviceMemoryObject::vkMapMemory_(_renderer._device_object->_vk_device, _uniform_memory->_vk_device_memory, 0, _uniform_buffer->_vk_memory_requirements.size);
-      memcpy(data, &g_mvp, sizeof(g_mvp));
-      DeviceMemoryObject::vkUnmapMemory_(_renderer._device_object->_vk_device, _uniform_memory->_vk_device_memory);
-    }
-
-    // Bind memory to buffer
-    BufferObject::vkBindBufferMemory_(_renderer._device_object->_vk_device, _uniform_buffer->_vk_buffer, _uniform_memory->_vk_device_memory, 0);
-  }
-
   // Create descriptor set layout
   {
     _descriptor_set_layout_factory.getDescriptorSetLayoutBindingDepot().add("Uniform",
@@ -133,19 +103,10 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
   _pipeline_layout = _pipeline_layout_factory.createObject(_renderer._device_object->_vk_device, _descriptor_set_layout->_vk_descriptor_set_layout);
 
   // Crearte descripter pool
-  _descriptor_pool = _descriptor_pool_factory.createObject(_renderer._device_object->_vk_device);
+  _descriptor_pool = _descriptor_pool_factory.createObject(_renderer._device_object);
 
   // Allocarte descriptor set
-  _descriptor_set = _descriptor_pool->createObject(_renderer._device_object->_vk_device, _descriptor_set_layout->_vk_descriptor_set_layout);
-
-  // Update descriptor sets
-
-  VkDescriptorBufferInfo descriptor_buffer_info = {};
-  descriptor_buffer_info.buffer = _uniform_buffer->_vk_buffer;
-  descriptor_buffer_info.offset = 0;
-  descriptor_buffer_info.range = sizeof(g_mvp);//VK_WHOLE_SIZE??
-
-  DescriptorSetObject::vkUpdateDescriptorSets_(_renderer._device_object->_vk_device, _descriptor_set->_vk_descriptor_set, descriptor_buffer_info);
+  _descriptor_set = _descriptor_pool->createObject(_renderer._device_object, { _descriptor_set_layout->_vk_descriptor_set_layout });
 
   // Create render pass
   {
@@ -276,6 +237,45 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
 
   // Create fence
   _fence = _fence_factory.createFence(_renderer._device_object->_vk_device);
+
+  // Create uniform buffer
+  {
+    // Create matrix
+    {
+      projection = glm::perspectiveFov(glm::radians(45.f), static_cast<float>(width), static_cast<float>(height), 0.1f, 100.f);
+      view = glm::lookAt(glm::vec3(0, 0, -10), glm::vec3(0, 0, 0), glm::vec3(0, -1, 0));
+      model = glm::translate(glm::mat4(1), glm::vec3(0, 0, 0));
+      g_mvp = projection * view * model;
+    }
+
+    // Create uniform buffer
+    _uniform_buffer = _buffer_factory.createObject(_renderer._device_object, sizeof(g_mvp), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE);
+
+    // Allocate uniform memory
+    {
+      auto memory_type_index = _renderer._physical_device_object->findProperties(_uniform_buffer, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+      _uniform_memory = _renderer._device_memory_factory.createObject(_renderer._device_object, _uniform_buffer->_vk_memory_requirements.size, memory_type_index);
+    }
+
+    // Wrinte to memory
+    {
+      auto data = DeviceMemoryObject::vkMapMemory_(_renderer._device_object->_vk_device, _uniform_memory->_vk_device_memory, 0, _uniform_buffer->_vk_memory_requirements.size);
+      memcpy(data, &g_mvp, sizeof(g_mvp));
+      DeviceMemoryObject::vkUnmapMemory_(_renderer._device_object->_vk_device, _uniform_memory->_vk_device_memory);
+    }
+
+    // Bind memory to buffer
+    BufferObject::vkBindBufferMemory_(_renderer._device_object->_vk_device, _uniform_buffer->_vk_buffer, _uniform_memory->_vk_device_memory, 0);
+  }
+
+  // Update descriptor sets
+
+  VkDescriptorBufferInfo descriptor_buffer_info = {};
+  descriptor_buffer_info.buffer = _uniform_buffer->_vk_buffer;
+  descriptor_buffer_info.offset = 0;
+  descriptor_buffer_info.range = sizeof(g_mvp);//VK_WHOLE_SIZE??
+
+  DescriptorSetObject::vkUpdateDescriptorSets_(_renderer._device_object->_vk_device, _descriptor_set->_vk_descriptor_set, descriptor_buffer_info);
 
   // Create mesh
   {
@@ -408,9 +408,9 @@ void uninitVulkan() {
 
   _render_pass_factory.destroyObject(_render_pass);
 
-  _descriptor_pool->destroyObject(_renderer._device_object->_vk_device, _descriptor_set);
+  _descriptor_pool->destroyObject(_descriptor_set);
 
-  _descriptor_pool_factory.destroyObject(_renderer._device_object->_vk_device, _descriptor_pool);
+  _descriptor_pool_factory.destroyObject(_descriptor_pool);
 
   _pipeline_layout_factory.destroyObject(_renderer._device_object->_vk_device, _pipeline_layout);
 
