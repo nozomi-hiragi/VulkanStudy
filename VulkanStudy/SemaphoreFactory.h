@@ -4,12 +4,16 @@
 #include <memory>
 #include <set>
 
+#include "AbstractFactory.h"
 #include "SemaphoreObject.h"
+#include "DeviceObject.h"
 
-class SemaphoreFactory {
+class SemaphoreFactory : public AbstractFactory<SemaphoreObject, DeviceObject> {
+public:
+protected:
+private:
   static auto _createVkSemaphore(VkDevice device) {
-    VkSemaphoreCreateInfo semaphore_info = {};
-    semaphore_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+    VkSemaphoreCreateInfo semaphore_info = { VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
 
     VkSemaphore semaphore;
     vkCreateSemaphore(device, &semaphore_info, nullptr, &semaphore);
@@ -20,33 +24,13 @@ class SemaphoreFactory {
     vkDestroySemaphore(device, semaphore, nullptr);
   }
 
-public:
-  SemaphoreFactory() {
+  std::shared_ptr<SemaphoreObject> _createCore() {
+    auto vk_semaphore = _createVkSemaphore(_parent->_vk_device);
+    return std::make_shared<SemaphoreObject>(vk_semaphore);
   }
 
-  ~SemaphoreFactory() {
+  void _destroyCore(std::shared_ptr<SemaphoreObject> object) {
+    _destroyVkSemaphore(_parent->_vk_device, object->_vk_semaphore);
   }
 
-  auto createSemaphore(VkDevice device) {
-    auto vk_semaphore = _createVkSemaphore(device);
-    auto object = std::make_shared<SemaphoreObject>(vk_semaphore);
-    _container.insert(object);
-    return object;
-  }
-
-  void destroySemaphore(VkDevice device, std::shared_ptr<SemaphoreObject>& object) {
-    if (!object) { return; }
-    auto before = _container.size();
-    _container.erase(object);
-    auto after = _container.size();
-
-    if (before != after) {
-      _destroyVkSemaphore(device, object->_vk_semaphore);
-      object.reset();
-    }
-  }
-
-protected:
-private:
-  std::set<std::shared_ptr<SemaphoreObject>> _container;
 };

@@ -85,6 +85,12 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
 
   _renderer.init(APP_NAME, APP_VERSION, width, height, hinstance, hwnd);
 
+  // Create semaphore
+  _image_semaphore = _semaphore_factory.createObject(_renderer._device_object);
+
+  // Create fence
+  _fence = _fence_factory.createObject(_renderer._device_object);
+
   // Create descriptor set layout
   {
     _descriptor_set_layout_factory.getDescriptorSetLayoutBindingDepot().add("Uniform",
@@ -231,12 +237,6 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
       _pipeline_layout->_vk_pipeline_layout,
       _render_pass->_vk_render_pass);
   }
-
-  // Create semaphore
-  _image_semaphore = _semaphore_factory.createSemaphore(_renderer._device_object->_vk_device);
-
-  // Create fence
-  _fence = _fence_factory.createFence(_renderer._device_object->_vk_device);
 
   // Create uniform buffer
   {
@@ -391,11 +391,11 @@ void updateVulkan() {
 void uninitVulkan() {
   _mesh.reset();
 
-  _fence_factory.destroyFence(_renderer._device_object->_vk_device, _fence);
+  _fence_factory.destroyObject(_fence);
 
   _pipeline_factory.destroyObject(_pipeline);
 
-  _semaphore_factory.destroySemaphore(_renderer._device_object->_vk_device, _image_semaphore);
+  _semaphore_factory.destroyObject(_image_semaphore);
 
   for (auto& framebuffer : _framebuffers) {
     _framebuffer_factory.destroyObject(framebuffer);

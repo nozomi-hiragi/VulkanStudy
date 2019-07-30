@@ -4,12 +4,16 @@
 #include <memory>
 #include <set>
 
+#include "AbstractFactory.h"
 #include "FenceObject.h"
+#include "DeviceObject.h"
 
-class FenceFactory {
+class FenceFactory : public AbstractFactory<FenceObject, DeviceObject> {
+public:
+protected:
+private:
   static auto _createVkFence(VkDevice device) {
-    VkFenceCreateInfo fence_info = {};
-    fence_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+    VkFenceCreateInfo fence_info = { VK_STRUCTURE_TYPE_FENCE_CREATE_INFO };
 
     VkFence fence;
     auto result = vkCreateFence(device, &fence_info, nullptr, &fence);
@@ -20,34 +24,14 @@ class FenceFactory {
     vkDestroyFence(device, fence, nullptr);
   }
 
-public:
-  FenceFactory() {
+  std::shared_ptr<FenceObject> _createCore() {
+    auto vk_fence = _createVkFence(_parent->_vk_device);
+    return std::make_shared<FenceObject>(vk_fence);
   }
 
-  ~FenceFactory() {
+  void _destroyCore(std::shared_ptr<FenceObject> object) {
+    FenceObject::vkWaitForFence_(_parent->_vk_device, object->_vk_fence, UINT32_MAX);
+    _destroyVkFence(_parent->_vk_device, object->_vk_fence);
   }
 
-  auto createFence(VkDevice device) {
-    auto vk_fence = _createVkFence(device);
-    auto object = std::make_shared<FenceObject>(vk_fence);
-    _container.insert(object);
-    return object;
-  }
-
-  void destroyFence(VkDevice device, std::shared_ptr<FenceObject>& object) {
-    if (!object) { return; }
-    auto before = _container.size();
-    _container.erase(object);
-    auto after = _container.size();
-
-    if (before != after) {
-      FenceObject::vkWaitForFence_(device, object->_vk_fence, UINT32_MAX);
-      _destroyVkFence(device, object->_vk_fence);
-      object.reset();
-    }
-  }
-
-protected:
-private:
-  std::set<std::shared_ptr<FenceObject>> _container;
 };
