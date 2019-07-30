@@ -7,10 +7,10 @@
 #include "PipelineLayoutObject.h"
 
 class PipelineLayoutFactory {
-  static VkPipelineLayout _createVkPipelineLayout(VkDevice device, const VkPushConstantRange& range, VkDescriptorSetLayout descriptor_set_layout) {
+  static VkPipelineLayout _createVkPipelineLayout(VkDevice device, VkDescriptorSetLayout descriptor_set_layout) {
     VkPipelineLayoutCreateInfo pipeline_layout_info = { VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
-    pipeline_layout_info.pushConstantRangeCount = 1;
-    pipeline_layout_info.pPushConstantRanges = &range;
+    pipeline_layout_info.pushConstantRangeCount = 0;
+    pipeline_layout_info.pPushConstantRanges = nullptr;
     pipeline_layout_info.setLayoutCount = 1;
     pipeline_layout_info.pSetLayouts = &descriptor_set_layout;
 
@@ -23,8 +23,8 @@ class PipelineLayoutFactory {
     vkDestroyPipelineLayout(device, pipeline_layout, nullptr);
   }
 
-  std::shared_ptr<PipelineLayoutObject> _createCore(VkDevice device, const VkPushConstantRange& range, VkDescriptorSetLayout descriptor_set_layout) {
-    auto vk_pipeline_layout = _createVkPipelineLayout(device, range, descriptor_set_layout);
+  std::shared_ptr<PipelineLayoutObject> _createCore(VkDevice device, VkDescriptorSetLayout descriptor_set_layout) {
+    auto vk_pipeline_layout = _createVkPipelineLayout(device, descriptor_set_layout);
     return std::make_shared<PipelineLayoutObject>(vk_pipeline_layout);
   }
 
@@ -33,8 +33,8 @@ class PipelineLayoutFactory {
   }
 
 public:
-  std::shared_ptr<PipelineLayoutObject> createObject(VkDevice device, const VkPushConstantRange& range, VkDescriptorSetLayout descriptor_set_layout) {
-    auto object = _createCore(device, range, descriptor_set_layout);
+  std::shared_ptr<PipelineLayoutObject> createObject(VkDevice device, VkDescriptorSetLayout descriptor_set_layout) {
+    auto object = _createCore(device, descriptor_set_layout);
     _container.insert(object);
     return object;
   }

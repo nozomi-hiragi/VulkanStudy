@@ -130,14 +130,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
   }
 
   // Create Pipeline layout
-  {
-    VkPushConstantRange range = {};
-    range.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-    range.offset = 0;
-    range.size = sizeof(g_mvp);
-
-    _pipeline_layout = _pipeline_layout_factory.createObject(_renderer._device_object->_vk_device, range, _descriptor_set_layout->_vk_descriptor_set_layout);
-  }
+  _pipeline_layout = _pipeline_layout_factory.createObject(_renderer._device_object->_vk_device, _descriptor_set_layout->_vk_descriptor_set_layout);
 
   // Crearte descripter pool
   _descriptor_pool = _descriptor_pool_factory.createObject(_renderer._device_object->_vk_device);
@@ -216,7 +209,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
       "#version 450\n"
       "#extension GL_ARB_separate_shader_objects : enable\n"
       "#extension GL_ARB_shading_language_420pack : enable\n"
-      "layout (push_constant) uniform bufferVals {\n"
+      "layout (binding = 0) uniform bufferVals {\n"
       "    mat4 mvp;\n"
       "} myBufferVals;\n"
       "layout (location = 0) in vec3 pos;\n"
@@ -321,6 +314,19 @@ void updateVulkan() {
 
   _renderer._command_buffer_object->begin();
 
+  VkViewport viewport = {};
+  viewport.width = (float)_width;
+  viewport.height = (float)_height;
+  viewport.minDepth = 0;
+  viewport.maxDepth = 1;
+  VkRect2D scissor = {
+    VkOffset2D { 0, 0 },
+    VkExtent2D { _width, _height }
+  };
+
+  _renderer._command_buffer_object->setViewport(0, 1, &viewport);
+  _renderer._command_buffer_object->setScissor(0, scissor);
+
   VkClearValue clear_values[2];
   clear_values[0].color = VkClearColorValue({{0.2f, 0.2f, 0.2f, 0.2f}});
   clear_values[1].depthStencil = VkClearDepthStencilValue({ 1.0f, 0 });
@@ -341,24 +347,15 @@ void updateVulkan() {
   uint32_t ofst = 0;
   _renderer._command_buffer_object->bindDescriptorSets(VK_PIPELINE_BIND_POINT_GRAPHICS, _pipeline_layout->_vk_pipeline_layout, 0, 1, &_descriptor_set->_vk_descriptor_set, 1, &ofst);
 
-  VkViewport viewport = {};
-  viewport.width = (float)_width;
-  viewport.height = (float)_height;
-  viewport.minDepth = 0;
-  viewport.maxDepth = 1;
-  VkRect2D scissor = {
-    VkOffset2D { 0, 0 },
-    VkExtent2D { _width, _height }
-  };
-
-  _renderer._command_buffer_object->setViewport(0, 1, &viewport);
-  _renderer._command_buffer_object->setScissor(0, scissor);
-  
   a+=0.01f;
   model = glm::translate(glm::mat4(1), glm::vec3(a, 0, 0));
   g_mvp = projection * view * model;
  
-  vkCmdPushConstants(_renderer._command_buffer_object->_vk_command_buffer, _pipeline_layout->_vk_pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(g_mvp), &g_mvp);
+  {
+    auto data = DeviceMemoryObject::vkMapMemory_(_renderer._device_object->_vk_device, _uniform_memory->_vk_device_memory, 0, _uniform_buffer->_vk_memory_requirements.size);
+    memcpy(data, &g_mvp, sizeof(g_mvp));
+    DeviceMemoryObject::vkUnmapMemory_(_renderer._device_object->_vk_device, _uniform_memory->_vk_device_memory);
+  }
 
   _mesh->draw(_renderer._command_buffer_object);
 
