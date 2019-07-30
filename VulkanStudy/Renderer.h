@@ -1,8 +1,18 @@
 #pragma once
 
 #include "InstanceFactory.h"
+#include "DeviceFactory.h"
 #include "SurfaceFactory.h"
 #include "PipelineLayoutFactory.h"
+#include "CommandPoolFactory.h"
+#include "SwapchainFactory.h"
+#include "ImageViewFactory.h"
+#include "SemaphoreFactory.h"
+#include "FenceFactory.h"
+#include "ImageFactory.h"
+#include "DescriptorSetLayoutFactory.h"
+#include "DescriptorPoolFactory.h"
+#include "DeviceMemoryFactory.h"
 
 class Renderer {
 public:

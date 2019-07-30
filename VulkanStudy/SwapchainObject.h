@@ -4,6 +4,9 @@
 #include <vector>
 
 #include "ImageObject.h"
+#include "DeviceObject.h"
+#include "SemaphoreObject.h"
+#include "FenceObject.h"
 
 class SwapchainObject {
 public:
@@ -22,8 +25,9 @@ public:
   ~SwapchainObject() {
   }
 
-  static void vkAcquireNextImage_(VkDevice device, VkSwapchainKHR swapchain, const uint64_t timeout, const VkSemaphore semaphore, const VkFence fence, uint32_t* image_index) {
-    vkAcquireNextImageKHR(device, swapchain, timeout, semaphore, fence, image_index);
+  void acquireNextImage(const std::shared_ptr<DeviceObject> device, const uint64_t timeout, const std::shared_ptr<SemaphoreObject> semaphore, const std::shared_ptr<FenceObject> fence, uint32_t* image_index) {
+    VkFence vk_fence = fence ? fence->_vk_fence : nullptr;
+    vkAcquireNextImageKHR(device->_vk_device, _vk_swapchain, timeout, semaphore->_vk_semaphore, vk_fence, image_index);
   }
 
   const VkSwapchainKHR _vk_swapchain;

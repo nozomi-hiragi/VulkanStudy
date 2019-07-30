@@ -30,7 +30,7 @@ private:
   }
 
   void _destroyCore(std::shared_ptr<FenceObject> object) {
-    FenceObject::vkWaitForFence_(_parent->_vk_device, object->_vk_fence, UINT32_MAX);
+    object->waitForFence(_parent, UINT32_MAX);
     _destroyVkFence(_parent->_vk_device, object->_vk_fence);
   }
 

@@ -50,17 +50,17 @@ public:
 
     _vertex_memory = _memory_factory.createObject(device, memory_size, memory_type_index);
 
-    char* vertex_map = static_cast<char*>(DeviceMemoryObject::vkMapMemory_(device->_vk_device, _vertex_memory->_vk_device_memory, 0, memory_size));
+    char* vertex_map = static_cast<char*>(_vertex_memory->mapMemory(device, 0, memory_size));
     memcpy(vertex_map + 0,                                              position.data(), size_position);
     memcpy(vertex_map + _buffer_position->_vk_memory_requirements.size, normal.data(),   size_normal);
     memcpy(vertex_map + _buffer_position->_vk_memory_requirements.size + _buffer_normal->_vk_memory_requirements.size,   color.data(),    size_color);
     memcpy(vertex_map + _buffer_position->_vk_memory_requirements.size + _buffer_normal->_vk_memory_requirements.size + _buffer_color->_vk_memory_requirements.size,    texcoord.data(), size_texcoord);
-    DeviceMemoryObject::vkUnmapMemory_(device->_vk_device, _vertex_memory->_vk_device_memory);
+    _vertex_memory->unmapMemory(device);
 
-    BufferObject::vkBindBufferMemory_(device->_vk_device, _buffer_position->_vk_buffer, _vertex_memory->_vk_device_memory, 0);
-    BufferObject::vkBindBufferMemory_(device->_vk_device, _buffer_normal->_vk_buffer,   _vertex_memory->_vk_device_memory, _buffer_position->_vk_memory_requirements.size);
-    BufferObject::vkBindBufferMemory_(device->_vk_device, _buffer_color->_vk_buffer,    _vertex_memory->_vk_device_memory, _buffer_position->_vk_memory_requirements.size + _buffer_normal->_vk_memory_requirements.size);
-    BufferObject::vkBindBufferMemory_(device->_vk_device, _buffer_texcoord->_vk_buffer, _vertex_memory->_vk_device_memory, _buffer_position->_vk_memory_requirements.size + _buffer_normal->_vk_memory_requirements.size + _buffer_color->_vk_memory_requirements.size);
+    _buffer_position->bindBufferMemory(device, _vertex_memory, 0);
+    _buffer_normal  ->bindBufferMemory(device, _vertex_memory, _buffer_position->_vk_memory_requirements.size);
+    _buffer_color   ->bindBufferMemory(device, _vertex_memory, _buffer_position->_vk_memory_requirements.size + _buffer_normal->_vk_memory_requirements.size);
+    _buffer_texcoord->bindBufferMemory(device, _vertex_memory, _buffer_position->_vk_memory_requirements.size + _buffer_normal->_vk_memory_requirements.size + _buffer_color->_vk_memory_requirements.size);
 
     _vk_buffers[0] = _buffer_position->_vk_buffer;
     _vk_buffers[1] = _buffer_normal->_vk_buffer;

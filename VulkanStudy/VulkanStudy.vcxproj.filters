@@ -42,6 +42,9 @@
     <ClCompile Include="DeviceFactory.cpp">
       <Filter>source\wrap</Filter>
     </ClCompile>
+    <ClCompile Include="FenceObject.cpp">
+      <Filter>source\wrap</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="WindowManager.h">

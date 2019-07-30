@@ -79,6 +79,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="DeviceFactory.cpp" />
+    <ClCompile Include="FenceObject.cpp" />
     <ClCompile Include="InstanceFactory.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Renderer.cpp" />

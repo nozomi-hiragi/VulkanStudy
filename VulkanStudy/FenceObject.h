@@ -1,6 +1,9 @@
 #pragma once
 
 #include <vulkan/vulkan.h>
+#include <memory>
+
+class DeviceObject;
 
 class FenceObject {
 public:
@@ -10,13 +13,9 @@ public:
   ~FenceObject() {
   }
 
-  static VkResult vkWaitForFence_(VkDevice device, VkFence fence, uint64_t timeout) {
-    return vkWaitForFences(device, 1, &fence, VK_FALSE, timeout);
-  }
+  VkResult waitForFence(const std::shared_ptr<DeviceObject> device, uint64_t timeout);
 
-  static void vkResetFence_(VkDevice device, VkFence fence) {
-    vkResetFences(device, 1, &fence);
-  }
+  void resetFence(const std::shared_ptr<DeviceObject> device);
 
   const VkFence _vk_fence;
 protected:

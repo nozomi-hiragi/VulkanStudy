@@ -11,27 +11,17 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <shaderc/shaderc.h>
 
+#include "FenceObject.h"
+
 #include "Transporter.h"
 
-#include "InstanceFactory.h"
-#include "SurfaceFactory.h"
-#include "SwapchainFactory.h"
-#include "ImageFactory.h"
-#include "ImageViewFactory.h"
-#include "DeviceMemoryFactory.h"
+#include "Renderer.h"
+
 #include "BufferFactory.h"
-#include "FenceFactory.h"
-#include "SemaphoreFactory.h"
-#include "CommandPoolFactory.h"
 #include "ShaderModuleFactory.h"
 #include "RenderPassFactory.h"
 #include "FramebufferFactory.h"
-#include "DescriptorSetLayoutFactory.h"
-#include "DescriptorPoolFactory.h"
 #include "PipelineFactory.h"
-#include "DeviceFactory.h"
-
-#include "Renderer.h"
 
 #include "Mesh.h"
 
@@ -73,7 +63,9 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
 
   _renderer.init(APP_NAME, APP_VERSION, width, height, hinstance, hwnd);
 
-  // Create Pipeline layout
+  _renderer._command_buffer_object->setViewSize(width, height);
+  _renderer._command_buffer_object->setClearColorValue(0, VkClearColorValue({ {0.2f, 0.2f, 0.2f, 0.2f} }));
+  _renderer._command_buffer_object->setClearDepthStencilValue(1, VkClearDepthStencilValue({ 1.0f, 0 }));
 
   // Create render pass
   {
@@ -220,13 +212,13 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
 
     // Wrinte to memory
     {
-      auto data = DeviceMemoryObject::vkMapMemory_(_renderer._device_object->_vk_device, _uniform_memory->_vk_device_memory, 0, _uniform_buffer->_vk_memory_requirements.size);
+      auto data = _uniform_memory->mapMemory(_renderer._device_object, 0, _uniform_buffer->_vk_memory_requirements.size);
       memcpy(data, &g_mvp, sizeof(g_mvp));
-      DeviceMemoryObject::vkUnmapMemory_(_renderer._device_object->_vk_device, _uniform_memory->_vk_device_memory);
+      _uniform_memory->unmapMemory(_renderer._device_object);
     }
 
     // Bind memory to buffer
-    BufferObject::vkBindBufferMemory_(_renderer._device_object->_vk_device, _uniform_buffer->_vk_buffer, _uniform_memory->_vk_device_memory, 0);
+    _uniform_buffer->bindBufferMemory(_renderer._device_object, _uniform_memory, 0);
   }
 
   // Update descriptor sets
@@ -269,58 +261,30 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
 }
 float a = 0;
 void updateVulkan() {
-  FenceObject::vkResetFence_(_renderer._device_object->_vk_device, _renderer._fence->_vk_fence);
+  a += 0.01f;
+  model = glm::translate(glm::mat4(1), glm::vec3(a, 0, 0));
+  g_mvp = projection * view * model;
 
-  SwapchainObject::vkAcquireNextImage_(_renderer._device_object->_vk_device, _renderer._swapchain_object->_vk_swapchain, UINT64_MAX, _renderer._semaphore->_vk_semaphore, nullptr, &g_current_buffer);
+  {
+    auto data = _uniform_memory->mapMemory(_renderer._device_object, 0, _uniform_buffer->_vk_memory_requirements.size);
+    memcpy(data, &g_mvp, sizeof(g_mvp));
+    _uniform_memory->unmapMemory(_renderer._device_object);
+  }
+
+  _renderer._fence->resetFence(_renderer._device_object);
+
+  _renderer._swapchain_object->acquireNextImage(_renderer._device_object, UINT64_MAX, _renderer._semaphore, nullptr, &g_current_buffer);
 
   _renderer._command_buffer_object->begin();
 
-  VkViewport viewport = {};
-  viewport.width = (float)_width;
-  viewport.height = (float)_height;
-  viewport.minDepth = 0;
-  viewport.maxDepth = 1;
-  VkRect2D scissor = {
-    VkOffset2D { 0, 0 },
-    VkExtent2D { _width, _height }
-  };
+  _renderer._command_buffer_object->beginRenderPass(_render_pass, _framebuffers[g_current_buffer], VK_SUBPASS_CONTENTS_INLINE);
 
-  _renderer._command_buffer_object->setViewport(0, 1, &viewport);
-  _renderer._command_buffer_object->setScissor(0, scissor);
-
-  VkClearValue clear_values[2];
-  clear_values[0].color = VkClearColorValue({{0.2f, 0.2f, 0.2f, 0.2f}});
-  clear_values[1].depthStencil = VkClearDepthStencilValue({ 1.0f, 0 });
-
-  VkRenderPassBeginInfo render_begin_info = { VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
-  render_begin_info.renderPass = _render_pass->_vk_render_pass;
-  render_begin_info.framebuffer = _framebuffers[g_current_buffer]->_vk_framebuffer;
-  render_begin_info.renderArea = VkRect2D({ VkOffset2D({0, 0}), VkExtent2D({_width, _height}) });
-  render_begin_info.clearValueCount = 2;
-  render_begin_info.pClearValues = clear_values;
-
-  _renderer._command_buffer_object->beginRenderPass(render_begin_info, VK_SUBPASS_CONTENTS_INLINE);
-
-  // ~~~
-
-  _renderer._command_buffer_object->bindPipeline(VK_PIPELINE_BIND_POINT_GRAPHICS, _pipeline->_vk_pipeline);
+  _renderer._command_buffer_object->bindPipeline(VK_PIPELINE_BIND_POINT_GRAPHICS, _pipeline);
 
   uint32_t ofst = 0;
   _renderer._command_buffer_object->bindDescriptorSets(VK_PIPELINE_BIND_POINT_GRAPHICS, _renderer._pipeline_layout->_vk_pipeline_layout, 0, 1, &_renderer._descriptor_set->_vk_descriptor_set, 1, &ofst);
 
-  a+=0.01f;
-  model = glm::translate(glm::mat4(1), glm::vec3(a, 0, 0));
-  g_mvp = projection * view * model;
- 
-  {
-    auto data = DeviceMemoryObject::vkMapMemory_(_renderer._device_object->_vk_device, _uniform_memory->_vk_device_memory, 0, _uniform_buffer->_vk_memory_requirements.size);
-    memcpy(data, &g_mvp, sizeof(g_mvp));
-    DeviceMemoryObject::vkUnmapMemory_(_renderer._device_object->_vk_device, _uniform_memory->_vk_device_memory);
-  }
-
   _mesh->draw(_renderer._command_buffer_object);
-
-  // ~~~~
 
   _renderer._command_buffer_object->endRenderPass();
 
@@ -328,25 +292,27 @@ void updateVulkan() {
 
   VkPipelineStageFlags pipe_stage_flags = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
   VkCommandBuffer command_buffers[] = { _renderer._command_buffer_object->_vk_command_buffer };
-  VkSubmitInfo submit_info = {};
-  submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-  submit_info.commandBufferCount = 1;
-  submit_info.pCommandBuffers = command_buffers;
-
+  VkSubmitInfo submit_info = { VK_STRUCTURE_TYPE_SUBMIT_INFO };
   submit_info.waitSemaphoreCount = 1;
   submit_info.pWaitSemaphores = &_renderer._semaphore->_vk_semaphore;
   submit_info.pWaitDstStageMask = &pipe_stage_flags;
-  vkQueueSubmit(_renderer._queue_object->_vk_queue, 1, &submit_info, _renderer._fence->_vk_fence);
+  submit_info.commandBufferCount = 1;
+  submit_info.pCommandBuffers = command_buffers;
+  submit_info.signalSemaphoreCount = 0;
+  submit_info.pSignalSemaphores = nullptr;
 
-  FenceObject::vkWaitForFence_(_renderer._device_object->_vk_device, _renderer._fence->_vk_fence, UINT64_MAX);
+  _renderer._queue_object->submit(1, &submit_info, _renderer._fence);
 
-  VkPresentInfoKHR present_info = {};
-  present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+  _renderer._fence->waitForFence(_renderer._device_object, UINT64_MAX);
+
+  VkPresentInfoKHR present_info = { VK_STRUCTURE_TYPE_PRESENT_INFO_KHR };
+  present_info.waitSemaphoreCount = 0;
+  present_info.pWaitSemaphores = nullptr;
   present_info.swapchainCount = 1;
   present_info.pSwapchains = &_renderer._swapchain_object->_vk_swapchain;
   present_info.pImageIndices = &g_current_buffer;
 
-  vkQueuePresentKHR(_renderer._queue_object->_vk_queue, &present_info);
+  _renderer._queue_object->present(present_info);
 }
 
 void uninitVulkan() {
