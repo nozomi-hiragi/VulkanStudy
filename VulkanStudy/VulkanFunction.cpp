@@ -42,13 +42,9 @@ const uint32_t APP_VERSION = 0;
 Renderer _renderer;
 
 BufferFactory _buffer_factory;
-FenceFactory _fence_factory;
-SemaphoreFactory _semaphore_factory;
 ShaderModuleFactory _shader_module_factory;
 RenderPassFactory _render_pass_factory;
 FramebufferFactory _framebuffer_factory;
-DescriptorSetLayoutFactory _descriptor_set_layout_factory;
-DescriptorPoolFactory _descriptor_pool_factory;
 PipelineLayoutFactory _pipeline_layout_factory;
 PipelineFactory _pipeline_factory;
 
@@ -57,16 +53,11 @@ std::shared_ptr<BufferObject> _uniform_buffer;
 
 std::shared_ptr<Mesh> _mesh;
 
-std::shared_ptr<FenceObject> _fence;
-std::shared_ptr<SemaphoreObject> _image_semaphore;
 std::shared_ptr<ShaderModuleObject> _vertex_shader;
 std::shared_ptr<ShaderModuleObject> _pixel_shader;
 std::shared_ptr<RenderPassObject> _render_pass;
 std::vector<std::shared_ptr<FramebufferObject>> _framebuffers;
-std::shared_ptr<DescriptorSetLayoutObject> _descriptor_set_layout;
-std::shared_ptr<DescriptorPoolObject> _descriptor_pool;
 std::shared_ptr<PipelineLayoutObject> _pipeline_layout;
-std::shared_ptr<DescriptorSetObject> _descriptor_set;
 std::shared_ptr<PipelineObject> _pipeline;
 
 uint32_t g_current_buffer = 0;
@@ -85,34 +76,8 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
 
   _renderer.init(APP_NAME, APP_VERSION, width, height, hinstance, hwnd);
 
-  // Create semaphore
-  _image_semaphore = _semaphore_factory.createObject(_renderer._device_object);
-
-  // Create fence
-  _fence = _fence_factory.createObject(_renderer._device_object);
-
-  // Create descriptor set layout
-  {
-    _descriptor_set_layout_factory.getDescriptorSetLayoutBindingDepot().add("Uniform",
-      0,
-      VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
-      1,
-      VK_SHADER_STAGE_VERTEX_BIT,
-      nullptr
-    );
-
-    std::vector<std::string> descriptor_set_layout_binding_names = { "Uniform" };
-    _descriptor_set_layout = _descriptor_set_layout_factory.createObject(_renderer._device_object, descriptor_set_layout_binding_names);
-  }
-
   // Create Pipeline layout
-  _pipeline_layout = _pipeline_layout_factory.createObject(_renderer._device_object->_vk_device, _descriptor_set_layout->_vk_descriptor_set_layout);
-
-  // Crearte descripter pool
-  _descriptor_pool = _descriptor_pool_factory.createObject(_renderer._device_object);
-
-  // Allocarte descriptor set
-  _descriptor_set = _descriptor_pool->createObject(_renderer._device_object, { _descriptor_set_layout->_vk_descriptor_set_layout });
+  _pipeline_layout = _pipeline_layout_factory.createObject(_renderer._device_object->_vk_device, _renderer._descriptor_set_layout->_vk_descriptor_set_layout);
 
   // Create render pass
   {
@@ -275,7 +240,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
   descriptor_buffer_info.offset = 0;
   descriptor_buffer_info.range = sizeof(g_mvp);//VK_WHOLE_SIZE??
 
-  DescriptorSetObject::vkUpdateDescriptorSets_(_renderer._device_object->_vk_device, _descriptor_set->_vk_descriptor_set, descriptor_buffer_info);
+  DescriptorSetObject::vkUpdateDescriptorSets_(_renderer._device_object->_vk_device, _renderer._descriptor_set->_vk_descriptor_set, descriptor_buffer_info);
 
   // Create mesh
   {
@@ -308,9 +273,9 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
 }
 float a = 0;
 void updateVulkan() {
-  FenceObject::vkResetFence_(_renderer._device_object->_vk_device, _fence->_vk_fence);
+  FenceObject::vkResetFence_(_renderer._device_object->_vk_device, _renderer._fence->_vk_fence);
 
-  SwapchainObject::vkAcquireNextImage_(_renderer._device_object->_vk_device, _renderer._swapchain_object->_vk_swapchain, UINT64_MAX, _image_semaphore->_vk_semaphore, nullptr, &g_current_buffer);
+  SwapchainObject::vkAcquireNextImage_(_renderer._device_object->_vk_device, _renderer._swapchain_object->_vk_swapchain, UINT64_MAX, _renderer._semaphore->_vk_semaphore, nullptr, &g_current_buffer);
 
   _renderer._command_buffer_object->begin();
 
@@ -345,7 +310,7 @@ void updateVulkan() {
   _renderer._command_buffer_object->bindPipeline(VK_PIPELINE_BIND_POINT_GRAPHICS, _pipeline->_vk_pipeline);
 
   uint32_t ofst = 0;
-  _renderer._command_buffer_object->bindDescriptorSets(VK_PIPELINE_BIND_POINT_GRAPHICS, _pipeline_layout->_vk_pipeline_layout, 0, 1, &_descriptor_set->_vk_descriptor_set, 1, &ofst);
+  _renderer._command_buffer_object->bindDescriptorSets(VK_PIPELINE_BIND_POINT_GRAPHICS, _pipeline_layout->_vk_pipeline_layout, 0, 1, &_renderer._descriptor_set->_vk_descriptor_set, 1, &ofst);
 
   a+=0.01f;
   model = glm::translate(glm::mat4(1), glm::vec3(a, 0, 0));
@@ -373,11 +338,11 @@ void updateVulkan() {
   submit_info.pCommandBuffers = command_buffers;
 
   submit_info.waitSemaphoreCount = 1;
-  submit_info.pWaitSemaphores = &_image_semaphore->_vk_semaphore;
+  submit_info.pWaitSemaphores = &_renderer._semaphore->_vk_semaphore;
   submit_info.pWaitDstStageMask = &pipe_stage_flags;
-  vkQueueSubmit(_renderer._queue_object->_vk_queue, 1, &submit_info, _fence->_vk_fence);
+  vkQueueSubmit(_renderer._queue_object->_vk_queue, 1, &submit_info, _renderer._fence->_vk_fence);
 
-  FenceObject::vkWaitForFence_(_renderer._device_object->_vk_device, _fence->_vk_fence, UINT64_MAX);
+  FenceObject::vkWaitForFence_(_renderer._device_object->_vk_device, _renderer._fence->_vk_fence, UINT64_MAX);
 
   VkPresentInfoKHR present_info = {};
   present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -391,11 +356,7 @@ void updateVulkan() {
 void uninitVulkan() {
   _mesh.reset();
 
-  _fence_factory.destroyObject(_fence);
-
   _pipeline_factory.destroyObject(_pipeline);
-
-  _semaphore_factory.destroyObject(_image_semaphore);
 
   for (auto& framebuffer : _framebuffers) {
     _framebuffer_factory.destroyObject(framebuffer);
@@ -408,13 +369,7 @@ void uninitVulkan() {
 
   _render_pass_factory.destroyObject(_render_pass);
 
-  _descriptor_pool->destroyObject(_descriptor_set);
-
-  _descriptor_pool_factory.destroyObject(_descriptor_pool);
-
   _pipeline_layout_factory.destroyObject(_renderer._device_object->_vk_device, _pipeline_layout);
-
-  _descriptor_set_layout_factory.destroyObject(_descriptor_set_layout);
 
   _renderer._device_memory_factory.destroyObject(_uniform_memory);
 

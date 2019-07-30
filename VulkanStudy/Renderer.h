@@ -33,9 +33,28 @@ public:
       _swapchain_image_view_objects.push_back(_image_view_factory.createObject(_device_object, image));
     }
     _depth_image_view_object = _image_view_factory.createObject(_device_object, _depth_image_object);
+    _semaphore = _semaphore_factory.createObject(_device_object);
+    _fence = _fence_factory.createObject(_device_object);
+    _descriptor_set_layout_factory.getDescriptorSetLayoutBindingDepot().add("Uniform",
+      0,
+      VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
+      1,
+      VK_SHADER_STAGE_VERTEX_BIT,
+      nullptr
+    );
+    std::vector<std::string> descriptor_set_layout_binding_names = { "Uniform" };
+    _descriptor_set_layout = _descriptor_set_layout_factory.createObject(_device_object, descriptor_set_layout_binding_names);
+    _descriptor_pool = _descriptor_pool_factory.createObject(_device_object);
+    _descriptor_set = _descriptor_pool->createObject(_device_object, { _descriptor_set_layout->_vk_descriptor_set_layout });
+
   }
 
   void uninit() {
+    _descriptor_pool->destroyObject(_descriptor_set);
+    _descriptor_pool_factory.destroyObject(_descriptor_pool);
+    _descriptor_set_layout_factory.destroyObject(_descriptor_set_layout);
+    _fence_factory.destroyObject(_fence);
+    _semaphore_factory.destroyObject(_semaphore);
     _image_view_factory.destroyObject(_depth_image_view_object);
     for (auto& image_view : _swapchain_image_view_objects) {
       _image_view_factory.destroyObject(image_view);
@@ -63,6 +82,11 @@ public:
   std::shared_ptr<DeviceMemoryObject> _depth_memory_object;
   std::vector<std::shared_ptr<ImageViewObject>> _swapchain_image_view_objects;
   std::shared_ptr<ImageViewObject> _depth_image_view_object;
+  std::shared_ptr<SemaphoreObject> _semaphore;
+  std::shared_ptr<FenceObject> _fence;
+  std::shared_ptr<DescriptorSetLayoutObject> _descriptor_set_layout;
+  std::shared_ptr<DescriptorPoolObject> _descriptor_pool;
+  std::shared_ptr<DescriptorSetObject> _descriptor_set;
 protected:
 private:
   uint32_t _width;
@@ -77,4 +101,8 @@ public:
   DeviceMemoryFactory _device_memory_factory;
 private:
   ImageViewFactory _image_view_factory;
+  SemaphoreFactory _semaphore_factory;
+  FenceFactory _fence_factory;
+  DescriptorSetLayoutFactory _descriptor_set_layout_factory;
+  DescriptorPoolFactory _descriptor_pool_factory;
 };
