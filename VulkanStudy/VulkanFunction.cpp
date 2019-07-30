@@ -47,6 +47,10 @@ std::shared_ptr<RenderPassObject> _render_pass;
 std::vector<std::shared_ptr<FramebufferObject>> _framebuffers;
 std::shared_ptr<PipelineObject> _pipeline;
 
+std::shared_ptr<ImageObject> _texture_image;
+std::shared_ptr<DeviceMemoryObject> _texture_memory;
+std::shared_ptr<ImageViewObject> _texture_image_view;
+
 uint32_t g_current_buffer = 0;
 
 glm::mat4 g_mvp;
@@ -266,6 +270,32 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
     };
 
     _mesh = std::make_shared<Mesh>(pos, nor, col, tex, idx, _buffer_factory, _renderer._device_memory_factory, _renderer._physical_device_object, _renderer._device_object);
+
+    // Texture
+    std::vector<uint8_t> raw_texture = {
+      0xff, 0xff, 0xff, 0xff,  0x00, 0x00, 0xff, 0xff,
+      0x00, 0xff, 0x00, 0xff,  0xff, 0x00, 0x00, 0xff,
+    };
+
+    _texture_image = _renderer._image_factory.createObject(_renderer._device_object,
+      VK_FORMAT_R8G8B8A8_UNORM,
+      VK_IMAGE_USAGE_SAMPLED_BIT,
+      2,
+      2,
+      VK_IMAGE_ASPECT_COLOR_BIT);
+
+    auto memory_property_bits = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+    auto memory_type_index = _renderer._physical_device_object->findProperties(_texture_image, memory_property_bits);
+    _texture_memory = _renderer._device_memory_factory.createObject(_renderer._device_object, _texture_image->_vk_memory_requirements.size, memory_type_index);
+
+    auto data = _texture_memory->mapMemory(_renderer._device_object, 0, static_cast<uint32_t>(raw_texture.size() * sizeof(uint8_t)));
+    memcpy(data, raw_texture.data(), static_cast<uint32_t>(raw_texture.size() * sizeof(uint8_t)));
+    _texture_memory->unmapMemory(_renderer._device_object);
+
+    _texture_image->bindImageMemory(_renderer._device_object, _texture_memory, 0);
+
+    _texture_image_view = _renderer._image_view_factory.createObject(_renderer._device_object, _texture_image);
+    
   }
 }
 float a = 0;
@@ -325,6 +355,12 @@ void updateVulkan() {
 }
 
 void uninitVulkan() {
+  _renderer._image_view_factory.destroyObject(_texture_image_view);
+
+  _renderer._device_memory_factory.destroyObject(_texture_memory);
+
+  _renderer._image_factory.destroyObject(_texture_image);
+
   _mesh.reset();
 
   _pipeline_factory.destroyObject(_pipeline);

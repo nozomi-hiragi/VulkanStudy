@@ -110,11 +110,11 @@ private:
   DeviceFactory _device_factory;
   CommandPoolFactory _command_pool_factory;
   SwapchainFactory _swapchain_factory;
-  ImageFactory _image_factory;
 public:
+  ImageFactory _image_factory;
   DeviceMemoryFactory _device_memory_factory;
-private:
   ImageViewFactory _image_view_factory;
+private:
   SemaphoreFactory _semaphore_factory;
   FenceFactory _fence_factory;
   DescriptorSetLayoutFactory _descriptor_set_layout_factory;
