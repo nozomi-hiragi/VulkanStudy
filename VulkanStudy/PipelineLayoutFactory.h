@@ -4,16 +4,15 @@
 #include <memory>
 #include <set>
 
+#include "AbstractFactory.h"
 #include "PipelineLayoutObject.h"
+#include "DeviceObject.h"
 
-class PipelineLayoutFactory {
-  static VkPipelineLayout _createVkPipelineLayout(VkDevice device, VkDescriptorSetLayout descriptor_set_layout) {
-    VkPipelineLayoutCreateInfo pipeline_layout_info = { VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
-    pipeline_layout_info.pushConstantRangeCount = 0;
-    pipeline_layout_info.pPushConstantRanges = nullptr;
-    pipeline_layout_info.setLayoutCount = 1;
-    pipeline_layout_info.pSetLayouts = &descriptor_set_layout;
-
+class PipelineLayoutFactory : public AbstractFactory<PipelineLayoutObject, DeviceObject, const std::vector<VkDescriptorSetLayout>& > {
+public:
+protected:
+private:
+  static VkPipelineLayout _createVkPipelineLayout(VkDevice device, VkPipelineLayoutCreateInfo& pipeline_layout_info) {
     VkPipelineLayout pipeline_layout;
     vkCreatePipelineLayout(device, &pipeline_layout_info, nullptr, &pipeline_layout);
     return pipeline_layout;
@@ -23,35 +22,19 @@ class PipelineLayoutFactory {
     vkDestroyPipelineLayout(device, pipeline_layout, nullptr);
   }
 
-  std::shared_ptr<PipelineLayoutObject> _createCore(VkDevice device, VkDescriptorSetLayout descriptor_set_layout) {
-    auto vk_pipeline_layout = _createVkPipelineLayout(device, descriptor_set_layout);
+  std::shared_ptr<PipelineLayoutObject> _createCore(const std::vector<VkDescriptorSetLayout>& descriptor_set_layouts) {
+    VkPipelineLayoutCreateInfo pipeline_layout_info = { VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
+    pipeline_layout_info.pushConstantRangeCount = 0;
+    pipeline_layout_info.pPushConstantRanges = nullptr;
+    pipeline_layout_info.setLayoutCount = static_cast<uint32_t>(descriptor_set_layouts.size());
+    pipeline_layout_info.pSetLayouts = descriptor_set_layouts.data();
+
+    auto vk_pipeline_layout = _createVkPipelineLayout(_parent->_vk_device, pipeline_layout_info);
     return std::make_shared<PipelineLayoutObject>(vk_pipeline_layout);
   }
 
-  void _destroyCore(VkDevice device, std::shared_ptr<PipelineLayoutObject> object) {
-    _destroyVkPipelineLayout(device, object->_vk_pipeline_layout);
+  void _destroyCore(std::shared_ptr<PipelineLayoutObject> object) {
+    _destroyVkPipelineLayout(_parent->_vk_device, object->_vk_pipeline_layout);
   }
 
-public:
-  std::shared_ptr<PipelineLayoutObject> createObject(VkDevice device, VkDescriptorSetLayout descriptor_set_layout) {
-    auto object = _createCore(device, descriptor_set_layout);
-    _container.insert(object);
-    return object;
-  }
-
-  void destroyObject(VkDevice device, std::shared_ptr<PipelineLayoutObject>& object) {
-    if (!object) { return; }
-    auto before = _container.size();
-    _container.erase(object);
-    auto after = _container.size();
-
-    if (before != after) {
-      _destroyCore(device, object);
-      object.reset();
-    }
-  }
-
-protected:
-private:
-  std::set<std::shared_ptr<PipelineLayoutObject>> _container;
 };

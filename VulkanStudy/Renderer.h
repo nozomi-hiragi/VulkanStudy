@@ -2,6 +2,7 @@
 
 #include "InstanceFactory.h"
 #include "SurfaceFactory.h"
+#include "PipelineLayoutFactory.h"
 
 class Renderer {
 public:
@@ -46,10 +47,12 @@ public:
     _descriptor_set_layout = _descriptor_set_layout_factory.createObject(_device_object, descriptor_set_layout_binding_names);
     _descriptor_pool = _descriptor_pool_factory.createObject(_device_object);
     _descriptor_set = _descriptor_pool->createObject(_device_object, { _descriptor_set_layout->_vk_descriptor_set_layout });
+    _pipeline_layout = _pipeline_layout_factory.createObject(_device_object, { _descriptor_set_layout->_vk_descriptor_set_layout });
 
   }
 
   void uninit() {
+    _pipeline_layout_factory.destroyObject(_pipeline_layout);
     _descriptor_pool->destroyObject(_descriptor_set);
     _descriptor_pool_factory.destroyObject(_descriptor_pool);
     _descriptor_set_layout_factory.destroyObject(_descriptor_set_layout);
@@ -87,6 +90,7 @@ public:
   std::shared_ptr<DescriptorSetLayoutObject> _descriptor_set_layout;
   std::shared_ptr<DescriptorPoolObject> _descriptor_pool;
   std::shared_ptr<DescriptorSetObject> _descriptor_set;
+  std::shared_ptr<PipelineLayoutObject> _pipeline_layout;
 protected:
 private:
   uint32_t _width;
@@ -105,4 +109,5 @@ private:
   FenceFactory _fence_factory;
   DescriptorSetLayoutFactory _descriptor_set_layout_factory;
   DescriptorPoolFactory _descriptor_pool_factory;
+  PipelineLayoutFactory _pipeline_layout_factory;
 };

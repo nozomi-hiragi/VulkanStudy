@@ -28,7 +28,6 @@
 #include "FramebufferFactory.h"
 #include "DescriptorSetLayoutFactory.h"
 #include "DescriptorPoolFactory.h"
-#include "PipelineLayoutFactory.h"
 #include "PipelineFactory.h"
 #include "DeviceFactory.h"
 
@@ -45,7 +44,6 @@ BufferFactory _buffer_factory;
 ShaderModuleFactory _shader_module_factory;
 RenderPassFactory _render_pass_factory;
 FramebufferFactory _framebuffer_factory;
-PipelineLayoutFactory _pipeline_layout_factory;
 PipelineFactory _pipeline_factory;
 
 std::shared_ptr<DeviceMemoryObject> _uniform_memory;
@@ -57,7 +55,6 @@ std::shared_ptr<ShaderModuleObject> _vertex_shader;
 std::shared_ptr<ShaderModuleObject> _pixel_shader;
 std::shared_ptr<RenderPassObject> _render_pass;
 std::vector<std::shared_ptr<FramebufferObject>> _framebuffers;
-std::shared_ptr<PipelineLayoutObject> _pipeline_layout;
 std::shared_ptr<PipelineObject> _pipeline;
 
 uint32_t g_current_buffer = 0;
@@ -77,7 +74,6 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
   _renderer.init(APP_NAME, APP_VERSION, width, height, hinstance, hwnd);
 
   // Create Pipeline layout
-  _pipeline_layout = _pipeline_layout_factory.createObject(_renderer._device_object->_vk_device, _renderer._descriptor_set_layout->_vk_descriptor_set_layout);
 
   // Create render pass
   {
@@ -199,7 +195,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
       vertex_input_binding_description_names,
       vertex_input_attribute_description_names,
       shader_objects,
-      _pipeline_layout->_vk_pipeline_layout,
+      _renderer._pipeline_layout->_vk_pipeline_layout,
       _render_pass->_vk_render_pass);
   }
 
@@ -310,7 +306,7 @@ void updateVulkan() {
   _renderer._command_buffer_object->bindPipeline(VK_PIPELINE_BIND_POINT_GRAPHICS, _pipeline->_vk_pipeline);
 
   uint32_t ofst = 0;
-  _renderer._command_buffer_object->bindDescriptorSets(VK_PIPELINE_BIND_POINT_GRAPHICS, _pipeline_layout->_vk_pipeline_layout, 0, 1, &_renderer._descriptor_set->_vk_descriptor_set, 1, &ofst);
+  _renderer._command_buffer_object->bindDescriptorSets(VK_PIPELINE_BIND_POINT_GRAPHICS, _renderer._pipeline_layout->_vk_pipeline_layout, 0, 1, &_renderer._descriptor_set->_vk_descriptor_set, 1, &ofst);
 
   a+=0.01f;
   model = glm::translate(glm::mat4(1), glm::vec3(a, 0, 0));
@@ -368,8 +364,6 @@ void uninitVulkan() {
   _shader_module_factory.destroyObject(_vertex_shader);
 
   _render_pass_factory.destroyObject(_render_pass);
-
-  _pipeline_layout_factory.destroyObject(_renderer._device_object->_vk_device, _pipeline_layout);
 
   _renderer._device_memory_factory.destroyObject(_uniform_memory);
 
