@@ -24,9 +24,6 @@
 #include "PipelineFactory.h"
 #include "SamplerFactory.h"
 #include "QueueDepot.h"
-#include "InstanceFactory.h"
-#include "DeviceFactory.h"
-#include "SurfaceFactory.h"
 #include "PipelineLayoutFactory.h"
 #include "CommandPoolFactory.h"
 #include "SwapchainFactory.h"
@@ -52,9 +49,6 @@ FramebufferFactory _framebuffer_factory;
 PipelineFactory _pipeline_factory;
 SamplerFactory _sampler_factory;
 
-InstanceFactory _instance_factory;
-SurfaceFactory _surface_factory;
-DeviceFactory _device_factory;
 CommandPoolFactory _command_pool_factory;
 SwapchainFactory _swapchain_factory;
 ImageFactory _image_factory;
@@ -79,10 +73,6 @@ std::shared_ptr<DeviceMemoryObject> _texture_memory;
 std::shared_ptr<ImageViewObject> _texture_image_view;
 std::shared_ptr<SamplerObject> _sampler_object;
 
-std::shared_ptr<InstanceObject> _instance_object;
-std::shared_ptr<PhysicalDeviceObject> _physical_device_object;
-std::shared_ptr<SurfaceObject> _surface_object;
-std::shared_ptr<DeviceObject> _device_object;
 std::shared_ptr<QueueObject> _queue_object;
 std::shared_ptr<CommandPoolObject> _command_pool_object;
 std::shared_ptr<CommandBufferObject> _command_buffer_object;
@@ -112,29 +102,25 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
   _width = width;
   _height = height;
 
-  _renderer.init(APP_NAME, APP_VERSION, width, height, hinstance, hwnd);
+  _renderer.initDevice(APP_NAME, APP_VERSION, width, height, hinstance, hwnd);
 
-  _instance_object = _instance_factory.createObject(nullptr, APP_NAME, APP_VERSION);
-  _physical_device_object = _instance_object->_physical_devices[0];
-  _surface_object = _surface_factory.createObject(_instance_object, hinstance, hwnd);
-  _device_object = _device_factory.createObject(nullptr, _physical_device_object, _surface_object);
-  _queue_object = _device_object->_queue_object;
-  _command_pool_object = _command_pool_factory.createObject(_device_object, _queue_object);
-  _command_buffer_object = _command_pool_object->createObject(_device_object);
-  _swapchain_object = _swapchain_factory.createObject(_device_object, _surface_object, _physical_device_object, _width, _height);
-  _depth_image_object = _image_factory.createObject(_device_object, VK_FORMAT_D16_UNORM, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, width, height, VK_IMAGE_ASPECT_DEPTH_BIT);
+  _queue_object = _renderer._device_object->_queue_object;
+  _command_pool_object = _command_pool_factory.createObject(_renderer._device_object, _queue_object);
+  _command_buffer_object = _command_pool_object->createObject(_renderer._device_object);
+  _swapchain_object = _swapchain_factory.createObject(_renderer._device_object, _renderer._surface_object, _renderer._physical_device_object, _width, _height);
+  _depth_image_object = _image_factory.createObject(_renderer._device_object, VK_FORMAT_D16_UNORM, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, width, height, VK_IMAGE_ASPECT_DEPTH_BIT);
   {
-    auto memory_type_index = _physical_device_object->findProperties(_depth_image_object, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    _depth_memory_object = _device_memory_factory.createObject(_device_object, _depth_image_object->_vk_memory_requirements.size, memory_type_index);
+    auto memory_type_index = _renderer._physical_device_object->findProperties(_depth_image_object, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    _depth_memory_object = _device_memory_factory.createObject(_renderer._device_object, _depth_image_object->_vk_memory_requirements.size, memory_type_index);
   }
-  _depth_image_object->bindImageMemory(_device_object, _depth_memory_object, 0);
+  _depth_image_object->bindImageMemory(_renderer._device_object, _depth_memory_object, 0);
   _swapchain_image_view_objects.reserve(_swapchain_object->_swapchain_image_count);
   for (auto image : _swapchain_object->_swapchain_images) {
-    _swapchain_image_view_objects.push_back(_image_view_factory.createObject(_device_object, image));
+    _swapchain_image_view_objects.push_back(_image_view_factory.createObject(_renderer._device_object, image));
   }
-  _depth_image_view_object = _image_view_factory.createObject(_device_object, _depth_image_object);
-  _semaphore = _semaphore_factory.createObject(_device_object);
-  _fence = _fence_factory.createObject(_device_object);
+  _depth_image_view_object = _image_view_factory.createObject(_renderer._device_object, _depth_image_object);
+  _semaphore = _semaphore_factory.createObject(_renderer._device_object);
+  _fence = _fence_factory.createObject(_renderer._device_object);
   _descriptor_set_layout_factory.getDescriptorSetLayoutBindingDepot().add("Uniform",
     0,
     VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
@@ -151,10 +137,10 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
   );
 
   std::vector<std::string> descriptor_set_layout_binding_names = { "Uniform", "Sampler" };
-  _descriptor_set_layout = _descriptor_set_layout_factory.createObject(_device_object, descriptor_set_layout_binding_names);
-  _descriptor_pool = _descriptor_pool_factory.createObject(_device_object);
-  _descriptor_set = _descriptor_pool->createObject(_device_object, { _descriptor_set_layout->_vk_descriptor_set_layout });
-  _pipeline_layout = _pipeline_layout_factory.createObject(_device_object, { _descriptor_set_layout->_vk_descriptor_set_layout });
+  _descriptor_set_layout = _descriptor_set_layout_factory.createObject(_renderer._device_object, descriptor_set_layout_binding_names);
+  _descriptor_pool = _descriptor_pool_factory.createObject(_renderer._device_object);
+  _descriptor_set = _descriptor_pool->createObject(_renderer._device_object, { _descriptor_set_layout->_vk_descriptor_set_layout });
+  _pipeline_layout = _pipeline_layout_factory.createObject(_renderer._device_object, { _descriptor_set_layout->_vk_descriptor_set_layout });
 
 
 
@@ -204,7 +190,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
       nullptr
     );
 
-    _render_pass = _render_pass_factory.createObject(_device_object, { "ColorDefaultDescription", "DepthDefaultDescription" }, { "SubpassDefault" });
+    _render_pass = _render_pass_factory.createObject(_renderer._device_object, { "ColorDefaultDescription", "DepthDefaultDescription" }, { "SubpassDefault" });
   }
 
   // Create Framebuffer
@@ -212,7 +198,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
     _framebuffers.reserve(_swapchain_object->_swapchain_image_count);
     for (uint32_t i = 0; i < _swapchain_object->_swapchain_image_count; i++) {
       _framebuffers.push_back(_framebuffer_factory.createObject(
-        _device_object,
+        _renderer._device_object,
         _render_pass,
         { _swapchain_image_view_objects[i], _depth_image_view_object }));
     }
@@ -274,10 +260,10 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
     //auto vs_bin = GetBinary(L"vspc.vert.spv");
     //auto ps_bin = GetBinary(L"ps.frag.spv");
 
-    _vertex_shader = _shader_module_factory.createObject(_device_object, shaderc_result_get_length(vs_result), reinterpret_cast<const uint32_t*>(shaderc_result_get_bytes(vs_result)), VK_SHADER_STAGE_VERTEX_BIT, "main");
+    _vertex_shader = _shader_module_factory.createObject(_renderer._device_object, shaderc_result_get_length(vs_result), reinterpret_cast<const uint32_t*>(shaderc_result_get_bytes(vs_result)), VK_SHADER_STAGE_VERTEX_BIT, "main");
     //_vertex_shader = _shader_module_factory.createObject(_renderer._device_object, vs_bin.second, reinterpret_cast<uint32_t*>(vs_bin.first.get()), VK_SHADER_STAGE_VERTEX_BIT, "main");
 
-    _pixel_shader = _shader_module_factory.createObject(_device_object, shaderc_result_get_length(ps_result), reinterpret_cast<const uint32_t*>(shaderc_result_get_bytes(ps_result)), VK_SHADER_STAGE_FRAGMENT_BIT, "main");
+    _pixel_shader = _shader_module_factory.createObject(_renderer._device_object, shaderc_result_get_length(ps_result), reinterpret_cast<const uint32_t*>(shaderc_result_get_bytes(ps_result)), VK_SHADER_STAGE_FRAGMENT_BIT, "main");
     //_pixel_shader = _shader_module_factory.createObject(_renderer._device_object, ps_bin.second, reinterpret_cast<uint32_t*>(ps_bin.first.get()), VK_SHADER_STAGE_FRAGMENT_BIT, "main");
 
     shaderc_result_release(ps_result);
@@ -303,7 +289,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
     std::vector<std::string> vertex_input_binding_description_names = { "Vertex", "Normal", "Color", "Texcoord" };
     std::vector<std::string> vertex_input_attribute_description_names = { "Vertex", "Normal", "Color", "Texcoord" };
     std::vector<std::shared_ptr<ShaderModuleObject>> shader_objects = { _vertex_shader, _pixel_shader };
-    _pipeline = _pipeline_factory.createObject(_device_object,
+    _pipeline = _pipeline_factory.createObject(_renderer._device_object,
       nullptr,
       vertex_input_binding_description_names,
       vertex_input_attribute_description_names,
@@ -323,23 +309,23 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
     }
 
     // Create uniform buffer
-    _uniform_buffer = _buffer_factory.createObject(_device_object, sizeof(g_mvp), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE);
+    _uniform_buffer = _buffer_factory.createObject(_renderer._device_object, sizeof(g_mvp), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE);
 
     // Allocate uniform memory
     {
-      auto memory_type_index = _physical_device_object->findProperties(_uniform_buffer, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-      _uniform_memory = _device_memory_factory.createObject(_device_object, _uniform_buffer->_vk_memory_requirements.size, memory_type_index);
+      auto memory_type_index = _renderer._physical_device_object->findProperties(_uniform_buffer, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+      _uniform_memory = _device_memory_factory.createObject(_renderer._device_object, _uniform_buffer->_vk_memory_requirements.size, memory_type_index);
     }
 
     // Wrinte to memory
     {
-      auto data = _uniform_memory->mapMemory(_device_object, 0, _uniform_buffer->_vk_memory_requirements.size);
+      auto data = _uniform_memory->mapMemory(_renderer._device_object, 0, _uniform_buffer->_vk_memory_requirements.size);
       memcpy(data, &g_mvp, sizeof(g_mvp));
-      _uniform_memory->unmapMemory(_device_object);
+      _uniform_memory->unmapMemory(_renderer._device_object);
     }
 
     // Bind memory to buffer
-    _uniform_buffer->bindBufferMemory(_device_object, _uniform_memory, 0);
+    _uniform_buffer->bindBufferMemory(_renderer._device_object, _uniform_memory, 0);
   }
 
   // Texture
@@ -349,7 +335,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
     0xff, 0x00, 0x00, 0xff,  0x00, 0xff, 0x00, 0xff,  0x00, 0x00, 0xff, 0xff,  0xff, 0xff, 0xff, 0xff,
   };
 
-  _texture_image = _image_factory.createObject(_device_object,
+  _texture_image = _image_factory.createObject(_renderer._device_object,
     VK_FORMAT_R8G8B8A8_UNORM,
     VK_IMAGE_USAGE_SAMPLED_BIT,
     4,
@@ -357,18 +343,18 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
     VK_IMAGE_ASPECT_COLOR_BIT);
 
   auto memory_property_bits = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-  auto memory_type_index = _physical_device_object->findProperties(_texture_image, memory_property_bits);
-  _texture_memory = _device_memory_factory.createObject(_device_object, _texture_image->_vk_memory_requirements.size, memory_type_index);
+  auto memory_type_index = _renderer._physical_device_object->findProperties(_texture_image, memory_property_bits);
+  _texture_memory = _device_memory_factory.createObject(_renderer._device_object, _texture_image->_vk_memory_requirements.size, memory_type_index);
 
-  auto data = _texture_memory->mapMemory(_device_object, 0, static_cast<uint32_t>(raw_texture.size() * sizeof(uint8_t)));
+  auto data = _texture_memory->mapMemory(_renderer._device_object, 0, static_cast<uint32_t>(raw_texture.size() * sizeof(uint8_t)));
   memcpy(data, raw_texture.data(), static_cast<uint32_t>(raw_texture.size() * sizeof(uint8_t)));
-  _texture_memory->unmapMemory(_device_object);
+  _texture_memory->unmapMemory(_renderer._device_object);
 
-  _texture_image->bindImageMemory(_device_object, _texture_memory, 0);
+  _texture_image->bindImageMemory(_renderer._device_object, _texture_memory, 0);
 
-  _texture_image_view = _image_view_factory.createObject(_device_object, _texture_image);
+  _texture_image_view = _image_view_factory.createObject(_renderer._device_object, _texture_image);
 
-  _sampler_object = _sampler_factory.createObject(_device_object);
+  _sampler_object = _sampler_factory.createObject(_renderer._device_object);
 
   //
 
@@ -433,7 +419,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
   write_descriptor_set_sampler.pBufferInfo = nullptr;
   write_descriptor_set_sampler.pTexelBufferView = nullptr;
 
-  DescriptorSetObject::vkUpdateDescriptorSets_(_device_object->_vk_device, { write_descriptor_set_uniform, write_descriptor_set_sampler });
+  DescriptorSetObject::vkUpdateDescriptorSets_(_renderer._device_object->_vk_device, { write_descriptor_set_uniform, write_descriptor_set_sampler });
 
   // Create mesh
   {
@@ -470,7 +456,7 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
       3, 2, 1,
     };
 
-    _mesh = std::make_shared<Mesh>(pos, nor, col, tex, idx, _buffer_factory, _device_memory_factory, _physical_device_object, _device_object);
+    _mesh = std::make_shared<Mesh>(pos, nor, col, tex, idx, _buffer_factory, _device_memory_factory, _renderer._physical_device_object, _renderer._device_object);
   }
 
   VkPipelineStageFlags pipe_stage_flags = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
@@ -489,15 +475,15 @@ void updateVulkan() {
   g_mvp = projection * view * model;
 
   {
-    auto data = _uniform_memory->mapMemory(_device_object, 0, _uniform_buffer->_vk_memory_requirements.size);
+    auto data = _uniform_memory->mapMemory(_renderer._device_object, 0, _uniform_buffer->_vk_memory_requirements.size);
     memcpy(data, &g_mvp, sizeof(g_mvp));
-    _uniform_memory->unmapMemory(_device_object);
+    _uniform_memory->unmapMemory(_renderer._device_object);
   }
-  _fence->waitForFence(_device_object, UINT64_MAX);
+  _fence->waitForFence(_renderer._device_object, UINT64_MAX);
 
-  _fence->resetFence(_device_object);
+  _fence->resetFence(_renderer._device_object);
 
-  _swapchain_object->acquireNextImage(_device_object, UINT64_MAX, _semaphore, nullptr, &g_current_buffer);
+  _swapchain_object->acquireNextImage(_renderer._device_object, UINT64_MAX, _semaphore, nullptr, &g_current_buffer);
 
   _command_buffer_object->begin(VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT);
 
@@ -529,7 +515,7 @@ void updateVulkan() {
 }
 
 void uninitVulkan() {
-  _fence->waitForFence(_device_object, UINT64_MAX);
+  _fence->waitForFence(_renderer._device_object, UINT64_MAX);
 
   _sampler_factory.destroyObject(_sampler_object);
 
@@ -574,8 +560,6 @@ void uninitVulkan() {
   _swapchain_factory.destroyObject(_swapchain_object);
   _command_pool_object->destroyObject(_command_buffer_object);
   _command_pool_factory.destroyObject(_command_pool_object);
-  _device_factory.destroyObject(_device_object);
-  _surface_factory.destroyObject(_surface_object);
-  _instance_factory.destroyObject(_instance_object);
-  _renderer.uninit();
+
+  _renderer.uninitDevice();
 }
