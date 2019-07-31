@@ -23,6 +23,7 @@
 #include "FramebufferFactory.h"
 #include "PipelineFactory.h"
 #include "SamplerFactory.h"
+#include "QueueDepot.h"
 
 #include "Mesh.h"
 
@@ -281,6 +282,8 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
 
   //
 
+  _renderer._command_buffer_object->begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+
   VkImageMemoryBarrier imb = { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
   imb.srcAccessMask = 0;
   imb.dstAccessMask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_INPUT_ATTACHMENT_READ_BIT;
@@ -290,10 +293,6 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
   imb.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
   imb.image = _texture_image->_vk_image;
   imb.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
-
-  VkCommandBufferBeginInfo begin_info = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
-  begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-  vkBeginCommandBuffer(_renderer._command_buffer_object->_vk_command_buffer, &begin_info);
 
   vkCmdPipelineBarrier(_renderer._command_buffer_object->_vk_command_buffer,
     VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
@@ -305,17 +304,10 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
 
   _renderer._command_buffer_object->end();
 
-  VkCommandBuffer command_buffers[] = { _renderer._command_buffer_object->_vk_command_buffer };
-  VkSubmitInfo submit_info = { VK_STRUCTURE_TYPE_SUBMIT_INFO };
-  submit_info.waitSemaphoreCount = 0;
-  submit_info.pWaitSemaphores = nullptr;
-  submit_info.pWaitDstStageMask = nullptr;
-  submit_info.commandBufferCount = 1;
-  submit_info.pCommandBuffers = command_buffers;
-  submit_info.signalSemaphoreCount = 0;
-  submit_info.pSignalSemaphores = nullptr;
-
-  _renderer._queue_object->submit(1, &submit_info, _renderer._fence);
+  _renderer._queue_object->_submit_depot.add("Texture",
+    {}, nullptr, { _renderer._command_buffer_object }, {});
+  _renderer._queue_object->registSubmitInfoName(1, { "Texture" });
+  _renderer._queue_object->submit(1, _renderer._fence);
 
   //
 
@@ -389,8 +381,16 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
     };
 
     _mesh = std::make_shared<Mesh>(pos, nor, col, tex, idx, _buffer_factory, _renderer._device_memory_factory, _renderer._physical_device_object, _renderer._device_object);
-
   }
+
+  VkPipelineStageFlags pipe_stage_flags = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+  _renderer._queue_object->_submit_depot.add("Submit",
+    { _renderer._semaphore },
+    &pipe_stage_flags,
+    { _renderer._command_buffer_object },
+    {});
+
+  _renderer._queue_object->registSubmitInfoName(0, { "Submit" });
 }
 float a = 0;
 void updateVulkan() {
@@ -409,7 +409,9 @@ void updateVulkan() {
 
   _renderer._swapchain_object->acquireNextImage(_renderer._device_object, UINT64_MAX, _renderer._semaphore, nullptr, &g_current_buffer);
 
-  _renderer._command_buffer_object->begin();
+  _renderer._command_buffer_object->begin(VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT);
+
+  _renderer._command_buffer_object->applyViewSize();
 
   _renderer._command_buffer_object->beginRenderPass(_render_pass, _framebuffers[g_current_buffer], VK_SUBPASS_CONTENTS_INLINE);
 
@@ -424,18 +426,7 @@ void updateVulkan() {
 
   _renderer._command_buffer_object->end();
 
-  VkPipelineStageFlags pipe_stage_flags = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-  VkCommandBuffer command_buffers[] = { _renderer._command_buffer_object->_vk_command_buffer };
-  VkSubmitInfo submit_info = { VK_STRUCTURE_TYPE_SUBMIT_INFO };
-  submit_info.waitSemaphoreCount = 1;
-  submit_info.pWaitSemaphores = &_renderer._semaphore->_vk_semaphore;
-  submit_info.pWaitDstStageMask = &pipe_stage_flags;
-  submit_info.commandBufferCount = 1;
-  submit_info.pCommandBuffers = command_buffers;
-  submit_info.signalSemaphoreCount = 0;
-  submit_info.pSignalSemaphores = nullptr;
-
-  _renderer._queue_object->submit(1, &submit_info, _renderer._fence);
+  _renderer._queue_object->submit(0, _renderer._fence);
 
   VkPresentInfoKHR present_info = { VK_STRUCTURE_TYPE_PRESENT_INFO_KHR };
   present_info.waitSemaphoreCount = 0;

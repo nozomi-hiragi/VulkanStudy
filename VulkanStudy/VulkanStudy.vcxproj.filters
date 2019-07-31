@@ -203,5 +203,8 @@
     <ClInclude Include="SamplerFactory.h">
       <Filter>header\wrap</Filter>
     </ClInclude>
+    <ClInclude Include="QueueDepot.h">
+      <Filter>header</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

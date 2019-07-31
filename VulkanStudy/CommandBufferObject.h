@@ -17,12 +17,10 @@ public:
   ~CommandBufferObject() {
   }
 
-  void begin() {
+  void begin(const VkCommandBufferUsageFlags flags) {
     VkCommandBufferBeginInfo begin_info = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
-    begin_info.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
+    begin_info.flags = flags;
     vkBeginCommandBuffer(_vk_command_buffer, &begin_info);
-    setViewport(0, 1, &_viewport);
-    setScissor(0, _scissor);
   }
 
   void end() {
@@ -91,6 +89,11 @@ public:
   void setViewSize(const uint32_t width, const uint32_t height) {
     setViewport(static_cast<float>(width), static_cast<float>(height));
     setScissor(width, height);
+  }
+
+  void applyViewSize() {
+    setViewport(0, 1, &_viewport);
+    setScissor(0, _scissor);
   }
 
   void setClearValue(const uint32_t index, const VkClearValue& clear_value) {
