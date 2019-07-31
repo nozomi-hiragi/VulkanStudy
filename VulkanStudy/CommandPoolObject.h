@@ -7,7 +7,16 @@
 #include "DeviceObject.h"
 
 class CommandPoolObject : public AbstractFactory<CommandBufferObject, DeviceObject> {
+public:
+  CommandPoolObject(const VkCommandPool command_pool) : _vk_command_pool(command_pool) {
+  }
 
+  ~CommandPoolObject() {
+  }
+
+  const VkCommandPool _vk_command_pool;
+protected:
+private:
   static auto _allocateVkCommandBuffer(VkDevice device, VkCommandPool command_pool) {
     VkCommandBufferAllocateInfo command_buffer_info = {};
     command_buffer_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -33,33 +42,4 @@ class CommandPoolObject : public AbstractFactory<CommandBufferObject, DeviceObje
     _freeVkCommandBuffer(_parent->_vk_device, _vk_command_pool, object->_vk_command_buffer);
   }
 
-public:
-  CommandPoolObject(const VkCommandPool command_pool) : _vk_command_pool(command_pool) {
-  }
-
-  ~CommandPoolObject() {
-  }
-
-  //std::shared_ptr<CommandBufferObject> allocateCommandBuffer(VkDevice device) {
-  //  auto object = _createCore(device);
-  //  _container.insert(object);
-  //  return object;
-  //}
-
-  //void freeCommandBuffers(VkDevice device, std::shared_ptr<CommandBufferObject>& object) {
-  //  if (!object) { return; }
-  //  auto before = _container.size();
-  //  _container.erase(object);
-  //  auto after = _container.size();
-
-  //  if (before != after) {
-  //    _destroyCore(device, object);
-  //    object.reset();
-  //  }
-  //}
-
-  const VkCommandPool _vk_command_pool;
-protected:
-private:
-  //std::set<std::shared_ptr<CommandBufferObject>> _container;
 };

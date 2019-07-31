@@ -53,7 +53,15 @@ public:
       VK_SHADER_STAGE_VERTEX_BIT,
       nullptr
     );
-    std::vector<std::string> descriptor_set_layout_binding_names = { "Uniform" };
+    _descriptor_set_layout_factory.getDescriptorSetLayoutBindingDepot().add("Sampler",
+      1,
+      VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+      1,
+      VK_SHADER_STAGE_FRAGMENT_BIT,
+      nullptr
+    );
+
+    std::vector<std::string> descriptor_set_layout_binding_names = { "Uniform", "Sampler" };
     _descriptor_set_layout = _descriptor_set_layout_factory.createObject(_device_object, descriptor_set_layout_binding_names);
     _descriptor_pool = _descriptor_pool_factory.createObject(_device_object);
     _descriptor_set = _descriptor_pool->createObject(_device_object, { _descriptor_set_layout->_vk_descriptor_set_layout });

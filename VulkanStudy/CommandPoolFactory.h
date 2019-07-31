@@ -14,7 +14,7 @@ class CommandPoolFactory : public AbstractFactory<CommandPoolObject, DeviceObjec
     VkCommandPoolCreateInfo command_pool_info = {};
     command_pool_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
     command_pool_info.queueFamilyIndex = queue_family_index;
-    command_pool_info.flags = VkCommandPoolCreateFlagBits::VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+    command_pool_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
     VkCommandPool command_pool;
     auto result = vkCreateCommandPool(device, &command_pool_info, nullptr, &command_pool);
     return command_pool;

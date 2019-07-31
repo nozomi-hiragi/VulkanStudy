@@ -15,7 +15,8 @@ public:
   }
 
   void submit(const uint32_t count, const VkSubmitInfo* submits, const std::shared_ptr<FenceObject> fence) {
-    vkQueueSubmit(_vk_queue, count, submits, fence->_vk_fence);
+    VkFence vk_fence = fence ? fence->_vk_fence : nullptr;
+    vkQueueSubmit(_vk_queue, count, submits, vk_fence);
   }
 
   void present(const VkPresentInfoKHR& present_info) {

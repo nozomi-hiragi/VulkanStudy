@@ -127,6 +127,8 @@
     <ClInclude Include="RenderPassFactory.h" />
     <ClInclude Include="RenderPassDeport.h" />
     <ClInclude Include="RenderPassObject.h" />
+    <ClInclude Include="SamplerFactory.h" />
+    <ClInclude Include="SamplerObject.h" />
     <ClInclude Include="SemaphoreFactory.h" />
     <ClInclude Include="SemaphoreObject.h" />
     <ClInclude Include="ShaderModuleFactory.h" />

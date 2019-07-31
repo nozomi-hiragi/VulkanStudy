@@ -22,6 +22,7 @@
 #include "RenderPassFactory.h"
 #include "FramebufferFactory.h"
 #include "PipelineFactory.h"
+#include "SamplerFactory.h"
 
 #include "Mesh.h"
 
@@ -35,21 +36,20 @@ ShaderModuleFactory _shader_module_factory;
 RenderPassFactory _render_pass_factory;
 FramebufferFactory _framebuffer_factory;
 PipelineFactory _pipeline_factory;
+SamplerFactory _sampler_factory;
 
 std::shared_ptr<DeviceMemoryObject> _uniform_memory;
 std::shared_ptr<BufferObject> _uniform_buffer;
-
 std::shared_ptr<Mesh> _mesh;
-
 std::shared_ptr<ShaderModuleObject> _vertex_shader;
 std::shared_ptr<ShaderModuleObject> _pixel_shader;
 std::shared_ptr<RenderPassObject> _render_pass;
 std::vector<std::shared_ptr<FramebufferObject>> _framebuffers;
 std::shared_ptr<PipelineObject> _pipeline;
-
 std::shared_ptr<ImageObject> _texture_image;
 std::shared_ptr<DeviceMemoryObject> _texture_memory;
 std::shared_ptr<ImageViewObject> _texture_image_view;
+std::shared_ptr<SamplerObject> _sampler_object;
 
 uint32_t g_current_buffer = 0;
 
@@ -142,29 +142,55 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
       "layout (location = 3) in vec2 tex;\n"
       "\n"
       "layout (location = 0) out vec4 outColor;\n"
+      "layout (location = 1) out vec2 outUv;\n"
       "void main() {\n"
       "   outColor = vec4(inColor.x,inColor.y,inColor.z, inColor.w);//inColor;\n"
+      "   outUv = tex;\n"
       "   gl_Position = myBufferVals.mvp * vec4(pos.xyz, 1);\n"
       "}\n"
       ;
 
+    std::string ps_code =
+      "#version 450\n"
+      "#extension GL_ARB_separate_shader_objects : enable\n"
+      "#extension GL_ARB_shading_language_420pack : enable\n"
+      "layout(location = 0) in vec4 color;\n"
+      "layout(location = 1) in vec2 uv;\n"
+      "layout(binding = 1) uniform sampler2D samColor;\n"
+      "\n"
+      "layout(location = 0) out vec4 outColor;\n"
+      "void main() {\n"
+      "    outColor = texture(samColor, uv, 0) * color;\n"
+      "}\n"
+      ;
+
     shaderc_compiler_t compiler = shaderc_compiler_initialize();
-    shaderc_compilation_result_t result = shaderc_compile_into_spv(
+
+    shaderc_compilation_result_t vs_result = shaderc_compile_into_spv(
       compiler, vs_code.c_str(), vs_code.size(),
       shaderc_glsl_vertex_shader, "vs_code", "main", nullptr);
+    if (shaderc_result_get_compilation_status(vs_result) != shaderc_compilation_status_success) {
+      std::cerr << shaderc_result_get_error_message(vs_result) << std::endl;
+    }
 
-    if (shaderc_result_get_compilation_status(result) != shaderc_compilation_status_success) {
-      std::cerr << shaderc_result_get_error_message(result) << std::endl;
-    } 
+    shaderc_compilation_result_t ps_result = shaderc_compile_into_spv(
+      compiler, ps_code.c_str(), ps_code.size(),
+      shaderc_glsl_fragment_shader, "ps_code", "main", nullptr);
+    if (shaderc_result_get_compilation_status(ps_result) != shaderc_compilation_status_success) {
+      std::cerr << shaderc_result_get_error_message(ps_result) << std::endl;
+    }
 
     //auto vs_bin = GetBinary(L"vspc.vert.spv");
-    auto ps_bin = GetBinary(L"ps.frag.spv");
+    //auto ps_bin = GetBinary(L"ps.frag.spv");
 
-    _vertex_shader = _shader_module_factory.createObject(_renderer._device_object, shaderc_result_get_length(result), reinterpret_cast<const uint32_t*>(shaderc_result_get_bytes(result)), VK_SHADER_STAGE_VERTEX_BIT, "main");
+    _vertex_shader = _shader_module_factory.createObject(_renderer._device_object, shaderc_result_get_length(vs_result), reinterpret_cast<const uint32_t*>(shaderc_result_get_bytes(vs_result)), VK_SHADER_STAGE_VERTEX_BIT, "main");
     //_vertex_shader = _shader_module_factory.createObject(_renderer._device_object, vs_bin.second, reinterpret_cast<uint32_t*>(vs_bin.first.get()), VK_SHADER_STAGE_VERTEX_BIT, "main");
-    _pixel_shader = _shader_module_factory.createObject(_renderer._device_object, ps_bin.second, reinterpret_cast<uint32_t*>(ps_bin.first.get()), VK_SHADER_STAGE_FRAGMENT_BIT, "main");
 
-    shaderc_result_release(result);
+    _pixel_shader = _shader_module_factory.createObject(_renderer._device_object, shaderc_result_get_length(ps_result), reinterpret_cast<const uint32_t*>(shaderc_result_get_bytes(ps_result)), VK_SHADER_STAGE_FRAGMENT_BIT, "main");
+    //_pixel_shader = _shader_module_factory.createObject(_renderer._device_object, ps_bin.second, reinterpret_cast<uint32_t*>(ps_bin.first.get()), VK_SHADER_STAGE_FRAGMENT_BIT, "main");
+
+    shaderc_result_release(ps_result);
+    shaderc_result_release(vs_result);
     shaderc_compiler_release(compiler);
   }
 
@@ -225,14 +251,107 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
     _uniform_buffer->bindBufferMemory(_renderer._device_object, _uniform_memory, 0);
   }
 
+  // Texture
+  std::vector<uint8_t> raw_texture = {
+    0xff, 0x00, 0x00, 0xff,  0x00, 0xff, 0x00, 0xff,  0x00, 0x00, 0xff, 0xff,  0xff, 0xff, 0xff, 0xff,
+    0xff, 0xff, 0xff, 0xff,  0x00, 0x00, 0xff, 0xff,  0x00, 0xff, 0x00, 0xff,  0xff, 0x00, 0x00, 0xff,
+    0xff, 0x00, 0x00, 0xff,  0x00, 0xff, 0x00, 0xff,  0x00, 0x00, 0xff, 0xff,  0xff, 0xff, 0xff, 0xff,
+  };
+
+  _texture_image = _renderer._image_factory.createObject(_renderer._device_object,
+    VK_FORMAT_R8G8B8A8_UNORM,
+    VK_IMAGE_USAGE_SAMPLED_BIT,
+    4,
+    3,
+    VK_IMAGE_ASPECT_COLOR_BIT);
+
+  auto memory_property_bits = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+  auto memory_type_index = _renderer._physical_device_object->findProperties(_texture_image, memory_property_bits);
+  _texture_memory = _renderer._device_memory_factory.createObject(_renderer._device_object, _texture_image->_vk_memory_requirements.size, memory_type_index);
+
+  auto data = _texture_memory->mapMemory(_renderer._device_object, 0, static_cast<uint32_t>(raw_texture.size() * sizeof(uint8_t)));
+  memcpy(data, raw_texture.data(), static_cast<uint32_t>(raw_texture.size() * sizeof(uint8_t)));
+  _texture_memory->unmapMemory(_renderer._device_object);
+
+  _texture_image->bindImageMemory(_renderer._device_object, _texture_memory, 0);
+
+  _texture_image_view = _renderer._image_view_factory.createObject(_renderer._device_object, _texture_image);
+
+  _sampler_object = _sampler_factory.createObject(_renderer._device_object);
+
+  //
+
+  VkImageMemoryBarrier imb = { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
+  imb.srcAccessMask = 0;
+  imb.dstAccessMask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_INPUT_ATTACHMENT_READ_BIT;
+  imb.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+  imb.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+  imb.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+  imb.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+  imb.image = _texture_image->_vk_image;
+  imb.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
+
+  VkCommandBufferBeginInfo begin_info = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
+  begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+  vkBeginCommandBuffer(_renderer._command_buffer_object->_vk_command_buffer, &begin_info);
+
+  vkCmdPipelineBarrier(_renderer._command_buffer_object->_vk_command_buffer,
+    VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+    VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+    0,
+    0, nullptr,
+    0, nullptr,
+    1, &imb);
+
+  _renderer._command_buffer_object->end();
+
+  VkCommandBuffer command_buffers[] = { _renderer._command_buffer_object->_vk_command_buffer };
+  VkSubmitInfo submit_info = { VK_STRUCTURE_TYPE_SUBMIT_INFO };
+  submit_info.waitSemaphoreCount = 0;
+  submit_info.pWaitSemaphores = nullptr;
+  submit_info.pWaitDstStageMask = nullptr;
+  submit_info.commandBufferCount = 1;
+  submit_info.pCommandBuffers = command_buffers;
+  submit_info.signalSemaphoreCount = 0;
+  submit_info.pSignalSemaphores = nullptr;
+
+  _renderer._queue_object->submit(1, &submit_info, _renderer._fence);
+
+  //
+
   // Update descriptor sets
 
-  VkDescriptorBufferInfo descriptor_buffer_info = {};
-  descriptor_buffer_info.buffer = _uniform_buffer->_vk_buffer;
-  descriptor_buffer_info.offset = 0;
-  descriptor_buffer_info.range = sizeof(g_mvp);//VK_WHOLE_SIZE??
+  VkDescriptorBufferInfo descriptor_buffer_uniform = {};
+  descriptor_buffer_uniform.buffer = _uniform_buffer->_vk_buffer;
+  descriptor_buffer_uniform.offset = 0;
+  descriptor_buffer_uniform.range = sizeof(g_mvp);//VK_WHOLE_SIZE??
 
-  DescriptorSetObject::vkUpdateDescriptorSets_(_renderer._device_object->_vk_device, _renderer._descriptor_set->_vk_descriptor_set, descriptor_buffer_info);
+  VkWriteDescriptorSet write_descriptor_set_uniform = { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
+  write_descriptor_set_uniform.dstSet = _renderer._descriptor_set->_vk_descriptor_set;
+  write_descriptor_set_uniform.dstBinding = 0;
+  write_descriptor_set_uniform.dstArrayElement = 0;
+  write_descriptor_set_uniform.descriptorCount = 1;
+  write_descriptor_set_uniform.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+  write_descriptor_set_uniform.pImageInfo = nullptr;
+  write_descriptor_set_uniform.pBufferInfo = &descriptor_buffer_uniform;
+  write_descriptor_set_uniform.pTexelBufferView = nullptr;
+
+  VkDescriptorImageInfo descriptor_buffer_sampler = {};
+  descriptor_buffer_sampler.sampler = _sampler_object->_vk_sampler;
+  descriptor_buffer_sampler.imageView = _texture_image_view->_vk_image_view;
+  descriptor_buffer_sampler.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+  VkWriteDescriptorSet write_descriptor_set_sampler = { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
+  write_descriptor_set_sampler.dstSet = _renderer._descriptor_set->_vk_descriptor_set;
+  write_descriptor_set_sampler.dstBinding = 1;
+  write_descriptor_set_sampler.dstArrayElement = 0;
+  write_descriptor_set_sampler.descriptorCount = 1;
+  write_descriptor_set_sampler.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+  write_descriptor_set_sampler.pImageInfo = &descriptor_buffer_sampler;
+  write_descriptor_set_sampler.pBufferInfo = nullptr;
+  write_descriptor_set_sampler.pTexelBufferView = nullptr;
+
+  DescriptorSetObject::vkUpdateDescriptorSets_(_renderer._device_object->_vk_device, { write_descriptor_set_uniform, write_descriptor_set_sampler });
 
   // Create mesh
   {
@@ -271,37 +390,12 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
 
     _mesh = std::make_shared<Mesh>(pos, nor, col, tex, idx, _buffer_factory, _renderer._device_memory_factory, _renderer._physical_device_object, _renderer._device_object);
 
-    // Texture
-    std::vector<uint8_t> raw_texture = {
-      0xff, 0xff, 0xff, 0xff,  0x00, 0x00, 0xff, 0xff,
-      0x00, 0xff, 0x00, 0xff,  0xff, 0x00, 0x00, 0xff,
-    };
-
-    _texture_image = _renderer._image_factory.createObject(_renderer._device_object,
-      VK_FORMAT_R8G8B8A8_UNORM,
-      VK_IMAGE_USAGE_SAMPLED_BIT,
-      2,
-      2,
-      VK_IMAGE_ASPECT_COLOR_BIT);
-
-    auto memory_property_bits = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-    auto memory_type_index = _renderer._physical_device_object->findProperties(_texture_image, memory_property_bits);
-    _texture_memory = _renderer._device_memory_factory.createObject(_renderer._device_object, _texture_image->_vk_memory_requirements.size, memory_type_index);
-
-    auto data = _texture_memory->mapMemory(_renderer._device_object, 0, static_cast<uint32_t>(raw_texture.size() * sizeof(uint8_t)));
-    memcpy(data, raw_texture.data(), static_cast<uint32_t>(raw_texture.size() * sizeof(uint8_t)));
-    _texture_memory->unmapMemory(_renderer._device_object);
-
-    _texture_image->bindImageMemory(_renderer._device_object, _texture_memory, 0);
-
-    _texture_image_view = _renderer._image_view_factory.createObject(_renderer._device_object, _texture_image);
-    
   }
 }
 float a = 0;
 void updateVulkan() {
-  a += 0.01f;
-  model = glm::translate(glm::mat4(1), glm::vec3(a, 0, 0));
+  a += 0.05f;
+  model = glm::translate(glm::mat4(1), glm::vec3(sinf(a), cosf(a), 0));
   g_mvp = projection * view * model;
 
   {
@@ -309,6 +403,7 @@ void updateVulkan() {
     memcpy(data, &g_mvp, sizeof(g_mvp));
     _uniform_memory->unmapMemory(_renderer._device_object);
   }
+  _renderer._fence->waitForFence(_renderer._device_object, UINT64_MAX);
 
   _renderer._fence->resetFence(_renderer._device_object);
 
@@ -342,8 +437,6 @@ void updateVulkan() {
 
   _renderer._queue_object->submit(1, &submit_info, _renderer._fence);
 
-  _renderer._fence->waitForFence(_renderer._device_object, UINT64_MAX);
-
   VkPresentInfoKHR present_info = { VK_STRUCTURE_TYPE_PRESENT_INFO_KHR };
   present_info.waitSemaphoreCount = 0;
   present_info.pWaitSemaphores = nullptr;
@@ -355,6 +448,10 @@ void updateVulkan() {
 }
 
 void uninitVulkan() {
+  _renderer._fence->waitForFence(_renderer._device_object, UINT64_MAX);
+
+  _sampler_factory.destroyObject(_sampler_object);
+
   _renderer._image_view_factory.destroyObject(_texture_image_view);
 
   _renderer._device_memory_factory.destroyObject(_texture_memory);
