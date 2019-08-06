@@ -35,6 +35,41 @@
 
 #include "Mesh.h"
 
+class MeshStatus {
+public:
+  MeshStatus() : _is_exist(false), _instance(nullptr) {
+  }
+
+  MeshStatus(std::shared_ptr<Mesh> mesh) : _is_exist(true), _instance(mesh) {
+  }
+
+  ~MeshStatus() {
+  }
+
+  auto getInstance() const {
+    return _instance;
+  }
+
+  void setInstance(std::shared_ptr<Mesh> instance) {
+    _is_exist = instance != nullptr;
+    _instance = instance;
+  }
+
+  const bool isExist() const {
+    return _is_exist;
+  }
+
+  void clear() {
+    _is_exist = false;
+    _instance.reset();
+  }
+
+protected:
+private:
+  bool _is_exist;
+  std::shared_ptr<Mesh> _instance;
+};
+
 class Renderer {
 public:
   Renderer() {
@@ -371,42 +406,6 @@ public:
     DescriptorSetObject::vkUpdateDescriptorSets_(_device_object->_vk_device, { write_descriptor_set_uniform, write_descriptor_set_sampler });
 
     // Create mesh
-    {
-      std::vector<glm::vec3> pos = {
-        glm::vec3(-1, +1, 0),
-        glm::vec3(+1, +1, 0),
-        glm::vec3(-1, -1, 0),
-        glm::vec3(+1, -1, 0),
-      };
-
-      std::vector<glm::vec3> nor = {
-        glm::vec3(0, 0, 1),
-        glm::vec3(0, 0, 1),
-        glm::vec3(0, 0, 1),
-        glm::vec3(0, 0, 1),
-      };
-
-      std::vector<glm::vec4> col = {
-        glm::vec4(1, 0, 0, 1),
-        glm::vec4(0, 1, 0, 1),
-        glm::vec4(0, 0, 1, 1),
-        glm::vec4(1, 1, 1, 1),
-      };
-
-      std::vector<glm::vec2> tex = {
-        glm::vec2(0, 0),
-        glm::vec2(1, 0),
-        glm::vec2(0, 1),
-        glm::vec2(1, 1),
-      };
-
-      std::vector<uint16_t> idx = {
-        0, 1, 2,
-        3, 2, 1,
-      };
-
-      _mesh = std::make_shared<Mesh>(pos, nor, col, tex, idx, _buffer_factory, _device_memory_factory, _physical_device_object, _device_object);
-    }
 
     VkPipelineStageFlags pipe_stage_flags = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
     _queue_object->_submit_depot.add("Submit",
@@ -416,6 +415,12 @@ public:
       {});
 
     _queue_object->registSubmitInfoName(0, { "Submit" });
+  }
+
+  auto createMesh(const std::vector<glm::vec3>& position, const std::vector<glm::vec3>& normal, const std::vector<glm::vec4>& color, const std::vector<glm::vec2>& texcoord, const std::vector<uint16_t>& index) {
+    auto mesh = std::make_shared<Mesh>(position, normal, color, texcoord, index, _buffer_factory, _device_memory_factory, _physical_device_object, _device_object);
+    _mesh_status.push_back(std::make_shared<MeshStatus>(mesh));
+    return _mesh_status.back();
   }
 
   void uninit() {
@@ -429,7 +434,11 @@ public:
 
     _image_factory.destroyObject(_texture_image);
 
-    _mesh.reset();
+    for (auto& it : _mesh_status) {
+      it->clear();
+    }
+    _mesh_status.clear();
+    //_mesh.reset();
 
     _pipeline_factory.destroyObject(_pipeline);
 
@@ -497,7 +506,10 @@ public:
     uint32_t ofst = 0;
     _command_buffer_object->bindDescriptorSets(VK_PIPELINE_BIND_POINT_GRAPHICS, _pipeline_layout->_vk_pipeline_layout, 0, 1, &_descriptor_set->_vk_descriptor_set, 1, &ofst);
 
-    _mesh->draw(_command_buffer_object);
+    for (const auto& it : _mesh_status) {
+      if (!it->isExist()) { continue; }
+      it->getInstance()->draw(_command_buffer_object);
+    }
 
     _command_buffer_object->endRenderPass();
 
@@ -548,7 +560,8 @@ private:
 
   std::shared_ptr<DeviceMemoryObject> _uniform_memory;
   std::shared_ptr<BufferObject> _uniform_buffer;
-  std::shared_ptr<Mesh> _mesh;
+  //std::shared_ptr<Mesh> _mesh;
+  std::vector<std::shared_ptr<MeshStatus>> _mesh_status;
   std::shared_ptr<ShaderModuleObject> _vertex_shader;
   std::shared_ptr<ShaderModuleObject> _pixel_shader;
   std::shared_ptr<RenderPassObject> _render_pass;

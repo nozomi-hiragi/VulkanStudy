@@ -12,11 +12,11 @@
 class Mesh {
 public:
   Mesh(
-    std::vector<glm::vec3>& position,
-    std::vector<glm::vec3>& normal,
-    std::vector<glm::vec4>& color,
-    std::vector<glm::vec2>& texcoord,
-    std::vector<glm::uint16> index,
+    const std::vector<glm::vec3>& position,
+    const std::vector<glm::vec3>& normal,
+    const std::vector<glm::vec4>& color,
+    const std::vector<glm::vec2>& texcoord,
+    const std::vector<glm::uint16> index,
     BufferFactory& buffer_factory,
     DeviceMemoryFactory& memory_factory,
     std::shared_ptr<PhysicalDeviceObject> physical_device,
