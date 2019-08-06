@@ -456,6 +456,7 @@ public:
     _device_memory_factory.destroyObject(_uniform_memory);
 
     _buffer_factory.destroyObject(_uniform_buffer);
+    _buffer_factory.executeDestroy();
 
     _pipeline_layout_factory.destroyObject(_pipeline_layout);
     _descriptor_pool->destroyObject(_descriptor_set);
@@ -494,6 +495,8 @@ public:
     _fence->resetFence(_device_object);
 
     _swapchain_object->acquireNextImage(_device_object, UINT64_MAX, _semaphore, nullptr, &g_current_buffer);
+
+    _buffer_factory.executeDestroy();
 
     _command_buffer_object->begin(VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT);
 

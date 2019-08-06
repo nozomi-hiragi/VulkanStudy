@@ -3,6 +3,7 @@
 #include <vulkan/vulkan.h>
 #include <memory>
 #include <set>
+#include <queue>
 
 #include "AbstractFactory.h"
 #include "BufferObject.h"
@@ -14,6 +15,13 @@ public:
   }
 
   ~BufferFactory() {
+  }
+
+  void executeDestroy() {
+    while (!_destroy_queue.empty()) {
+      _destroyVkBuffer(_parent->_vk_device, _destroy_queue.front()->_vk_buffer);
+      _destroy_queue.pop();
+    }
   }
 
 protected:
@@ -46,7 +54,8 @@ private:
   }
 
   void _destroyCore(std::shared_ptr<BufferObject> object) {
-    _destroyVkBuffer(_parent->_vk_device, object->_vk_buffer);
+    _destroy_queue.push(object);
   }
 
+  std::queue<std::shared_ptr<BufferObject>> _destroy_queue;
 };
