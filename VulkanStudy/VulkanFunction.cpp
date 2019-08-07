@@ -1,7 +1,6 @@
 
 #include "VulkanFunction.h"
 #include <vector>
-#include <iostream>
 
 #include <glm/glm.hpp>
 
@@ -12,8 +11,7 @@ const uint32_t APP_VERSION = 0;
 
 Renderer _renderer;
 
-MeshStatus nl;
-std::shared_ptr<MeshStatus> aaa;
+std::shared_ptr<MeshStatus> mesh;
 
 void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height) {
   _renderer.init(APP_NAME, APP_VERSION, width, height, hinstance, hwnd);
@@ -51,14 +49,20 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
     3, 2, 1,
   };
 
-  aaa = _renderer.createMesh(pos, nor, col, tex, idx);
+  mesh = _renderer.createMesh(pos, nor, col, tex, idx);
+  mesh->_position.x = 1;
+  mesh->_rotation.y = 1;
+  mesh->_scale.x = 2;
 }
-int a = 0;
+int frame = 0;
 void updateVulkan() {
+  frame++;
+  //if (frame > 200) {
+  //  mesh->clear();
+  //}
+  mesh->_position.x = cos(frame * 0.01f);
+  mesh->_rotation.y = sin(frame * 0.05f);
   _renderer.update();
-  if (a++ > 200) {
-    aaa->clear();
-  }
 }
 
 void uninitVulkan() {

@@ -1,11 +1,13 @@
 #pragma once
 
+#include <iostream>
 #include <Windows.h>
 #define VK_USE_PLATFORM_WIN32_KHR
 #include <vulkan/vulkan.hpp>
 #include <vulkan/vk_sdk_platform.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/euler_angles.hpp>
 #include <shaderc/shaderc.h>
 
 #include "InstanceFactory.h"
@@ -34,13 +36,14 @@
 #include "DeviceMemoryFactory.h"
 
 #include "Mesh.h"
+#include "DynamicUniformBufferRing.h"
 
 class MeshStatus {
 public:
-  MeshStatus() : _is_exist(false), _instance(nullptr) {
+  MeshStatus() : _is_exist(false), _instance(nullptr), _position(0, 0, 0), _rotation(0, 0, 0), _scale(1, 1, 1) {
   }
 
-  MeshStatus(std::shared_ptr<Mesh> mesh) : _is_exist(true), _instance(mesh) {
+  MeshStatus(std::shared_ptr<Mesh> mesh) : _is_exist(true), _instance(mesh), _position(0, 0, 0), _rotation(0, 0, 0), _scale(1, 1, 1) {
   }
 
   ~MeshStatus() {
@@ -64,6 +67,10 @@ public:
     _instance.reset();
   }
 
+  glm::vec3 _position;
+  glm::vec3 _rotation;
+  glm::vec3 _scale;
+
 protected:
 private:
   bool _is_exist;
@@ -73,7 +80,6 @@ private:
 class Renderer {
 public:
   Renderer() {
-    a = 0;
   }
 
   ~Renderer() {
@@ -123,7 +129,7 @@ public:
     std::vector<std::string> descriptor_set_layout_binding_names = { "Uniform", "Sampler" };
     _descriptor_set_layout = _descriptor_set_layout_factory.createObject(_device_object, descriptor_set_layout_binding_names);
     _descriptor_pool = _descriptor_pool_factory.createObject(_device_object);
-    _descriptor_set = _descriptor_pool->createObject(_device_object, { _descriptor_set_layout->_vk_descriptor_set_layout });
+    _descriptor_set = _descriptor_pool->createObject(_device_object, _descriptor_set_layout);
     _pipeline_layout = _pipeline_layout_factory.createObject(_device_object, { _descriptor_set_layout->_vk_descriptor_set_layout });
 
 
@@ -293,23 +299,8 @@ public:
       }
 
       // Create uniform buffer
-      _uniform_buffer = _buffer_factory.createObject(_device_object, sizeof(g_mvp), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE);
-
-      // Allocate uniform memory
-      {
-        auto memory_type_index = _physical_device_object->findProperties(_uniform_buffer, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-        _uniform_memory = _device_memory_factory.createObject(_device_object, _uniform_buffer->_vk_memory_requirements.size, memory_type_index);
-      }
-
-      // Wrinte to memory
-      {
-        auto data = _uniform_memory->mapMemory(_device_object, 0, _uniform_buffer->_vk_memory_requirements.size);
-        memcpy(data, &g_mvp, sizeof(g_mvp));
-        _uniform_memory->unmapMemory(_device_object);
-      }
-
-      // Bind memory to buffer
-      _uniform_buffer->bindBufferMemory(_device_object, _uniform_memory, 0);
+      uint32_t uniform_size = 16 * 1024 *1024;
+      _uniform_buffer = std::make_shared<DynamicUniformBufferRing>(_device_object, _physical_device_object, _buffer_factory, _device_memory_factory, uniform_size);
     }
 
     // Texture
@@ -374,9 +365,9 @@ public:
     // Update descriptor sets
 
     VkDescriptorBufferInfo descriptor_buffer_uniform = {};
-    descriptor_buffer_uniform.buffer = _uniform_buffer->_vk_buffer;
+    descriptor_buffer_uniform.buffer = _uniform_buffer->_buffer->_vk_buffer;
     descriptor_buffer_uniform.offset = 0;
-    descriptor_buffer_uniform.range = sizeof(g_mvp);//VK_WHOLE_SIZE??
+    descriptor_buffer_uniform.range = sizeof(glm::mat4);//_uniform_buffer->_uniform_buffer->_vk_memory_requirements.size;//VK_WHOLE_SIZE??
 
     VkWriteDescriptorSet write_descriptor_set_uniform = { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
     write_descriptor_set_uniform.dstSet = _descriptor_set->_vk_descriptor_set;
@@ -387,6 +378,8 @@ public:
     write_descriptor_set_uniform.pImageInfo = nullptr;
     write_descriptor_set_uniform.pBufferInfo = &descriptor_buffer_uniform;
     write_descriptor_set_uniform.pTexelBufferView = nullptr;
+
+    DescriptorSetObject::vkUpdateDescriptorSets_(_device_object->_vk_device, { write_descriptor_set_uniform });
 
     VkDescriptorImageInfo descriptor_buffer_sampler = {};
     descriptor_buffer_sampler.sampler = _sampler_object->_vk_sampler;
@@ -403,7 +396,7 @@ public:
     write_descriptor_set_sampler.pBufferInfo = nullptr;
     write_descriptor_set_sampler.pTexelBufferView = nullptr;
 
-    DescriptorSetObject::vkUpdateDescriptorSets_(_device_object->_vk_device, { write_descriptor_set_uniform, write_descriptor_set_sampler });
+    DescriptorSetObject::vkUpdateDescriptorSets_(_device_object->_vk_device, { write_descriptor_set_sampler });
 
     // Create mesh
 
@@ -438,7 +431,6 @@ public:
       it->clear();
     }
     _mesh_status.clear();
-    //_mesh.reset();
 
     _pipeline_factory.destroyObject(_pipeline);
 
@@ -453,9 +445,8 @@ public:
 
     _render_pass_factory.destroyObject(_render_pass);
 
-    _device_memory_factory.destroyObject(_uniform_memory);
+    _uniform_buffer.reset();
 
-    _buffer_factory.destroyObject(_uniform_buffer);
     _buffer_factory.executeDestroy();
 
     _pipeline_layout_factory.destroyObject(_pipeline_layout);
@@ -481,15 +472,6 @@ public:
   }
 
   void update() {
-    a += 0.05f;
-    model = glm::translate(glm::mat4(1), glm::vec3(sinf(a), cosf(a), 0));
-    g_mvp = projection * view * model;
-
-    {
-      auto data = _uniform_memory->mapMemory(_device_object, 0, _uniform_buffer->_vk_memory_requirements.size);
-      memcpy(data, &g_mvp, sizeof(g_mvp));
-      _uniform_memory->unmapMemory(_device_object);
-    }
     _fence->waitForFence(_device_object, UINT64_MAX);
 
     _fence->resetFence(_device_object);
@@ -506,11 +488,22 @@ public:
 
     _command_buffer_object->bindPipeline(VK_PIPELINE_BIND_POINT_GRAPHICS, _pipeline);
 
-    uint32_t ofst = 0;
-    _command_buffer_object->bindDescriptorSets(VK_PIPELINE_BIND_POINT_GRAPHICS, _pipeline_layout->_vk_pipeline_layout, 0, 1, &_descriptor_set->_vk_descriptor_set, 1, &ofst);
-
     for (const auto& it : _mesh_status) {
       if (!it->isExist()) { continue; }
+      model = glm::mat4(1);
+      model = glm::translate(model, it->_position);
+      model = model * glm::yawPitchRoll(it->_rotation.y, it->_rotation.x, it->_rotation.z);
+      model = glm::scale(model, it->_scale);
+      g_mvp = projection * view * model;
+
+      uint32_t offset;
+      auto data = _uniform_buffer->getPointer(sizeof(g_mvp), &offset);
+      memcpy(data, &g_mvp, sizeof(g_mvp));
+
+      uint32_t ofst[] = {
+        offset
+      };
+      _command_buffer_object->bindDescriptorSets(VK_PIPELINE_BIND_POINT_GRAPHICS, _pipeline_layout->_vk_pipeline_layout, 0, 1, &_descriptor_set->_vk_descriptor_set, 1, ofst);
       it->getInstance()->draw(_command_buffer_object);
     }
 
@@ -532,8 +525,6 @@ public:
 
 protected:
 private:
-  float a;
-
   InstanceFactory _instance_factory;
   SurfaceFactory _surface_factory;
   DeviceFactory _device_factory;
@@ -561,9 +552,6 @@ private:
   std::shared_ptr<SurfaceObject> _surface_object;
   std::shared_ptr<DeviceObject> _device_object;
 
-  std::shared_ptr<DeviceMemoryObject> _uniform_memory;
-  std::shared_ptr<BufferObject> _uniform_buffer;
-  //std::shared_ptr<Mesh> _mesh;
   std::vector<std::shared_ptr<MeshStatus>> _mesh_status;
   std::shared_ptr<ShaderModuleObject> _vertex_shader;
   std::shared_ptr<ShaderModuleObject> _pixel_shader;
@@ -589,6 +577,8 @@ private:
   std::shared_ptr<DescriptorPoolObject> _descriptor_pool;
   std::shared_ptr<DescriptorSetObject> _descriptor_set;
   std::shared_ptr<PipelineLayoutObject> _pipeline_layout;
+
+  std::shared_ptr<DynamicUniformBufferRing> _uniform_buffer;
 
   uint32_t _width;
   uint32_t _height;

@@ -206,5 +206,8 @@
     <ClInclude Include="QueueDepot.h">
       <Filter>header</Filter>
     </ClInclude>
+    <ClInclude Include="DynamicUniformBufferRing.h">
+      <Filter>header</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

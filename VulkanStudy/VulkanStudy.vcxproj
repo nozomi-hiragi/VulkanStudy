@@ -105,6 +105,7 @@
     <ClInclude Include="DeviceMemoryObject.h" />
     <ClInclude Include="AbstractFactory.h" />
     <ClInclude Include="DeviceObject.h" />
+    <ClInclude Include="DynamicUniformBufferRing.h" />
     <ClInclude Include="FenceFactory.h" />
     <ClInclude Include="FenceObject.h" />
     <ClInclude Include="FramebufferFactory.h" />
