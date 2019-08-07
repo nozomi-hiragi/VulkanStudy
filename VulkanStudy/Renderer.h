@@ -363,40 +363,8 @@ public:
     //
 
     // Update descriptor sets
-
-    VkDescriptorBufferInfo descriptor_buffer_uniform = {};
-    descriptor_buffer_uniform.buffer = _uniform_buffer->_buffer->_vk_buffer;
-    descriptor_buffer_uniform.offset = 0;
-    descriptor_buffer_uniform.range = sizeof(glm::mat4);//_uniform_buffer->_uniform_buffer->_vk_memory_requirements.size;//VK_WHOLE_SIZE??
-
-    VkWriteDescriptorSet write_descriptor_set_uniform = { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
-    write_descriptor_set_uniform.dstSet = _descriptor_set->_vk_descriptor_set;
-    write_descriptor_set_uniform.dstBinding = 0;
-    write_descriptor_set_uniform.dstArrayElement = 0;
-    write_descriptor_set_uniform.descriptorCount = 1;
-    write_descriptor_set_uniform.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-    write_descriptor_set_uniform.pImageInfo = nullptr;
-    write_descriptor_set_uniform.pBufferInfo = &descriptor_buffer_uniform;
-    write_descriptor_set_uniform.pTexelBufferView = nullptr;
-
-    DescriptorSetObject::vkUpdateDescriptorSets_(_device_object->_vk_device, { write_descriptor_set_uniform });
-
-    VkDescriptorImageInfo descriptor_buffer_sampler = {};
-    descriptor_buffer_sampler.sampler = _sampler_object->_vk_sampler;
-    descriptor_buffer_sampler.imageView = _texture_image_view->_vk_image_view;
-    descriptor_buffer_sampler.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-
-    VkWriteDescriptorSet write_descriptor_set_sampler = { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
-    write_descriptor_set_sampler.dstSet = _descriptor_set->_vk_descriptor_set;
-    write_descriptor_set_sampler.dstBinding = 1;
-    write_descriptor_set_sampler.dstArrayElement = 0;
-    write_descriptor_set_sampler.descriptorCount = 1;
-    write_descriptor_set_sampler.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    write_descriptor_set_sampler.pImageInfo = &descriptor_buffer_sampler;
-    write_descriptor_set_sampler.pBufferInfo = nullptr;
-    write_descriptor_set_sampler.pTexelBufferView = nullptr;
-
-    DescriptorSetObject::vkUpdateDescriptorSets_(_device_object->_vk_device, { write_descriptor_set_sampler });
+    _descriptor_set->updateDescriptorSetBuffer(_device_object->_vk_device, _descriptor_set_layout_factory.getDescriptorSetLayoutBindingDepot().get("Uniform"), _uniform_buffer->_buffer, sizeof(glm::mat4));
+    _descriptor_set->updateDescriptorSetSampler(_device_object->_vk_device, _descriptor_set_layout_factory.getDescriptorSetLayoutBindingDepot().get("Sampler"), _sampler_object, _texture_image_view);
 
     // Create mesh
 
