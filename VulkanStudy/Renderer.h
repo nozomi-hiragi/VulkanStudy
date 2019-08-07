@@ -458,8 +458,7 @@ public:
 
     for (const auto& it : _mesh_status) {
       if (!it->isExist()) { continue; }
-      model = glm::mat4(1);
-      model = glm::translate(model, it->_position);
+      model = glm::translate(glm::mat4(1), it->_position);
       model = model * glm::yawPitchRoll(it->_rotation.y, it->_rotation.x, it->_rotation.z);
       model = glm::scale(model, it->_scale);
       g_mvp = projection * view * model;
@@ -468,10 +467,7 @@ public:
       auto data = _uniform_buffer->getPointer(sizeof(g_mvp), &offset);
       memcpy(data, &g_mvp, sizeof(g_mvp));
 
-      uint32_t ofst[] = {
-        offset
-      };
-      _command_buffer_object->bindDescriptorSets(VK_PIPELINE_BIND_POINT_GRAPHICS, _pipeline_layout->_vk_pipeline_layout, 0, 1, &_descriptor_set->_vk_descriptor_set, 1, ofst);
+      _command_buffer_object->bindDescriptorSets(VK_PIPELINE_BIND_POINT_GRAPHICS, _pipeline_layout->_vk_pipeline_layout, 0, 1, &_descriptor_set->_vk_descriptor_set, 1, &offset);
       it->getInstance()->draw(_command_buffer_object);
     }
 

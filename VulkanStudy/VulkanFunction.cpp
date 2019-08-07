@@ -11,7 +11,8 @@ const uint32_t APP_VERSION = 0;
 
 Renderer _renderer;
 
-std::shared_ptr<MeshStatus> mesh;
+std::shared_ptr<MeshStatus> mesh1;
+std::shared_ptr<MeshStatus> mesh2;
 
 void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height) {
   _renderer.init(APP_NAME, APP_VERSION, width, height, hinstance, hwnd);
@@ -49,19 +50,21 @@ void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height)
     3, 2, 1,
   };
 
-  mesh = _renderer.createMesh(pos, nor, col, tex, idx);
-  mesh->_position.x = 1;
-  mesh->_rotation.y = 1;
-  mesh->_scale.x = 2;
+  mesh1 = _renderer.createMesh(pos, nor, col, tex, idx);
+  mesh1->_scale.x = 2;
+
+  mesh2 = _renderer.createMesh(pos, nor, col, tex, idx);
+  mesh2->_scale.y = 2;
 }
 int frame = 0;
 void updateVulkan() {
   frame++;
-  //if (frame > 200) {
-  //  mesh->clear();
-  //}
-  mesh->_position.x = cos(frame * 0.01f);
-  mesh->_rotation.y = sin(frame * 0.05f);
+
+  mesh1->_position.x = cos(frame * 0.01f);
+  mesh1->_rotation.y = sin(frame * 0.05f);
+
+  mesh2->_position.x = sin(frame * 0.01f);
+  mesh2->_rotation.y = cos(frame * 0.05f);
   _renderer.update();
 }
 
