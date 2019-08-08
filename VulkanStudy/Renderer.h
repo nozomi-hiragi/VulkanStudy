@@ -320,12 +320,21 @@ public:
     auto memory_property_bits = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
     auto memory_type_index = _physical_device_object->findProperties(_texture_image, memory_property_bits);
     _texture_memory = _device_memory_factory.createObject(_device_object, _texture_image->_vk_memory_requirements.size, memory_type_index);
-
-    auto data = _texture_memory->mapMemory(_device_object, 0, static_cast<uint32_t>(raw_texture.size() * sizeof(uint8_t)));
-    memcpy(data, raw_texture.data(), static_cast<uint32_t>(raw_texture.size() * sizeof(uint8_t)));
-    _texture_memory->unmapMemory(_device_object);
-
     _texture_image->bindImageMemory(_device_object, _texture_memory, 0);
+
+    VkImageSubresource image_subresource = {};
+    image_subresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    image_subresource.mipLevel = 0;
+    image_subresource.arrayLayer = 0;
+    VkSubresourceLayout layout;
+    vkGetImageSubresourceLayout(_device_object->_vk_device, _texture_image->_vk_image, &image_subresource, &layout);
+
+    char* data = (char*)_texture_memory->mapMemory(_device_object, 0, static_cast<uint32_t>(raw_texture.size() * sizeof(uint8_t)));
+    auto row_size = sizeof(uint8_t) * 4 * 4;
+    for (uint32_t i = 0; i < 3; i++) {
+      memcpy(data + i * layout.rowPitch, raw_texture.data() + row_size * i, row_size);
+    }
+    _texture_memory->unmapMemory(_device_object);
 
     _texture_image_view = _image_view_factory.createObject(_device_object, _texture_image);
 
