@@ -36,9 +36,6 @@
     <ClCompile Include="InstanceFactory.cpp">
       <Filter>source\wrap</Filter>
     </ClCompile>
-    <ClCompile Include="SurfaceFactory.cpp">
-      <Filter>source\wrap</Filter>
-    </ClCompile>
     <ClCompile Include="DeviceFactory.cpp">
       <Filter>source\wrap</Filter>
     </ClCompile>

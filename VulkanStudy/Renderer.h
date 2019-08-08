@@ -2,7 +2,9 @@
 
 #include <iostream>
 #include <Windows.h>
-#define VK_USE_PLATFORM_WIN32_KHR
+#define GLFW_INCLUDE_NONE
+#define GLFW_INCLUDE_VULKAN
+#include <GLFW/glfw3.h>
 #include <vulkan/vulkan.hpp>
 #include <vulkan/vk_sdk_platform.h>
 #include <glm/glm.hpp>
@@ -85,20 +87,20 @@ public:
   ~Renderer() {
   }
 
-  void init(const char* app_name, const uint32_t app_version, const uint32_t width, const uint32_t height, const HINSTANCE hinstance, const HWND hwnd) {
+  void init(const char* app_name, const uint32_t app_version, const uint32_t width, const uint32_t height, GLFWwindow* window) {
     _width = width;
     _height = height;
 
     _instance_object = _instance_factory.createObject(nullptr, app_name, app_version);
     _physical_device_object = _instance_object->_physical_devices[0];
-    _surface_object = _surface_factory.createObject(_instance_object, hinstance, hwnd);
+    _surface_object = _surface_factory.createObject(_instance_object, window);
     _device_object = _device_factory.createObject(nullptr, _physical_device_object, _surface_object);
 
     _queue_object = _device_object->_queue_object;
     _command_pool_object = _command_pool_factory.createObject(_device_object, _queue_object);
     _command_buffer_object = _command_pool_object->createObject(_device_object);
     _swapchain_object = _swapchain_factory.createObject(_device_object, _surface_object, _physical_device_object, _width, _height);
-    _depth_image_object = _image_factory.createObject(_device_object, VK_FORMAT_D16_UNORM, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, width, height, VK_IMAGE_ASPECT_DEPTH_BIT);
+    _depth_image_object = _image_factory.createObject(_device_object, VK_FORMAT_D16_UNORM, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, _width, _height, VK_IMAGE_ASPECT_DEPTH_BIT);
     {
       auto memory_type_index = _physical_device_object->findProperties(_depth_image_object, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
       _depth_memory_object = _device_memory_factory.createObject(_device_object, _depth_image_object->_vk_memory_requirements.size, memory_type_index);
@@ -134,7 +136,7 @@ public:
 
 
 
-    _command_buffer_object->setViewSize(width, height);
+    _command_buffer_object->setViewSize(_width, _height);
     _command_buffer_object->setClearColorValue(0, VkClearColorValue({ {0.2f, 0.2f, 0.2f, 0.2f} }));
     _command_buffer_object->setClearDepthStencilValue(1, VkClearDepthStencilValue({ 1.0f, 0 }));
 
@@ -292,14 +294,14 @@ public:
     {
       // Create matrix
       {
-        projection = glm::perspectiveFov(glm::radians(45.f), static_cast<float>(width), static_cast<float>(height), 0.1f, 100.f);
+        projection = glm::perspectiveFov(glm::radians(45.f), static_cast<float>(_width), static_cast<float>(_height), 0.1f, 100.f);
         view = glm::lookAt(glm::vec3(0, 0, -10), glm::vec3(0, 0, 0), glm::vec3(0, -1, 0));
         model = glm::translate(glm::mat4(1), glm::vec3(0, 0, 0));
         g_mvp = projection * view * model;
       }
 
       // Create uniform buffer
-      uint32_t uniform_size = 16 * 1024 *1024;
+      uint32_t uniform_size = 16 * 1024 * 1024;
       _uniform_buffer = std::make_shared<DynamicUniformBufferRing>(_device_object, _physical_device_object, _buffer_factory, _device_memory_factory, uniform_size);
     }
 

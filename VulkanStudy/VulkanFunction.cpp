@@ -14,8 +14,23 @@ Renderer _renderer;
 std::shared_ptr<MeshStatus> mesh1;
 std::shared_ptr<MeshStatus> mesh2;
 
-void initVulkan(HINSTANCE hinstance, HWND hwnd, uint32_t width, uint32_t height) {
-  _renderer.init(APP_NAME, APP_VERSION, width, height, hinstance, hwnd);
+void initVulkan(GLFWwindow* window, uint32_t width, uint32_t height) {
+  _renderer.init(APP_NAME, APP_VERSION, width, height, window);
+
+  glfwSetKeyCallback(window, [](GLFWwindow* window, int key, int scancode, int action, int mods) {
+    if (key == GLFW_KEY_LEFT && (action == GLFW_PRESS || action == GLFW_REPEAT)) {
+      mesh1->_position.x -= 0.1f;
+    }
+    if (key == GLFW_KEY_RIGHT && (action == GLFW_PRESS || action == GLFW_REPEAT)) {
+      mesh1->_position.x += 0.1f;
+    }
+    if (key == GLFW_KEY_DOWN && (action == GLFW_PRESS || action == GLFW_REPEAT)) {
+      mesh1->_position.y -= 0.1f;
+    }
+    if (key == GLFW_KEY_UP && (action == GLFW_PRESS || action == GLFW_REPEAT)) {
+      mesh1->_position.y += 0.1f;
+    }
+  });
 
   std::vector<glm::vec3> pos = {
   glm::vec3(-1, +1, 0),
@@ -60,7 +75,6 @@ int frame = 0;
 void updateVulkan() {
   frame++;
 
-  mesh1->_position.x = cos(frame * 0.01f);
   mesh1->_rotation.y = sin(frame * 0.05f);
 
   mesh2->_position.x = sin(frame * 0.01f);
