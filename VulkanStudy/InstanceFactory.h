@@ -55,8 +55,12 @@ private:
       std::vector<VkQueueFamilyProperties> queue_family_properties(count);
       vkGetPhysicalDeviceQueueFamilyProperties(vk_physical_device, &count, queue_family_properties.data());
 
+      VkPhysicalDeviceFeatures physical_device_features;
+      vkGetPhysicalDeviceFeatures(vk_physical_device, &physical_device_features);
+
       auto physical_device_object = std::make_shared<PhysicalDeviceObject>(
         vk_physical_device,
+        physical_device_features,
         memory_properties,
         std::move(queue_family_properties));
       devices.push_back(physical_device_object);

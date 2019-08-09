@@ -10,16 +10,31 @@
 #include "SurfaceObject.h"
 #include "QueueObject.h"
 
-class DeviceFactory : public AbstractFactory<DeviceObject, void, const std::shared_ptr<PhysicalDeviceObject>, const std::shared_ptr<SurfaceObject>> {
+class DeviceFactory : public AbstractFactory<DeviceObject, void, const std::shared_ptr<PhysicalDeviceObject>, const std::shared_ptr<SurfaceObject>, const std::vector<const char*>&> {
 public:
+  auto createObject(const std::shared_ptr<void> parent, const std::shared_ptr<PhysicalDeviceObject> physical_device, const std::shared_ptr<SurfaceObject> surface, const std::vector<const char*>& extensions) {
+    return AbstractFactory::createObject(parent, physical_device, surface, extensions);
+  }
+
+  auto createObject(const std::shared_ptr<void> parent, const std::shared_ptr<PhysicalDeviceObject> physical_device, const std::shared_ptr<SurfaceObject> surface) {
+    return AbstractFactory::createObject(parent, physical_device, surface, std::vector<const char*>());
+  }
+
 protected:
 private:
   static uint32_t _findPresentQueueFamilyIndex(std::shared_ptr<PhysicalDeviceObject> physical_device, VkSurfaceKHR surface) {
     std::vector<bool> support_surfaces(physical_device->_vk_queue_family_properties.size());
-    for (int i = 0; i < support_surfaces.size(); i++) {
-      VkBool32 result;
-      vkGetPhysicalDeviceSurfaceSupportKHR(physical_device->_vk_physical_device, i, surface, &result);
-      support_surfaces[i] = result == VK_TRUE;
+
+    if (surface) {
+      for (uint32_t i = 0; i < support_surfaces.size(); i++) {
+        VkBool32 result;
+        vkGetPhysicalDeviceSurfaceSupportKHR(physical_device->_vk_physical_device, i, surface, &result);
+        support_surfaces[i] = result == VK_TRUE;
+      }
+    } else {
+      for (uint32_t i = 0; i < support_surfaces.size(); i++) {
+        support_surfaces[i] = true;
+      }
     }
 
     auto present_queue_family_index = UINT32_MAX;
@@ -36,16 +51,16 @@ private:
     return present_queue_family_index;
   }
 
-  static VkDevice _createVkDevice(VkPhysicalDevice physical_device, uint32_t present_queue_family_index);
+  static VkDevice _createVkDevice(const std::shared_ptr<PhysicalDeviceObject> physical_device, uint32_t present_queue_family_index, const std::vector<const char*>& extensions);
 
   static void _destroyVkDevice(VkDevice device) {
     vkDeviceWaitIdle(device);
     vkDestroyDevice(device, nullptr);
   }
 
-  std::shared_ptr<DeviceObject> _createCore(const std::shared_ptr<PhysicalDeviceObject> physical_device, const std::shared_ptr<SurfaceObject> surface) {
-    auto present_queue_family_index = _findPresentQueueFamilyIndex(physical_device, surface->_vk_surface);
-    auto vk_device = _createVkDevice(physical_device->_vk_physical_device, present_queue_family_index);
+  std::shared_ptr<DeviceObject> _createCore(const std::shared_ptr<PhysicalDeviceObject> physical_device, const std::shared_ptr<SurfaceObject> surface, const std::vector<const char*>& extensions) {
+    auto present_queue_family_index = _findPresentQueueFamilyIndex(physical_device, surface ? surface->_vk_surface : nullptr);
+    auto vk_device = _createVkDevice(physical_device, present_queue_family_index, extensions);
 
     VkQueue vk_queue;
     vkGetDeviceQueue(vk_device, present_queue_family_index, 0, &vk_queue);

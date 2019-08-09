@@ -10,9 +10,11 @@ class PhysicalDeviceObject {
 public:
   PhysicalDeviceObject(
     const VkPhysicalDevice physical_device,
+    const VkPhysicalDeviceFeatures physical_device_features,
     const VkPhysicalDeviceMemoryProperties memory_properties,
     const std::vector<VkQueueFamilyProperties> queue_family_properties) :
     _vk_physical_device(physical_device),
+    _vk_physical_device_features(physical_device_features),
     _vk_memory_properties(memory_properties),
     _vk_queue_family_properties(queue_family_properties) {
   }
@@ -35,6 +37,7 @@ public:
   }
 
   const VkPhysicalDevice _vk_physical_device;
+  const VkPhysicalDeviceFeatures _vk_physical_device_features;
   const VkPhysicalDeviceMemoryProperties _vk_memory_properties;
   const std::vector<VkQueueFamilyProperties> _vk_queue_family_properties;
 protected:
