@@ -15,12 +15,8 @@ public:
   ~InstanceFactory() {
   }
 
-  auto createObject(const std::shared_ptr<void> parent, const char* app_name, const uint32_t app_version, const std::vector<const char*>& extensions) {
+  auto createObject(const std::shared_ptr<void> parent, const char* app_name, const uint32_t app_version, const std::vector<const char*>& extensions = std::vector<const char*>()) {
     return AbstractFactory::createObject(parent, app_name, app_version, extensions);
-  }
-
-  auto createObject(const std::shared_ptr<void> parent, const char* app_name, const uint32_t app_version) {
-    return AbstractFactory::createObject(parent, app_name, app_version, std::vector<const char*>());
   }
 
 protected:

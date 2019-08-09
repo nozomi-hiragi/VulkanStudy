@@ -99,7 +99,7 @@ public:
     _queue_object = _device_object->_queue_object;
     _command_pool_object = _command_pool_factory.createObject(_device_object, _queue_object);
     _command_buffer_object = _command_pool_object->createObject(_device_object);
-    _swapchain_object = _swapchain_factory.createObject(_device_object, _surface_object, _physical_device_object, _width, _height);
+    _swapchain_object = _swapchain_factory.createObject(_device_object, _physical_device_object, _surface_object, _width, _height);
     _depth_image_object = _image_factory.createObject(_device_object, VK_FORMAT_D16_UNORM, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, _width, _height, VK_IMAGE_ASPECT_DEPTH_BIT);
     {
       auto memory_type_index = _physical_device_object->findProperties(_depth_image_object, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);

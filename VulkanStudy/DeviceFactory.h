@@ -12,12 +12,8 @@
 
 class DeviceFactory : public AbstractFactory<DeviceObject, void, const std::shared_ptr<PhysicalDeviceObject>, const std::shared_ptr<SurfaceObject>, const std::vector<const char*>&> {
 public:
-  auto createObject(const std::shared_ptr<void> parent, const std::shared_ptr<PhysicalDeviceObject> physical_device, const std::shared_ptr<SurfaceObject> surface, const std::vector<const char*>& extensions) {
+  auto createObject(const std::shared_ptr<void> parent, const std::shared_ptr<PhysicalDeviceObject> physical_device, const std::shared_ptr<SurfaceObject> surface, const std::vector<const char*>& extensions = std::vector<const char*>()) {
     return AbstractFactory::createObject(parent, physical_device, surface, extensions);
-  }
-
-  auto createObject(const std::shared_ptr<void> parent, const std::shared_ptr<PhysicalDeviceObject> physical_device, const std::shared_ptr<SurfaceObject> surface) {
-    return AbstractFactory::createObject(parent, physical_device, surface, std::vector<const char*>());
   }
 
 protected:

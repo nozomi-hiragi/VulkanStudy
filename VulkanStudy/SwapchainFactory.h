@@ -10,7 +10,7 @@
 #include "PhysicalDeviceObject.h"
 #include "SurfaceObject.h"
 
-class SwapchainFactory : public AbstractFactory<SwapchainObject, DeviceObject, const std::shared_ptr<SurfaceObject>, const std::shared_ptr<PhysicalDeviceObject>, const uint32_t, const uint32_t> {
+class SwapchainFactory : public AbstractFactory<SwapchainObject, DeviceObject, const std::shared_ptr<PhysicalDeviceObject>, const std::shared_ptr<SurfaceObject>, const uint32_t, const uint32_t, const bool> {
 public:
   SwapchainFactory() {
   }
@@ -18,23 +18,31 @@ public:
   ~SwapchainFactory() {
   }
 
-protected:
-private:
-  static VkSurfaceCapabilitiesKHR _getSurfaceCapabilities(VkPhysicalDevice physical_device, VkSurfaceKHR surface) {
-    VkSurfaceCapabilitiesKHR surface_capabilities;
-    auto result = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physical_device, surface, &surface_capabilities);
-    return surface_capabilities;
+  auto createObject(const std::shared_ptr<DeviceObject> parent, const std::shared_ptr<PhysicalDeviceObject> physical_device, const std::shared_ptr<SurfaceObject> surface, const uint32_t width, const uint32_t height, const bool is_srgb = false) {
+    return AbstractFactory::createObject(parent, physical_device, surface, width, height, is_srgb);
   }
 
-  static VkSurfaceFormatKHR _getFixSurfaceFormat(VkPhysicalDevice physical_device, VkSurfaceKHR surface) {
+protected:
+private:
+  static VkSurfaceFormatKHR _getFixSurfaceFormat(VkPhysicalDevice physical_device, VkSurfaceKHR surface, bool is_srgb) {
     uint32_t count = 0;
     auto result = vkGetPhysicalDeviceSurfaceFormatsKHR(physical_device, surface, &count, nullptr);
     std::vector<VkSurfaceFormatKHR> surface_formats(count);
     result = vkGetPhysicalDeviceSurfaceFormatsKHR(physical_device, surface, &count, surface_formats.data());
 
     auto surface_format = surface_formats[0];
-    if (surface_formats.size() == 1 && surface_format.format == VK_FORMAT_UNDEFINED) {
+    if (count == 1 && surface_format.format == VK_FORMAT_UNDEFINED) {
       surface_format.format = VK_FORMAT_B8G8R8A8_UNORM;
+    }
+
+    if (is_srgb) {
+      for (auto& it : surface_formats) {
+        if (it.format != VK_FORMAT_B8G8R8A8_SRGB && it.format != VK_FORMAT_R8G8B8A8_SRGB) {
+          continue;
+        }
+        surface_format = it;
+        break;
+      }
     }
     return surface_format;
   }
@@ -47,13 +55,33 @@ private:
     return std::move(swapchain_images);
   }
 
-  static VkSwapchainKHR _createVkSwapchain(VkDevice device, VkSurfaceKHR surface, VkSurfaceCapabilitiesKHR surface_capabilities, VkSurfaceFormatKHR surface_format, const uint32_t width, const uint32_t height) {
+  static VkSwapchainKHR _createVkSwapchain(VkDevice device, VkPhysicalDevice physical_device, VkSurfaceKHR surface, VkSurfaceFormatKHR surface_format, const uint32_t width, const uint32_t height) {
+    VkSurfaceCapabilitiesKHR surface_capabilities;
+    auto result = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physical_device, surface, &surface_capabilities);
+
+    constexpr uint32_t REQ_MIN_IMAGE_COUNT = 2;
+    uint32_t min_image_count = surface_capabilities.minImageCount > REQ_MIN_IMAGE_COUNT ? surface_capabilities.minImageCount : REQ_MIN_IMAGE_COUNT;
+    if ((surface_capabilities.maxImageCount > 0) && (min_image_count > surface_capabilities.maxImageCount)) {
+      min_image_count = surface_capabilities.maxImageCount;
+    }
+
+    VkExtent2D swapchain_extent;
+    if (surface_capabilities.currentExtent.width == -1) {
+      swapchain_extent.width = width;
+      swapchain_extent.height = height;
+    } else {
+      swapchain_extent = surface_capabilities.currentExtent;
+    }
+
+    VkImageUsageFlags image_usage_flags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+    if (surface_capabilities.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT) {
+      image_usage_flags |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+    }
 
     VkSurfaceTransformFlagBitsKHR pre_transform;
     if (surface_capabilities.supportedTransforms & VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR) {
       pre_transform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
-    }
-    else {
+    } else {
       pre_transform = surface_capabilities.currentTransform;
     }
 
@@ -71,26 +99,42 @@ private:
       }
     }
 
-    VkSwapchainCreateInfoKHR swapchain_info = {};
-    swapchain_info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+    uint32_t present_mode_count;
+    result = vkGetPhysicalDeviceSurfacePresentModesKHR(physical_device, surface, &present_mode_count, nullptr);
+    std::vector<VkPresentModeKHR > present_modes(present_mode_count);
+    result = vkGetPhysicalDeviceSurfacePresentModesKHR(physical_device, surface, &present_mode_count, present_modes.data());
+
+    VkPresentModeKHR present_mode = VK_PRESENT_MODE_FIFO_KHR;
+    for (auto& it : present_modes) {
+      if (it == VK_PRESENT_MODE_IMMEDIATE_KHR) {
+        present_mode = it;
+        break;
+      } else if (it == VK_PRESENT_MODE_MAILBOX_KHR) {
+        present_mode = it;
+      } else if ((it == VK_PRESENT_MODE_MAILBOX_KHR) && present_mode != VK_PRESENT_MODE_MAILBOX_KHR) {
+        present_mode = it;
+      }
+    }
+
+    VkSwapchainCreateInfoKHR swapchain_info = { VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR };
     swapchain_info.surface = surface;
-    swapchain_info.minImageCount = surface_capabilities.minImageCount;
+    swapchain_info.minImageCount = min_image_count;
     swapchain_info.imageFormat = surface_format.format;
     swapchain_info.imageColorSpace = surface_format.colorSpace;
-    swapchain_info.imageExtent = { width, height };
+    swapchain_info.imageExtent = swapchain_extent;
     swapchain_info.imageArrayLayers = 1;
-    swapchain_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+    swapchain_info.imageUsage = image_usage_flags;
     swapchain_info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
     swapchain_info.queueFamilyIndexCount = 0;
     swapchain_info.pQueueFamilyIndices = nullptr;
     swapchain_info.preTransform = pre_transform;
     swapchain_info.compositeAlpha = composite_alpha;
-    swapchain_info.presentMode = VK_PRESENT_MODE_FIFO_KHR;
-    swapchain_info.clipped = true;
+    swapchain_info.presentMode = present_mode;
+    swapchain_info.clipped = VK_TRUE;
     swapchain_info.oldSwapchain = nullptr;
 
     VkSwapchainKHR swapchain;
-    auto result = vkCreateSwapchainKHR(device, &swapchain_info, nullptr, &swapchain);
+    result = vkCreateSwapchainKHR(device, &swapchain_info, nullptr, &swapchain);
 
     return swapchain;
   }
@@ -105,10 +149,9 @@ private:
     return std::move(memory_requirements);
   }
 
-  std::shared_ptr<SwapchainObject> _createCore(const std::shared_ptr<SurfaceObject> surface, const std::shared_ptr<PhysicalDeviceObject> physical_device, const uint32_t width, const uint32_t height) {
-    auto surface_capabilities = _getSurfaceCapabilities(physical_device->_vk_physical_device, surface->_vk_surface);
-    auto surface_format = _getFixSurfaceFormat(physical_device->_vk_physical_device, surface->_vk_surface);
-    auto vk_swapchain = _createVkSwapchain(_parent->_vk_device, surface->_vk_surface, surface_capabilities, surface_format, width, height);
+  std::shared_ptr<SwapchainObject> _createCore(const std::shared_ptr<PhysicalDeviceObject> physical_device, const std::shared_ptr<SurfaceObject> surface, const uint32_t width, const uint32_t height, const bool is_srgb) {
+    auto surface_format = _getFixSurfaceFormat(physical_device->_vk_physical_device, surface->_vk_surface, is_srgb);
+    auto vk_swapchain = _createVkSwapchain(_parent->_vk_device, physical_device->_vk_physical_device, surface->_vk_surface, surface_format, width, height);
     auto vk_swapchain_images = _getVkSwapchainImages(_parent->_vk_device, vk_swapchain);
 
     std::vector<std::shared_ptr<ImageObject>> swapchain_images;
