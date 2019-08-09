@@ -10,14 +10,13 @@
 
 class RenderPassFactory : public AbstractFactory<RenderPassObject, DeviceObject, const std::vector<std::string>&, const std::vector<std::string>&> {
 public:
-  auto& getAttachmentDescriptionDepot() {
-    return _attachment_description_depot;
-  }
-  auto& getAttachmentReferenceDepot() {
-    return _attachment_reference_depot;
-  }
-  auto& getSubpassDescriptionDepot() {
-    return _subpass_description_depot;
+  RenderPassFactory(
+    AttachmentDescriptionDepot& _attachment_description_depot,
+    AttachmentReferenceDepot& _attachment_reference_depot,
+    SubpassDescriptionDepot& _subpass_description_depot) :
+    _attachment_description_depot(_attachment_description_depot),
+    _attachment_reference_depot(_attachment_reference_depot),
+    _subpass_description_depot(_subpass_description_depot) {
   }
 
 protected:
@@ -81,14 +80,17 @@ private:
       auto color_attachment_references = convert_to_vk_attachment_reference(arg_subpass.color_attachment_count, arg_subpass.color_attachments);
       auto resolve_attachment_references = convert_to_vk_attachment_reference(arg_subpass.color_attachment_count, arg_subpass.resolve_attachments);
 
-      const auto& arg_depth_attachment_reference = _attachment_reference_depot.get(arg_subpass.depth_stencil_sttachment);
+      std::shared_ptr<VkAttachmentReference> depth_attachment_reference;
+      if (arg_subpass.depth_stencil_sttachment != nullptr) {
+        const auto& arg_depth_attachment_reference = _attachment_reference_depot.get(arg_subpass.depth_stencil_sttachment);
 
-      auto depth_attachment_reference = std::make_shared<VkAttachmentReference>(
-        VkAttachmentReference{
-          attachment_description_index[arg_depth_attachment_reference.attachment],
-          arg_depth_attachment_reference.layout
-        }
-      );
+        depth_attachment_reference = std::make_shared<VkAttachmentReference>(
+          VkAttachmentReference{
+            attachment_description_index[arg_depth_attachment_reference.attachment],
+            arg_depth_attachment_reference.layout
+          }
+        );
+      }
 
       tmp_input_attachment_references.push_back(input_attachment_references);
       tmp_color_attachment_references.push_back(color_attachment_references);
@@ -130,7 +132,7 @@ private:
     _destroyVkRenderPass(_parent->_vk_device, object->_vk_render_pass);
   }
 
-  AttachmentDescriptionDepot _attachment_description_depot;
-  AttachmentReferenceDepot _attachment_reference_depot;
-  SubpassDescriptionDepot _subpass_description_depot;
+  AttachmentDescriptionDepot& _attachment_description_depot;
+  AttachmentReferenceDepot& _attachment_reference_depot;
+  SubpassDescriptionDepot& _subpass_description_depot;
 };

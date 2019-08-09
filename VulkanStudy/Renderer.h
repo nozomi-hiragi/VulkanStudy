@@ -81,7 +81,8 @@ private:
 
 class Renderer {
 public:
-  Renderer() {
+  Renderer() :
+    _render_pass_factory(_attachment_description_depot, _attachment_reference_depot, _subpass_description_depot) {
   }
 
   ~Renderer() {
@@ -142,7 +143,7 @@ public:
 
     // Create render pass
     {
-      _render_pass_factory.getAttachmentDescriptionDepot().add("ColorDefaultDescription",
+      _attachment_description_depot.add("ColorDefaultDescription",
         _swapchain_object->_vk_format,
         VK_SAMPLE_COUNT_1_BIT,
         VK_ATTACHMENT_LOAD_OP_CLEAR,
@@ -152,7 +153,7 @@ public:
         VK_IMAGE_LAYOUT_UNDEFINED,
         VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
       );
-      _render_pass_factory.getAttachmentDescriptionDepot().add("DepthDefaultDescription",
+      _attachment_description_depot.add("DepthDefaultDescription",
         _depth_image_object->_vk_format,
         VK_SAMPLE_COUNT_1_BIT,
         VK_ATTACHMENT_LOAD_OP_CLEAR,
@@ -163,15 +164,15 @@ public:
         VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
       );
 
-      _render_pass_factory.getAttachmentReferenceDepot().add("ColorDefault",
+      _attachment_reference_depot.add("ColorDefault",
         "ColorDefaultDescription",
         VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-      _render_pass_factory.getAttachmentReferenceDepot().add("DepthDefault",
+      _attachment_reference_depot.add("DepthDefault",
         "DepthDefaultDescription",
         VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
 
       std::vector<const char*> color_attachment_names = { "ColorDefault" };
-      _render_pass_factory.getSubpassDescriptionDepot().add("SubpassDefault",
+      _subpass_description_depot.add("SubpassDefault",
         0,
         nullptr,
         static_cast<uint32_t>(color_attachment_names.size()),
@@ -500,6 +501,10 @@ public:
 
 protected:
 private:
+  AttachmentDescriptionDepot _attachment_description_depot;
+  AttachmentReferenceDepot _attachment_reference_depot;
+  SubpassDescriptionDepot _subpass_description_depot;
+
   InstanceFactory _instance_factory;
   SurfaceFactory _surface_factory;
   DeviceFactory _device_factory;
