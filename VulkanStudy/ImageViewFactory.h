@@ -25,12 +25,16 @@ private:
     subresource_range.baseArrayLayer = 0;
     subresource_range.layerCount = 1;
 
-    VkImageViewCreateInfo image_view_info = {};
-    image_view_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+    VkImageViewCreateInfo image_view_info = { VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
+    image_view_info.flags = 0;
+    image_view_info.image = image->_vk_image;
     image_view_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
     image_view_info.format = image->_vk_format;
+    image_view_info.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+    image_view_info.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+    image_view_info.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+    image_view_info.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
     image_view_info.subresourceRange = subresource_range;
-    image_view_info.image = image->_vk_image;
 
     VkImageView image_view;
     auto result = vkCreateImageView(device, &image_view_info, nullptr, &image_view);
