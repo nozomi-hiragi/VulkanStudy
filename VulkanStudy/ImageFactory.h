@@ -8,7 +8,7 @@
 #include "ImageObject.h"
 #include "DeviceObject.h"
 
-class ImageFactory : public AbstractFactory<ImageObject, DeviceObject, const VkFormat, const VkImageUsageFlags, const uint32_t, const uint32_t, const uint32_t, const VkImageTiling, const VkImageAspectFlags> {
+class ImageFactory : public AbstractFactory<ImageObject, DeviceObject, const VkFormat, const VkImageUsageFlags, const uint32_t, const uint32_t, const uint32_t, const VkSampleCountFlagBits, const VkImageTiling, const VkImageAspectFlags> {
 public:
   ImageFactory() {
   }
@@ -34,7 +34,7 @@ private:
     return std::move(memory_requirements);
   }
 
-  std::shared_ptr<ImageObject> _createCore(VkFormat format, VkImageUsageFlags usage, uint32_t width, uint32_t height, uint32_t mip_level, VkImageTiling tiling, VkImageAspectFlags image_aspect_flags) {
+  std::shared_ptr<ImageObject> _createCore(VkFormat format, VkImageUsageFlags usage, uint32_t width, uint32_t height, uint32_t mip_level, VkSampleCountFlagBits sample, VkImageTiling tiling, VkImageAspectFlags image_aspect_flags) {
     VkImageCreateInfo image_info = { VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
     image_info.flags = 0;
     image_info.imageType = VK_IMAGE_TYPE_2D;
@@ -42,8 +42,8 @@ private:
     image_info.extent = { width, height, 1 };
     image_info.mipLevels = mip_level;
     image_info.arrayLayers = 1;
-    image_info.samples = VK_SAMPLE_COUNT_1_BIT;
-    image_info.tiling = tiling;// format == VK_FORMAT_D16_UNORM ? VK_IMAGE_TILING_OPTIMAL : VK_IMAGE_TILING_LINEAR;
+    image_info.samples = sample;
+    image_info.tiling = tiling;
     image_info.usage = usage;
     image_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
     image_info.queueFamilyIndexCount = 0;

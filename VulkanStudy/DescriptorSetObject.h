@@ -37,7 +37,7 @@ public:
     updateDescriptorSet(device, set_layout, &descriptor_image, nullptr);
   }
 
-  void updateDescriptorSetBuffer(VkDevice device, const VkDescriptorSetLayoutBinding& set_layout, std::shared_ptr<BufferObject> buffer, const uint32_t size) {
+  void updateDescriptorSetBuffer(VkDevice device, const VkDescriptorSetLayoutBinding& set_layout, std::shared_ptr<BufferObject> buffer, const uint64_t size) {
     VkDescriptorBufferInfo descriptor_buffer = {};
     descriptor_buffer.buffer = buffer->_vk_buffer;
     descriptor_buffer.offset = 0;

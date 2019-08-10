@@ -81,8 +81,9 @@ private:
 
 class Renderer {
 public:
-  Renderer() :
-    _render_pass_factory(_attachment_description_depot, _attachment_reference_depot, _subpass_description_depot) {
+  Renderer()
+    :_render_pass_factory(_attachment_description_depot, _attachment_reference_depot, _subpass_description_depot)
+    , _descriptor_set_layout_factory(_descriptor_set_layout_binding_depot) {
   }
 
   ~Renderer() {
@@ -101,7 +102,7 @@ public:
     _command_pool_object = _command_pool_factory.createObject(_device_object, _queue_object);
     _command_buffer_object = _command_pool_object->createObject(_device_object);
     _swapchain_object = _swapchain_factory.createObject(_device_object, _physical_device_object, _surface_object, _width, _height);
-    _depth_image_object = _image_factory.createObject(_device_object, VK_FORMAT_D16_UNORM, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, _width, _height, 1, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_ASPECT_DEPTH_BIT);
+    _depth_image_object = _image_factory.createObject(_device_object, VK_FORMAT_D16_UNORM, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, _width, _height, 1, VK_SAMPLE_COUNT_1_BIT, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_ASPECT_DEPTH_BIT);
     {
       auto memory_type_index = _physical_device_object->findProperties(_depth_image_object, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
       _depth_memory_object = _device_memory_factory.createObject(_device_object, _depth_image_object->_vk_memory_requirements.size, memory_type_index);
@@ -114,14 +115,14 @@ public:
     _depth_image_view_object = _image_view_factory.createObject(_device_object, _depth_image_object);
     _semaphore = _semaphore_factory.createObject(_device_object);
     _fence = _fence_factory.createObject(_device_object);
-    _descriptor_set_layout_factory.getDescriptorSetLayoutBindingDepot().add("Uniform",
+    _descriptor_set_layout_binding_depot.add("Uniform",
       0,
       VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
       1,
       VK_SHADER_STAGE_VERTEX_BIT,
       nullptr
     );
-    _descriptor_set_layout_factory.getDescriptorSetLayoutBindingDepot().add("Sampler",
+    _descriptor_set_layout_binding_depot.add("Sampler",
       1,
       VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
       1,
@@ -319,6 +320,7 @@ public:
       4,
       3,
       1,
+      VK_SAMPLE_COUNT_1_BIT,
       VK_IMAGE_TILING_LINEAR,
       VK_IMAGE_ASPECT_COLOR_BIT);
 
@@ -365,8 +367,8 @@ public:
     //
 
     // Update descriptor sets
-    _descriptor_set->updateDescriptorSetBuffer(_device_object->_vk_device, _descriptor_set_layout_factory.getDescriptorSetLayoutBindingDepot().get("Uniform"), _uniform_buffer->_buffer, sizeof(glm::mat4));
-    _descriptor_set->updateDescriptorSetSampler(_device_object->_vk_device, _descriptor_set_layout_factory.getDescriptorSetLayoutBindingDepot().get("Sampler"), _sampler_object, _texture_image_view);
+    _descriptor_set->updateDescriptorSetBuffer(_device_object->_vk_device, _descriptor_set_layout_binding_depot.get("Uniform"), _uniform_buffer->_buffer, sizeof(glm::mat4));
+    _descriptor_set->updateDescriptorSetSampler(_device_object->_vk_device, _descriptor_set_layout_binding_depot.get("Sampler"), _sampler_object, _texture_image_view);
 
     // Create mesh
 
@@ -494,6 +496,8 @@ private:
   AttachmentDescriptionDepot _attachment_description_depot;
   AttachmentReferenceDepot _attachment_reference_depot;
   SubpassDescriptionDepot _subpass_description_depot;
+
+  DescriptorSetLayoutBindingDepot _descriptor_set_layout_binding_depot;
 
   InstanceFactory _instance_factory;
   SurfaceFactory _surface_factory;

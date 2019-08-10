@@ -11,12 +11,12 @@
 class RenderPassFactory : public AbstractFactory<RenderPassObject, DeviceObject, const std::vector<std::string>&, const std::vector<std::string>&> {
 public:
   RenderPassFactory(
-    AttachmentDescriptionDepot& _attachment_description_depot,
-    AttachmentReferenceDepot& _attachment_reference_depot,
-    SubpassDescriptionDepot& _subpass_description_depot) :
-    _attachment_description_depot(_attachment_description_depot),
-    _attachment_reference_depot(_attachment_reference_depot),
-    _subpass_description_depot(_subpass_description_depot) {
+    AttachmentDescriptionDepot& attachment_description_depot,
+    AttachmentReferenceDepot& attachment_reference_depot,
+    SubpassDescriptionDepot& subpass_description_depot) :
+    _attachment_description_depot(attachment_description_depot),
+    _attachment_reference_depot(attachment_reference_depot),
+    _subpass_description_depot(subpass_description_depot) {
   }
 
 protected:

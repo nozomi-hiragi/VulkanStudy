@@ -158,7 +158,7 @@ private:
     swapchain_images.reserve(vk_swapchain_images.size());
     for (auto it : vk_swapchain_images) {
       auto memory_requirements = _getVkImageMemoryRequirements(_parent->_vk_device, it);
-      swapchain_images.push_back(std::make_shared<ImageObject>(it, std::move(memory_requirements), surface_format.format, VK_IMAGE_ASPECT_COLOR_BIT, width, height, 1, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR));
+      swapchain_images.push_back(std::make_shared<ImageObject>(it, std::move(memory_requirements), surface_format.format, VK_IMAGE_ASPECT_COLOR_BIT, width, height, 1, VK_IMAGE_LAYOUT_UNDEFINED));
     }
 
     return std::make_shared<SwapchainObject>(

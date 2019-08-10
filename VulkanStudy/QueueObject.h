@@ -38,6 +38,10 @@ public:
     vkQueuePresentKHR(_vk_queue, &present_info);
   }
 
+  void waitIdle() {
+    vkQueueWaitIdle(_vk_queue);
+  }
+
   std::vector<std::vector<VkSubmitInfo>> _scheduled_vk_submit_infos;
 
   const VkQueue _vk_queue;

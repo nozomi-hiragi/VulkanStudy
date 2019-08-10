@@ -12,8 +12,7 @@
 
 class DescriptorSetLayoutFactory : public AbstractFactory<DescriptorSetLayoutObject, DeviceObject, const std::vector<std::string>&> {
 public:
-  auto& getDescriptorSetLayoutBindingDepot() {
-    return _descriptor_set_layout_binding_depot;
+  DescriptorSetLayoutFactory(DescriptorSetLayoutBindingDepot& descriptor_set_layout_binding_depot) : _descriptor_set_layout_binding_depot(descriptor_set_layout_binding_depot) {
   }
 
 protected:
@@ -47,5 +46,5 @@ private:
     _destroyVkDescriptorSetLayout(_parent->_vk_device, object->_vk_descriptor_set_layout);
   }
 
-  DescriptorSetLayoutBindingDepot _descriptor_set_layout_binding_depot;
+  DescriptorSetLayoutBindingDepot& _descriptor_set_layout_binding_depot;
 };
