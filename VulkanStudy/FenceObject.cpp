@@ -9,3 +9,7 @@ VkResult FenceObject::waitForFence(const std::shared_ptr<DeviceObject> device, u
 void FenceObject::resetFence(const std::shared_ptr<DeviceObject> device) {
   vkResetFences(device->_vk_device, 1, &_vk_fence);
 }
+
+bool FenceObject::isSignaled(const std::shared_ptr<DeviceObject> device) {
+  return vkGetFenceStatus(device->_vk_device, _vk_fence) == VK_SUCCESS;
+}

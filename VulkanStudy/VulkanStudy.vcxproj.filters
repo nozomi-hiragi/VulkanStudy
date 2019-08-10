@@ -42,6 +42,9 @@
     <ClCompile Include="FenceObject.cpp">
       <Filter>source\wrap</Filter>
     </ClCompile>
+    <ClCompile Include="CommandBufferObject.cpp">
+      <Filter>source\wrap</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="WindowManager.h">

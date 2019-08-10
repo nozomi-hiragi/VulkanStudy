@@ -8,7 +8,7 @@
 #include "ImageObject.h"
 #include "DeviceObject.h"
 
-class ImageFactory : public AbstractFactory<ImageObject, DeviceObject, const VkFormat, const VkImageUsageFlags, const uint32_t, const uint32_t, const VkImageAspectFlags> {
+class ImageFactory : public AbstractFactory<ImageObject, DeviceObject, const VkFormat, const VkImageUsageFlags, const uint32_t, const uint32_t, const uint32_t, const VkImageTiling, const VkImageAspectFlags> {
 public:
   ImageFactory() {
   }
@@ -18,24 +18,7 @@ public:
 
 protected:
 private:
-  static auto _createVkImage(VkDevice device, VkFormat format, VkImageUsageFlags usage, uint32_t width, uint32_t height) {
-    VkImageCreateInfo image_info = {};
-    image_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-    image_info.pNext = nullptr;
-    image_info.flags = 0;
-    image_info.imageType = VK_IMAGE_TYPE_2D;
-    image_info.format = format;
-    image_info.extent = { width, height, 1};
-    image_info.mipLevels = 1;
-    image_info.arrayLayers = 1;
-    image_info.samples = VK_SAMPLE_COUNT_1_BIT;
-    image_info.tiling = format == VK_FORMAT_D16_UNORM ? VK_IMAGE_TILING_OPTIMAL : VK_IMAGE_TILING_LINEAR;
-    image_info.usage = usage;
-    image_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-    image_info.queueFamilyIndexCount = 0;
-    image_info.pQueueFamilyIndices = nullptr;
-    image_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-
+  static auto _createVkImage(VkDevice device, VkImageCreateInfo& image_info) {
     VkImage image;
     auto result = vkCreateImage(device, &image_info, nullptr, &image);
     return image;
@@ -51,10 +34,25 @@ private:
     return std::move(memory_requirements);
   }
 
-  std::shared_ptr<ImageObject> _createCore(VkFormat format, VkImageUsageFlags usage, uint32_t width, uint32_t height, VkImageAspectFlags image_aspect_flags) {
-    auto vk_image = _createVkImage(_parent->_vk_device, format, usage, width, height);
+  std::shared_ptr<ImageObject> _createCore(VkFormat format, VkImageUsageFlags usage, uint32_t width, uint32_t height, uint32_t mip_level, VkImageTiling tiling, VkImageAspectFlags image_aspect_flags) {
+    VkImageCreateInfo image_info = { VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
+    image_info.flags = 0;
+    image_info.imageType = VK_IMAGE_TYPE_2D;
+    image_info.format = format;
+    image_info.extent = { width, height, 1 };
+    image_info.mipLevels = mip_level;
+    image_info.arrayLayers = 1;
+    image_info.samples = VK_SAMPLE_COUNT_1_BIT;
+    image_info.tiling = tiling;// format == VK_FORMAT_D16_UNORM ? VK_IMAGE_TILING_OPTIMAL : VK_IMAGE_TILING_LINEAR;
+    image_info.usage = usage;
+    image_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    image_info.queueFamilyIndexCount = 0;
+    image_info.pQueueFamilyIndices = nullptr;
+    image_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+
+    auto vk_image = _createVkImage(_parent->_vk_device, image_info);
     auto memory_requirements = _getVkImageMemoryRequirements(_parent->_vk_device, vk_image);
-    return std::make_shared<ImageObject>(vk_image, std::move(memory_requirements), format, image_aspect_flags, width, height);
+    return std::make_shared<ImageObject>(vk_image, std::move(memory_requirements), format, image_aspect_flags, width, height, mip_level, image_info.initialLayout);
   }
 
   void _destroyCore(std::shared_ptr<ImageObject> object) {

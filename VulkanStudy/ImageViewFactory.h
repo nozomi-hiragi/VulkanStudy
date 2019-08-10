@@ -18,13 +18,6 @@ public:
 protected:
 private:
   static VkImageView _createVkImageView(VkDevice device, std::shared_ptr<ImageObject> image, const VkImageAspectFlags image_aspect_flags) {
-    VkImageSubresourceRange subresource_range = {};
-    subresource_range.aspectMask = image_aspect_flags;
-    subresource_range.baseMipLevel = 0;
-    subresource_range.levelCount = 1;
-    subresource_range.baseArrayLayer = 0;
-    subresource_range.layerCount = 1;
-
     VkImageViewCreateInfo image_view_info = { VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
     image_view_info.flags = 0;
     image_view_info.image = image->_vk_image;
@@ -34,7 +27,12 @@ private:
     image_view_info.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
     image_view_info.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
     image_view_info.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
-    image_view_info.subresourceRange = subresource_range;
+
+    image_view_info.subresourceRange.aspectMask = image_aspect_flags;
+    image_view_info.subresourceRange.baseMipLevel = 0;
+    image_view_info.subresourceRange.levelCount = image->_mip_level;
+    image_view_info.subresourceRange.baseArrayLayer = 0;
+    image_view_info.subresourceRange.layerCount = 1;
 
     VkImageView image_view;
     auto result = vkCreateImageView(device, &image_view_info, nullptr, &image_view);

@@ -101,7 +101,7 @@ public:
     _command_pool_object = _command_pool_factory.createObject(_device_object, _queue_object);
     _command_buffer_object = _command_pool_object->createObject(_device_object);
     _swapchain_object = _swapchain_factory.createObject(_device_object, _physical_device_object, _surface_object, _width, _height);
-    _depth_image_object = _image_factory.createObject(_device_object, VK_FORMAT_D16_UNORM, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, _width, _height, VK_IMAGE_ASPECT_DEPTH_BIT);
+    _depth_image_object = _image_factory.createObject(_device_object, VK_FORMAT_D16_UNORM, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, _width, _height, 1, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_ASPECT_DEPTH_BIT);
     {
       auto memory_type_index = _physical_device_object->findProperties(_depth_image_object, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
       _depth_memory_object = _device_memory_factory.createObject(_device_object, _depth_image_object->_vk_memory_requirements.size, memory_type_index);
@@ -318,6 +318,8 @@ public:
       VK_IMAGE_USAGE_SAMPLED_BIT,
       4,
       3,
+      1,
+      VK_IMAGE_TILING_LINEAR,
       VK_IMAGE_ASPECT_COLOR_BIT);
 
     auto memory_property_bits = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
@@ -341,29 +343,17 @@ public:
 
     _texture_image_view = _image_view_factory.createObject(_device_object, _texture_image);
 
-    _sampler_object = _sampler_factory.createObject(_device_object);
+    _sampler_object = _sampler_factory.createObject(_device_object, VK_FILTER_NEAREST, VK_FILTER_NEAREST, VK_SAMPLER_MIPMAP_MODE_NEAREST, 0, 0.f);
 
     //
 
     _command_buffer_object->begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
 
-    VkImageMemoryBarrier imb = { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
-    imb.srcAccessMask = 0;
-    imb.dstAccessMask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_INPUT_ATTACHMENT_READ_BIT;
-    imb.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    imb.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    imb.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    imb.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    imb.image = _texture_image->_vk_image;
-    imb.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
-
-    vkCmdPipelineBarrier(_command_buffer_object->_vk_command_buffer,
-      VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-      VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-      0,
-      0, nullptr,
-      0, nullptr,
-      1, &imb);
+    _command_buffer_object->pipelineImageMemoryBarrier(
+      VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+      _texture_image,
+      0, VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_INPUT_ATTACHMENT_READ_BIT,
+      VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
     _command_buffer_object->end();
 

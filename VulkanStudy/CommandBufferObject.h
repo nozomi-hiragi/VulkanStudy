@@ -6,6 +6,8 @@
 #include "FramebufferObject.h"
 #include "PipelineObject.h"
 
+class ImageObject;
+
 class CommandBufferObject {
 public:
   CommandBufferObject(const VkCommandBuffer command_buffer):
@@ -27,6 +29,8 @@ public:
     vkEndCommandBuffer(_vk_command_buffer);
   }
 
+  void pipelineImageMemoryBarrier(VkPipelineStageFlags src_stage, VkPipelineStageFlags dst_stage, std::shared_ptr<ImageObject> image, VkAccessFlags src_access, VkAccessFlags dst_access, VkImageLayout new_layout);
+
   void beginRenderPass(const std::shared_ptr<RenderPassObject> render_pass, const std::shared_ptr<FramebufferObject> framebuffer, const VkSubpassContents contents) {
     VkRenderPassBeginInfo render_pass_begin_info = { VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO };
     render_pass_begin_info.renderPass = render_pass->_vk_render_pass;
@@ -40,6 +44,10 @@ public:
 
   void endRenderPass() {
     vkCmdEndRenderPass(_vk_command_buffer);
+  }
+
+  void resetCommandBuffer(VkCommandBufferResetFlags flag) {
+    vkResetCommandBuffer(_vk_command_buffer, flag);
   }
 
   void bindPipeline(const VkPipelineBindPoint bind_point, const std::shared_ptr<PipelineObject> pipeline) {

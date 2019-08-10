@@ -78,6 +78,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="CommandBufferObject.cpp" />
     <ClCompile Include="DeviceFactory.cpp" />
     <ClCompile Include="FenceObject.cpp" />
     <ClCompile Include="InstanceFactory.cpp" />

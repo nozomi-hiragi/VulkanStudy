@@ -7,13 +7,15 @@
 
 class ImageObject {
 public:
-  ImageObject(const VkImage image, const VkMemoryRequirements memory_requirements, const VkFormat format, const VkImageAspectFlags image_aspect_flags, const uint32_t width, const uint32_t height) :
-    _vk_image(image),
-    _vk_format(format),
-    _vk_memory_requirements(memory_requirements),
-    _vk_image_aspect_flags(image_aspect_flags),
-    _width(width),
-    _height(height){
+  ImageObject(const VkImage image, const VkMemoryRequirements memory_requirements, const VkFormat format, const VkImageAspectFlags image_aspect_flags, const uint32_t width, const uint32_t height, const uint32_t mip_level, VkImageLayout layout)
+    :_vk_image(image)
+    ,_vk_format(format)
+    ,_vk_memory_requirements(memory_requirements)
+    ,_vk_image_aspect_flags(image_aspect_flags)
+    ,_width(width)
+    ,_height(height)
+    ,_mip_level(mip_level)
+    ,_vk_layout(){
   }
 
   ~ImageObject() {
@@ -29,6 +31,8 @@ public:
   const VkImageAspectFlags _vk_image_aspect_flags;
   const uint32_t _width;
   const uint32_t _height;
+  const uint32_t _mip_level;
+  VkImageLayout _vk_layout;
 protected:
 private:
 };
