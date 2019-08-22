@@ -205,80 +205,7 @@ public:
 
     // Create shader module
     {
-      std::string vs_code =
-        "#version 450\n"
-        "#extension GL_ARB_separate_shader_objects : enable\n"
-        "#extension GL_ARB_shading_language_420pack : enable\n"
-        "layout (binding = 0) uniform bufferVals {\n"
-        "    mat4 mvp;\n"
-        "} myBufferVals;\n"
-        "layout (location = 0) in vec3 pos;\n"
-        "layout (location = 1) in vec3 nor;\n"
-        "layout (location = 2) in vec4 inColor;\n"
-        "layout (location = 3) in vec2 tex;\n"
-        "\n"
-        "layout (location = 0) out vec4 outColor;\n"
-        "layout (location = 1) out vec2 outUv;\n"
-        "void main() {\n"
-        "   outColor = vec4(inColor.x,inColor.y,inColor.z, inColor.w);//inColor;\n"
-        "   outUv = tex;\n"
-        "   gl_Position = myBufferVals.mvp * vec4(pos.xyz, 1);\n"
-        "}\n"
-        ;
 
-      std::string ps_code =
-        "#version 450\n"
-        "#extension GL_ARB_separate_shader_objects : enable\n"
-        "#extension GL_ARB_shading_language_420pack : enable\n"
-        "layout(location = 0) in vec4 color;\n"
-        "layout(location = 1) in vec2 uv;\n"
-        "layout(binding = 1) uniform sampler2D samColor;\n"
-        "\n"
-        "layout(location = 0) out vec4 outColor;\n"
-        "void main() {\n"
-        "    outColor = texture(samColor, uv, 0) * color;\n"
-        "}\n"
-        ;
-
-      shaderc_compiler_t compiler = shaderc_compiler_initialize();
-
-      shaderc_compilation_result_t vs_result = shaderc_compile_into_spv(
-        compiler, vs_code.c_str(), vs_code.size(),
-        shaderc_glsl_vertex_shader, "vs_code", "main", nullptr);
-      if (shaderc_result_get_compilation_status(vs_result) != shaderc_compilation_status_success) {
-        std::cerr << shaderc_result_get_error_message(vs_result) << std::endl;
-      }
-
-      shaderc_compilation_result_t ps_result = shaderc_compile_into_spv(
-        compiler, ps_code.c_str(), ps_code.size(),
-        shaderc_glsl_fragment_shader, "ps_code", "main", nullptr);
-      if (shaderc_result_get_compilation_status(ps_result) != shaderc_compilation_status_success) {
-        std::cerr << shaderc_result_get_error_message(ps_result) << std::endl;
-      }
-
-      //auto vs_bin = GetBinary(L"vspc.vert.spv");
-      //auto ps_bin = GetBinary(L"ps.frag.spv");
-
-      _vertex_shader = _shader_module_factory.createObject(_device_object, shaderc_result_get_length(vs_result), reinterpret_cast<const uint32_t*>(shaderc_result_get_bytes(vs_result)), VK_SHADER_STAGE_VERTEX_BIT, "main");
-      //_vertex_shader = _shader_module_factory.createObject(_device_object, vs_bin.second, reinterpret_cast<uint32_t*>(vs_bin.first.get()), VK_SHADER_STAGE_VERTEX_BIT, "main");
-
-      _pixel_shader = _shader_module_factory.createObject(_device_object, shaderc_result_get_length(ps_result), reinterpret_cast<const uint32_t*>(shaderc_result_get_bytes(ps_result)), VK_SHADER_STAGE_FRAGMENT_BIT, "main");
-      //_pixel_shader = _shader_module_factory.createObject(_device_object, ps_bin.second, reinterpret_cast<uint32_t*>(ps_bin.first.get()), VK_SHADER_STAGE_FRAGMENT_BIT, "main");
-
-      shaderc_result_release(ps_result);
-      shaderc_result_release(vs_result);
-      shaderc_compiler_release(compiler);
-    }
-
-    // Create pipeline
-    {
-      auto vertex_layout = Mesh::createVertexLayout();
-      _pipeline = _pipeline_factory.createObject(_device_object,
-        nullptr,
-        vertex_layout,
-        { _vertex_shader, _pixel_shader },
-        _pipeline_layout,
-        _render_pass);
     }
 
     // Create uniform buffer
@@ -331,28 +258,28 @@ public:
     _descriptor_set->updateDescriptorSetBuffer(_device_object, "Uniform", _uniform_buffer->_buffer, sizeof(glm::mat4));
     _descriptor_set->updateDescriptorSetSampler(_device_object, "Sampler", _sampler_object, _texture_image_view);
 
+    // Texture convert?
+    {
+      auto command_buffer = _command_pool_object->createObject(_device_object);
+      command_buffer->begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+
+      command_buffer->pipelineImageMemoryBarrier(
+        VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+        _texture_image,
+        0, VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_INPUT_ATTACHMENT_READ_BIT,
+        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+      command_buffer->end();
+
+      _queue_object->_submit_depot.add("Texture",
+        {}, nullptr, { command_buffer }, {});
+      _queue_object->registSubmitInfoName(1, { "Texture" });
+      _queue_object->submit(1, _fence);
+      _fence->waitForFence(_device_object);
+      _command_pool_object->destroyObject(command_buffer);
+    }
+
     //
-
-    auto cb = _command_pool_object->createObject(_device_object);
-    cb->begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
-
-    cb->pipelineImageMemoryBarrier(
-      VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-      _texture_image,
-      0, VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_INPUT_ATTACHMENT_READ_BIT,
-      VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-
-    cb->end();
-
-    _queue_object->_submit_depot.add("Texture",
-      {}, nullptr, { cb }, {});
-    _queue_object->registSubmitInfoName(1, { "Texture" });
-    _queue_object->submit(1, _fence);
-    _fence->waitForFence(_device_object);
-    _command_pool_object->destroyObject(cb);
-
-    //
-
     VkPipelineStageFlags pipe_stage_flags = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
     _queue_object->_submit_depot.add("Submit",
       { _semaphore },
@@ -361,6 +288,63 @@ public:
       {});
 
     _queue_object->registSubmitInfoName(0, { "Submit" });
+
+    _shader_compiler = shaderc_compiler_initialize();
+  }
+
+  auto createShaderModule(std::string code, std::string name, VkShaderStageFlagBits stage) {
+    shaderc_shader_kind kind;
+    switch (stage) {
+
+    case VK_SHADER_STAGE_VERTEX_BIT:
+      kind = shaderc_vertex_shader;
+      break;
+    case VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT:
+      kind = shaderc_tess_control_shader;
+      break;
+    case VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT:
+      kind = shaderc_tess_evaluation_shader;
+      break;
+    case VK_SHADER_STAGE_GEOMETRY_BIT:
+      kind = shaderc_geometry_shader;
+      break;
+    case VK_SHADER_STAGE_FRAGMENT_BIT:
+      kind = shaderc_fragment_shader;
+      break;
+    case VK_SHADER_STAGE_COMPUTE_BIT:
+      kind = shaderc_compute_shader;
+      break;
+    default:
+      return std::make_shared<ShaderModuleObject>(nullptr, stage, nullptr);
+    }
+
+    shaderc_compilation_result_t result = shaderc_compile_into_spv(
+      _shader_compiler, code.c_str(), code.size(),
+      kind, name.c_str(), "main", nullptr);
+    if (shaderc_result_get_compilation_status(result) != shaderc_compilation_status_success) {
+      std::cerr << shaderc_result_get_error_message(result) << std::endl;
+    }
+    auto shader_module = _shader_module_factory.createObject(_device_object, shaderc_result_get_length(result), reinterpret_cast<const uint32_t*>(shaderc_result_get_bytes(result)), stage, "main");
+
+    //auto bin = GetBinary(L".spv");
+    //shader = _shader_module_factory.createObject(_device_object, ps_bin.second, reinterpret_cast<uint32_t*>(bin.first.get()), stage, "main");
+
+    shaderc_result_release(result);
+    return shader_module;
+  }
+
+  void destroyShaderModule(std::shared_ptr<ShaderModuleObject>& shader) {
+    _shader_module_factory.destroyObject(shader);
+  }
+
+  void createPipeline(std::shared_ptr<ShaderModuleObject> vs, std::shared_ptr<ShaderModuleObject> ps) {
+    auto vertex_layout = Mesh::createVertexLayout();
+    _pipeline = _pipeline_factory.createObject(_device_object,
+      nullptr,
+      vertex_layout,
+      { vs, ps },
+      _pipeline_layout,
+      _render_pass);
   }
 
   auto createMesh(const std::vector<glm::vec3>& position, const std::vector<glm::vec3>& normal, const std::vector<glm::vec4>& color, const std::vector<glm::vec2>& texcoord, const std::vector<uint16_t>& index) {
@@ -370,6 +354,8 @@ public:
   }
 
   void uninit() {
+    shaderc_compiler_release(_shader_compiler);
+
     _fence->waitForFence(_device_object);
 
     _sampler_factory.destroyObject(_sampler_object);
@@ -392,9 +378,10 @@ public:
     }
     _framebuffers.clear();
 
-    _shader_module_factory.destroyObject(_pixel_shader);
+    //_shader_module_factory.destroyObject(_pixel_shader);
 
-    _shader_module_factory.destroyObject(_vertex_shader);
+    //_shader_module_factory.destroyObject(_vertex_shader);
+    _shader_module_factory.destroyAll();
 
     _render_pass_factory.destroyObject(_render_pass);
 
@@ -482,6 +469,8 @@ public:
   PosRotCamera _camera;
 protected:
 private:
+  shaderc_compiler_t _shader_compiler;
+
   AttachmentDescriptionDepot _attachment_description_depot;
   AttachmentReferenceDepot _attachment_reference_depot;
   SubpassDescriptionDepot _subpass_description_depot;
@@ -516,8 +505,6 @@ private:
   std::shared_ptr<DeviceObject> _device_object;
 
   std::vector<std::shared_ptr<MeshStatus>> _mesh_status;
-  std::shared_ptr<ShaderModuleObject> _vertex_shader;
-  std::shared_ptr<ShaderModuleObject> _pixel_shader;
   std::shared_ptr<RenderPassObject> _render_pass;
   std::vector<std::shared_ptr<FramebufferObject>> _framebuffers;
   std::shared_ptr<PipelineObject> _pipeline;

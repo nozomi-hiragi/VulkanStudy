@@ -14,8 +14,52 @@ Renderer _renderer;
 std::shared_ptr<MeshStatus> mesh1;
 std::shared_ptr<MeshStatus> mesh2;
 
+std::shared_ptr<ShaderModuleObject> vs;
+std::shared_ptr<ShaderModuleObject> ps;
+
 void initVulkan(GLFWwindow* window, uint32_t width, uint32_t height) {
   _renderer.init(APP_NAME, APP_VERSION, width, height, window);
+
+  std::string vs_code =
+    "#version 450\n"
+    "#extension GL_ARB_separate_shader_objects : enable\n"
+    "#extension GL_ARB_shading_language_420pack : enable\n"
+    "layout (binding = 0) uniform bufferVals {\n"
+    "    mat4 mvp;\n"
+    "} myBufferVals;\n"
+    "layout (location = 0) in vec3 pos;\n"
+    "layout (location = 1) in vec3 nor;\n"
+    "layout (location = 2) in vec4 inColor;\n"
+    "layout (location = 3) in vec2 tex;\n"
+    "\n"
+    "layout (location = 0) out vec4 outColor;\n"
+    "layout (location = 1) out vec2 outUv;\n"
+    "void main() {\n"
+    "   outColor = vec4(inColor.x,inColor.y,inColor.z, inColor.w);//inColor;\n"
+    "   outUv = tex;\n"
+    "   gl_Position = myBufferVals.mvp * vec4(pos.xyz, 1);\n"
+    "}\n"
+    ;
+
+  std::string ps_code =
+    "#version 450\n"
+    "#extension GL_ARB_separate_shader_objects : enable\n"
+    "#extension GL_ARB_shading_language_420pack : enable\n"
+    "layout(location = 0) in vec4 color;\n"
+    "layout(location = 1) in vec2 uv;\n"
+    "layout(binding = 1) uniform sampler2D samColor;\n"
+    "\n"
+    "layout(location = 0) out vec4 outColor;\n"
+    "void main() {\n"
+    "    outColor = texture(samColor, uv, 0) * color;\n"
+    "}\n"
+    ;
+
+  vs = _renderer.createShaderModule(vs_code, "vs_code", VK_SHADER_STAGE_VERTEX_BIT);
+  ps = _renderer.createShaderModule(ps_code, "ps_code", VK_SHADER_STAGE_FRAGMENT_BIT);
+
+  _renderer.createPipeline(vs, ps);
+
   _renderer._camera._position = glm::vec3(0, 0, -10);
 
   glfwSetKeyCallback(window, [](GLFWwindow* window, int key, int scancode, int action, int mods) {
@@ -105,5 +149,7 @@ void updateVulkan() {
 }
 
 void uninitVulkan() {
+  _renderer.destroyShaderModule(vs);
+  _renderer.destroyShaderModule(ps);
   _renderer.uninit();
 }

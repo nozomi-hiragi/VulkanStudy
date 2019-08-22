@@ -31,6 +31,13 @@ public:
     }
   }
 
+  void destroyAll() {
+    for (auto& it : _container) {
+      _destroyCore(it);
+    }
+    _container.clear();
+  }
+
 protected:
   virtual std::shared_ptr<Object> _createCore(const Params...) = 0;
   virtual void _destroyCore(std::shared_ptr<Object>) = 0;
