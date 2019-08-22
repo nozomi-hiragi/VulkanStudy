@@ -39,6 +39,7 @@
 
 #include "Mesh.h"
 #include "DynamicUniformBufferRing.h"
+#include "PosRotCamera.h"
 
 class MeshStatus {
 public:
@@ -92,6 +93,9 @@ public:
   void init(const char* app_name, const uint32_t app_version, const uint32_t width, const uint32_t height, GLFWwindow* window) {
     _width = width;
     _height = height;
+
+    _camera._width = static_cast<float>(_width);
+    _camera._height = static_cast<float>(_height);
 
     _instance_object = _instance_factory.createObject(nullptr, app_name, app_version);
     _physical_device_object = _instance_object->_physical_devices[0];
@@ -294,15 +298,6 @@ public:
 
     // Create uniform buffer
     {
-      // Create matrix
-      {
-        projection = glm::perspectiveFov(glm::radians(45.f), static_cast<float>(_width), static_cast<float>(_height), 0.1f, 100.f);
-        view = glm::lookAt(glm::vec3(0, 0, -10), glm::vec3(0, 0, 0), glm::vec3(0, -1, 0));
-        model = glm::translate(glm::mat4(1), glm::vec3(0, 0, 0));
-        g_mvp = projection * view * model;
-      }
-
-      // Create uniform buffer
       uint32_t uniform_size = 16 * 1024 * 1024;
       _uniform_buffer = std::make_shared<DynamicUniformBufferRing>(_device_object, _physical_device_object, _buffer_factory, _device_memory_factory, uniform_size);
     }
@@ -444,6 +439,8 @@ public:
   }
 
   void update() {
+    _camera.update();
+
     _fence->waitForFence(_device_object, UINT64_MAX);
 
     _fence->resetFence(_device_object);
@@ -462,14 +459,19 @@ public:
 
     for (const auto& it : _mesh_status) {
       if (!it->isExist()) { continue; }
-      model = glm::translate(glm::mat4(1), it->_position);
-      model = model * glm::yawPitchRoll(it->_rotation.y, it->_rotation.x, it->_rotation.z);
-      model = glm::scale(model, it->_scale);
-      g_mvp = projection * view * model;
+      auto mvp = glm::scale(
+        glm::translate(
+          _camera.getViewProjection(),
+          it->_position
+        ) * glm::yawPitchRoll(
+            it->_rotation.y, it->_rotation.x, it->_rotation.z
+        ),
+        it->_scale
+      );
 
       uint32_t offset;
-      auto data = _uniform_buffer->getPointer(sizeof(g_mvp), &offset);
-      memcpy(data, &g_mvp, sizeof(g_mvp));
+      auto data = _uniform_buffer->getPointer(sizeof(mvp), &offset);
+      memcpy(data, &mvp, sizeof(mvp));
 
       _command_buffer_object->bindDescriptorSets(VK_PIPELINE_BIND_POINT_GRAPHICS, _pipeline_layout->_vk_pipeline_layout, 0, 1, &_descriptor_set->_vk_descriptor_set, 1, &offset);
       it->getInstance()->draw(_command_buffer_object);
@@ -491,6 +493,7 @@ public:
     _queue_object->present(present_info);
   }
 
+  PosRotCamera _camera;
 protected:
 private:
   AttachmentDescriptionDepot _attachment_description_depot;
@@ -558,9 +561,4 @@ private:
   uint32_t _height;
 
   uint32_t g_current_buffer = 0;
-
-  glm::mat4 g_mvp;
-  glm::mat4 projection;
-  glm::mat4 view;
-  glm::mat4 model;
 };

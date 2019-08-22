@@ -16,20 +16,41 @@ std::shared_ptr<MeshStatus> mesh2;
 
 void initVulkan(GLFWwindow* window, uint32_t width, uint32_t height) {
   _renderer.init(APP_NAME, APP_VERSION, width, height, window);
+  _renderer._camera._position = glm::vec3(0, 0, -10);
 
   glfwSetKeyCallback(window, [](GLFWwindow* window, int key, int scancode, int action, int mods) {
+    if (key == GLFW_KEY_A && (action == GLFW_PRESS || action == GLFW_REPEAT)) {
+      _renderer._camera._position.x -= 0.1f;
+    }
+    if (key == GLFW_KEY_D && (action == GLFW_PRESS || action == GLFW_REPEAT)) {
+      _renderer._camera._position.x += 0.1f;
+    }
+    if (key == GLFW_KEY_S && (action == GLFW_PRESS || action == GLFW_REPEAT)) {
+      _renderer._camera._position.z -= 0.1f;
+    }
+    if (key == GLFW_KEY_W && (action == GLFW_PRESS || action == GLFW_REPEAT)) {
+      _renderer._camera._position.z += 0.1f;
+    }
+    if (key == GLFW_KEY_Q && (action == GLFW_PRESS || action == GLFW_REPEAT)) {
+      _renderer._camera._position.y -= 0.1f;
+    }
+    if (key == GLFW_KEY_E && (action == GLFW_PRESS || action == GLFW_REPEAT)) {
+      _renderer._camera._position.y += 0.1f;
+    }
+
     if (key == GLFW_KEY_LEFT && (action == GLFW_PRESS || action == GLFW_REPEAT)) {
-      mesh1->_position.x -= 0.1f;
+      _renderer._camera._rotation.y -= 0.1f;
     }
     if (key == GLFW_KEY_RIGHT && (action == GLFW_PRESS || action == GLFW_REPEAT)) {
-      mesh1->_position.x += 0.1f;
+      _renderer._camera._rotation.y += 0.1f;
     }
     if (key == GLFW_KEY_DOWN && (action == GLFW_PRESS || action == GLFW_REPEAT)) {
-      mesh1->_position.y -= 0.1f;
+      _renderer._camera._rotation.x += 0.1f;
     }
     if (key == GLFW_KEY_UP && (action == GLFW_PRESS || action == GLFW_REPEAT)) {
-      mesh1->_position.y += 0.1f;
+      _renderer._camera._rotation.x -= 0.1f;
     }
+
   });
 
   std::vector<glm::vec3> pos = {
@@ -67,15 +88,16 @@ void initVulkan(GLFWwindow* window, uint32_t width, uint32_t height) {
 
   mesh1 = _renderer.createMesh(pos, nor, col, tex, idx);
   mesh1->_scale.x = 2;
+  mesh1->_rotation.x = glm::pi<float>()*0.5f;
 
   mesh2 = _renderer.createMesh(pos, nor, col, tex, idx);
   mesh2->_scale.y = 2;
+  mesh2->_rotation.y = glm::pi<float>()*0.5f;
 }
 int frame = 0;
 void updateVulkan() {
   frame++;
 
-  mesh1->_rotation.y = sin(frame * 0.05f);
 
   mesh2->_position.x = sin(frame * 0.01f);
   mesh2->_rotation.y = cos(frame * 0.05f);

@@ -209,5 +209,8 @@
     <ClInclude Include="DynamicUniformBufferRing.h">
       <Filter>header</Filter>
     </ClInclude>
+    <ClInclude Include="PosRotCamera.h">
+      <Filter>header</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

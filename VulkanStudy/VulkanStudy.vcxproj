@@ -123,6 +123,7 @@
     <ClInclude Include="PipelineLayoutObject.h" />
     <ClInclude Include="PipelineObject.h" />
     <ClInclude Include="PipelineVertexInputStateDepot.h" />
+    <ClInclude Include="PosRotCamera.h" />
     <ClInclude Include="QueueDepot.h" />
     <ClInclude Include="QueueObject.h" />
     <ClInclude Include="Renderer.h" />
