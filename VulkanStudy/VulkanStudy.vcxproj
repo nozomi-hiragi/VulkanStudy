@@ -94,6 +94,8 @@
     <ClInclude Include="CommandBufferObject.h" />
     <ClInclude Include="CommandPoolFactory.h" />
     <ClInclude Include="CommandPoolObject.h" />
+    <ClInclude Include="ConstantBufferLayoutFactory.h" />
+    <ClInclude Include="ConstantBufferLayoutObject.h" />
     <ClInclude Include="DescriptorPoolFactory.h" />
     <ClInclude Include="DescriptorPoolObject.h" />
     <ClInclude Include="DescriptorSetObject.h" />

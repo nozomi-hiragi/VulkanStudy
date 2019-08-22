@@ -36,6 +36,7 @@
 #include "DescriptorSetLayoutFactory.h"
 #include "DescriptorPoolFactory.h"
 #include "DeviceMemoryFactory.h"
+#include "ConstantBufferLayoutFactory.h"
 
 #include "Mesh.h"
 #include "DynamicUniformBufferRing.h"
@@ -137,13 +138,7 @@ public:
         nullptr
       }
     };
-
-    _descriptor_set_layout = _descriptor_set_layout_factory.createObject(_device_object, descriptor_set_layout_bindings);
-    _descriptor_pool = _descriptor_pool_factory.createObject(_device_object);
-    _descriptor_set = _descriptor_pool->createObject(_device_object, _descriptor_set_layout);
-    _pipeline_layout = _pipeline_layout_factory.createObject(_device_object, { _descriptor_set_layout->_vk_descriptor_set_layout });
-
-
+    _constant_buffer_layout = _constant_buffer_layout_factory.createObject(_device_object, descriptor_set_layout_bindings);
 
     _command_buffer_object->setViewSize(_width, _height);
     _command_buffer_object->setClearColorValue(0, VkClearColorValue({ {0.2f, 0.2f, 0.2f, 0.2f} }));
@@ -252,8 +247,8 @@ public:
     _sampler_object = _sampler_factory.createObject(_device_object, VK_FILTER_NEAREST, VK_FILTER_NEAREST, VK_SAMPLER_MIPMAP_MODE_NEAREST, 0, 0.f);
 
     // Update descriptor sets
-    _descriptor_set->updateDescriptorSetBuffer(_device_object, 0, _uniform_buffer->_buffer, sizeof(glm::mat4));
-    _descriptor_set->updateDescriptorSetSampler(_device_object, 1, _sampler_object, _texture_image_view);
+    _constant_buffer_layout->_descriptor_set->updateDescriptorSetBuffer(_device_object, 0, _uniform_buffer->_buffer, sizeof(glm::mat4));
+    _constant_buffer_layout->_descriptor_set->updateDescriptorSetSampler(_device_object, 1, _sampler_object, _texture_image_view);
 
     // Texture convert?
     {
@@ -340,7 +335,7 @@ public:
       nullptr,
       vertex_layout,
       { vs, ps },
-      _pipeline_layout,
+      _constant_buffer_layout->_pipeline_layout,
       _render_pass);
   }
 
@@ -383,10 +378,9 @@ public:
 
     _buffer_factory.executeDestroy();
 
-    _pipeline_layout_factory.destroyObject(_pipeline_layout);
-    _descriptor_pool->destroyObject(_descriptor_set);
-    _descriptor_pool_factory.destroyObject(_descriptor_pool);
-    _descriptor_set_layout_factory.destroyObject(_descriptor_set_layout);
+    _constant_buffer_layout_factory.destroyObject(_constant_buffer_layout);
+    _constant_buffer_layout_factory.destroyAll();
+
     _fence_factory.destroyObject(_fence);
     _semaphore_factory.destroyObject(_semaphore);
     _image_view_factory.destroyObject(_depth_image_view_object);
@@ -440,7 +434,7 @@ public:
       auto data = _uniform_buffer->getPointer(sizeof(mvp), &offset);
       memcpy(data, &mvp, sizeof(mvp));
 
-      _command_buffer_object->bindDescriptorSets(VK_PIPELINE_BIND_POINT_GRAPHICS, _pipeline_layout->_vk_pipeline_layout, 0, 1, &_descriptor_set->_vk_descriptor_set, 1, &offset);
+      _command_buffer_object->bindDescriptorSets(VK_PIPELINE_BIND_POINT_GRAPHICS, _constant_buffer_layout->_pipeline_layout->_vk_pipeline_layout, 0, 1, &_constant_buffer_layout->_descriptor_set->_vk_descriptor_set, 1, &offset);
       it->getInstance()->draw(_command_buffer_object);
     }
 
@@ -487,9 +481,7 @@ private:
   ImageViewFactory _image_view_factory;
   SemaphoreFactory _semaphore_factory;
   FenceFactory _fence_factory;
-  DescriptorSetLayoutFactory _descriptor_set_layout_factory;
-  DescriptorPoolFactory _descriptor_pool_factory;
-  PipelineLayoutFactory _pipeline_layout_factory;
+  ConstantBufferLayoutFactory _constant_buffer_layout_factory;
 
   std::shared_ptr<InstanceObject> _instance_object;
   std::shared_ptr<PhysicalDeviceObject> _physical_device_object;
@@ -515,10 +507,7 @@ private:
   std::shared_ptr<ImageViewObject> _depth_image_view_object;
   std::shared_ptr<SemaphoreObject> _semaphore;
   std::shared_ptr<FenceObject> _fence;
-  std::shared_ptr<DescriptorSetLayoutObject> _descriptor_set_layout;
-  std::shared_ptr<DescriptorPoolObject> _descriptor_pool;
-  std::shared_ptr<DescriptorSetObject> _descriptor_set;
-  std::shared_ptr<PipelineLayoutObject> _pipeline_layout;
+  std::shared_ptr<ConstantBufferLayout> _constant_buffer_layout;
 
   std::shared_ptr<DynamicUniformBufferRing> _uniform_buffer;
 

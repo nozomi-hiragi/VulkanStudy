@@ -209,5 +209,11 @@
     <ClInclude Include="VertexLayoutBuilder.h">
       <Filter>header\wrap</Filter>
     </ClInclude>
+    <ClInclude Include="ConstantBufferLayoutObject.h">
+      <Filter>header\wrap</Filter>
+    </ClInclude>
+    <ClInclude Include="ConstantBufferLayoutFactory.h">
+      <Filter>header\wrap</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

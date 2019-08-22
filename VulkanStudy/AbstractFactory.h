@@ -31,7 +31,7 @@ public:
     }
   }
 
-  void destroyAll() {
+  virtual void destroyAll() {
     for (auto& it : _container) {
       _destroyCore(it);
     }
