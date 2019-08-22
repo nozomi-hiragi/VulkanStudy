@@ -8,12 +8,8 @@
 #include "DescriptorSetLayoutObject.h"
 #include "DeviceObject.h"
 
-#include "DescriptorSetLayoutDepot.h"
-
-class DescriptorSetLayoutFactory : public AbstractFactory<DescriptorSetLayoutObject, DeviceObject, const std::vector<std::string>&> {
+class DescriptorSetLayoutFactory : public AbstractFactory<DescriptorSetLayoutObject, DeviceObject, const std::vector<VkDescriptorSetLayoutBinding>&> {
 public:
-  DescriptorSetLayoutFactory(DescriptorSetLayoutBindingDepot& descriptor_set_layout_binding_depot) : _descriptor_set_layout_binding_depot(descriptor_set_layout_binding_depot) {
-  }
 
 protected:
 private:
@@ -27,24 +23,16 @@ private:
     vkDestroyDescriptorSetLayout(device, descriptor_set_layout, nullptr);
   }
 
-  std::shared_ptr<DescriptorSetLayoutObject> _createCore(const std::vector<std::string>& descriptor_set_layout_binding_names) {
-    std::vector<VkDescriptorSetLayoutBinding> _descriptor_set_layout_bindings;
-    _descriptor_set_layout_bindings.reserve(descriptor_set_layout_binding_names.size());
-    for (const auto& it : descriptor_set_layout_binding_names) {
-      _descriptor_set_layout_bindings.push_back(_descriptor_set_layout_binding_depot.get(it));
-    }
-
+  std::shared_ptr<DescriptorSetLayoutObject> _createCore(const std::vector<VkDescriptorSetLayoutBinding>& descriptor_set_layout_bindings) {
     VkDescriptorSetLayoutCreateInfo descriptor_set_layout_info = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
-    descriptor_set_layout_info.bindingCount = static_cast<uint32_t>(_descriptor_set_layout_bindings.size());
-    descriptor_set_layout_info.pBindings = _descriptor_set_layout_bindings.data();
+    descriptor_set_layout_info.bindingCount = static_cast<uint32_t>(descriptor_set_layout_bindings.size());
+    descriptor_set_layout_info.pBindings = descriptor_set_layout_bindings.data();
 
     auto vk_descriptoir_set_layout = _createVkDescriptorSetLayout(_parent->_vk_device, descriptor_set_layout_info);
-    return std::make_shared<DescriptorSetLayoutObject>(vk_descriptoir_set_layout, _descriptor_set_layout_binding_depot);
+    return std::make_shared<DescriptorSetLayoutObject>(vk_descriptoir_set_layout, std::move(descriptor_set_layout_bindings));
   }
 
   void _destroyCore(std::shared_ptr<DescriptorSetLayoutObject> object) {
     _destroyVkDescriptorSetLayout(_parent->_vk_device, object->_vk_descriptor_set_layout);
   }
-
-  DescriptorSetLayoutBindingDepot& _descriptor_set_layout_binding_depot;
 };

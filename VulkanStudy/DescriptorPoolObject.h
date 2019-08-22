@@ -35,7 +35,7 @@ private:
     descriptor_set_info.pSetLayouts = &descriptor_set_layout->_vk_descriptor_set_layout;
 
     auto vk_pipeline_layout = _allocateVkDescriptorSet(_parent->_vk_device, descriptor_set_info);
-    return std::make_shared<DescriptorSetObject>(vk_pipeline_layout, descriptor_set_layout->_descriptor_set_layout_binding_depot);
+    return std::make_shared<DescriptorSetObject>(vk_pipeline_layout, descriptor_set_layout->_vk_descriptor_set_layout_bindings);
   }
 
   void _destroyCore(std::shared_ptr<DescriptorSetObject> object) {

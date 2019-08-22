@@ -85,7 +85,7 @@ class Renderer {
 public:
   Renderer()
     :_render_pass_factory(_attachment_description_depot, _attachment_reference_depot, _subpass_description_depot)
-    , _descriptor_set_layout_factory(_descriptor_set_layout_binding_depot) {
+  {
   }
 
   ~Renderer() {
@@ -120,23 +120,25 @@ public:
     _depth_image_view_object = _image_view_factory.createObject(_device_object, _depth_image_object);
     _semaphore = _semaphore_factory.createObject(_device_object);
     _fence = _fence_factory.createObject(_device_object);
-    _descriptor_set_layout_binding_depot.add("Uniform",
-      0,
-      VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
-      1,
-      VK_SHADER_STAGE_VERTEX_BIT,
-      nullptr
-    );
-    _descriptor_set_layout_binding_depot.add("Sampler",
-      1,
-      VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-      1,
-      VK_SHADER_STAGE_FRAGMENT_BIT,
-      nullptr
-    );
 
-    std::vector<std::string> descriptor_set_layout_binding_names = { "Uniform", "Sampler" };
-    _descriptor_set_layout = _descriptor_set_layout_factory.createObject(_device_object, descriptor_set_layout_binding_names);
+    std::vector<VkDescriptorSetLayoutBinding> descriptor_set_layout_bindings = {
+      {
+        0,
+        VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
+        1,
+        VK_SHADER_STAGE_VERTEX_BIT,
+        nullptr
+      },
+      {
+        1,
+        VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+        1,
+        VK_SHADER_STAGE_FRAGMENT_BIT,
+        nullptr
+      }
+    };
+
+    _descriptor_set_layout = _descriptor_set_layout_factory.createObject(_device_object, descriptor_set_layout_bindings);
     _descriptor_pool = _descriptor_pool_factory.createObject(_device_object);
     _descriptor_set = _descriptor_pool->createObject(_device_object, _descriptor_set_layout);
     _pipeline_layout = _pipeline_layout_factory.createObject(_device_object, { _descriptor_set_layout->_vk_descriptor_set_layout });
@@ -203,11 +205,6 @@ public:
       }
     }
 
-    // Create shader module
-    {
-
-    }
-
     // Create uniform buffer
     {
       uint32_t uniform_size = 16 * 1024 * 1024;
@@ -255,8 +252,8 @@ public:
     _sampler_object = _sampler_factory.createObject(_device_object, VK_FILTER_NEAREST, VK_FILTER_NEAREST, VK_SAMPLER_MIPMAP_MODE_NEAREST, 0, 0.f);
 
     // Update descriptor sets
-    _descriptor_set->updateDescriptorSetBuffer(_device_object, "Uniform", _uniform_buffer->_buffer, sizeof(glm::mat4));
-    _descriptor_set->updateDescriptorSetSampler(_device_object, "Sampler", _sampler_object, _texture_image_view);
+    _descriptor_set->updateDescriptorSetBuffer(_device_object, 0, _uniform_buffer->_buffer, sizeof(glm::mat4));
+    _descriptor_set->updateDescriptorSetSampler(_device_object, 1, _sampler_object, _texture_image_view);
 
     // Texture convert?
     {
@@ -378,9 +375,6 @@ public:
     }
     _framebuffers.clear();
 
-    //_shader_module_factory.destroyObject(_pixel_shader);
-
-    //_shader_module_factory.destroyObject(_vertex_shader);
     _shader_module_factory.destroyAll();
 
     _render_pass_factory.destroyObject(_render_pass);
@@ -474,8 +468,6 @@ private:
   AttachmentDescriptionDepot _attachment_description_depot;
   AttachmentReferenceDepot _attachment_reference_depot;
   SubpassDescriptionDepot _subpass_description_depot;
-
-  DescriptorSetLayoutBindingDepot _descriptor_set_layout_binding_depot;
 
   InstanceFactory _instance_factory;
   SurfaceFactory _surface_factory;

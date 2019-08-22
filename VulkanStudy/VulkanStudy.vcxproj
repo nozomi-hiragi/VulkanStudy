@@ -96,7 +96,6 @@
     <ClInclude Include="CommandPoolObject.h" />
     <ClInclude Include="DescriptorPoolFactory.h" />
     <ClInclude Include="DescriptorPoolObject.h" />
-    <ClInclude Include="DescriptorSetLayoutDepot.h" />
     <ClInclude Include="DescriptorSetObject.h" />
     <ClInclude Include="DescriptorSetLayoutFactory.h" />
     <ClInclude Include="DescriptorSetLayoutObject.h" />
