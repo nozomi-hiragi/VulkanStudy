@@ -8,6 +8,7 @@
 #include "PhysicalDeviceObject.h"
 #include "DeviceMemoryFactory.h"
 #include "CommandBufferObject.h"
+#include "VertexLayoutBuilder.h"
 
 class Mesh {
 public:
@@ -106,6 +107,15 @@ public:
     constexpr uint32_t vertex_offset = 0;
     constexpr uint32_t first_instance = 0;
     command_buffer->drawIndexed(_index_count, instance_count, first_index, vertex_offset, first_instance);
+  }
+
+  static auto createVertexLayout() {
+    return std::move(VertexLayoutBuilder()
+      .begin(0, 0).setLayout(VK_FORMAT_R32G32B32_SFLOAT)
+      .begin(1, 1).setLayout(VK_FORMAT_R32G32B32_SFLOAT)
+      .begin(2, 2).setLayout(VK_FORMAT_R32G32B32A32_SFLOAT)
+      .begin(3, 3).setLayout(VK_FORMAT_R32G32_SFLOAT)
+      .build());
   }
 
 protected:

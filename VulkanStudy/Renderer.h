@@ -270,21 +270,13 @@ public:
       shaderc_compiler_release(compiler);
     }
 
-    // Define vertex input
-    auto vertex_layout = VertexLayoutBuilder()
-      .begin(0, 0).setLayout(VK_FORMAT_R32G32B32_SFLOAT)
-      .begin(1, 1).setLayout(VK_FORMAT_R32G32B32_SFLOAT)
-      .begin(2, 2).setLayout(VK_FORMAT_R32G32B32A32_SFLOAT)
-      .begin(3, 3).setLayout(VK_FORMAT_R32G32_SFLOAT)
-      .build();
-
     // Create pipeline
     {
-      std::vector<std::shared_ptr<ShaderModuleObject>> shader_objects = { _vertex_shader, _pixel_shader };
+      auto vertex_layout = Mesh::createVertexLayout();
       _pipeline = _pipeline_factory.createObject(_device_object,
         nullptr,
         vertex_layout,
-        shader_objects,
+        { _vertex_shader, _pixel_shader },
         _pipeline_layout,
         _render_pass);
     }

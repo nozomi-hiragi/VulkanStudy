@@ -43,11 +43,11 @@ public:
     fixBinding();
 
     std::vector<VkVertexInputAttributeDescription> input_attributes;
-    for (auto& bind_unit : _vertex_input_attributes) {
-      for (auto& it : bind_unit) {
-        input_attributes.push_back(it);
-      }
+    for (auto& it : _vertex_input_attributes) {
+      input_attributes.reserve(input_attributes.size() + it.size());
+      std::copy(it.begin(), it.end(), std::back_inserter(input_attributes));
     }
+    _vertex_input_attributes.clear();
 
     return std::move(std::make_tuple(std::move(_vertex_input_bindings), std::move(input_attributes)));
   }
