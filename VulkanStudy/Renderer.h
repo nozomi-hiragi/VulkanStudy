@@ -342,30 +342,31 @@ public:
 
     _sampler_object = _sampler_factory.createObject(_device_object, VK_FILTER_NEAREST, VK_FILTER_NEAREST, VK_SAMPLER_MIPMAP_MODE_NEAREST, 0, 0.f);
 
+    // Update descriptor sets
+    _descriptor_set->updateDescriptorSetBuffer(_device_object, "Uniform", _uniform_buffer->_buffer, sizeof(glm::mat4));
+    _descriptor_set->updateDescriptorSetSampler(_device_object, "Sampler", _sampler_object, _texture_image_view);
+
     //
 
-    _command_buffer_object->begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+    auto cb = _command_pool_object->createObject(_device_object);
+    cb->begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
 
-    _command_buffer_object->pipelineImageMemoryBarrier(
+    cb->pipelineImageMemoryBarrier(
       VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
       _texture_image,
       0, VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_INPUT_ATTACHMENT_READ_BIT,
       VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
-    _command_buffer_object->end();
+    cb->end();
 
     _queue_object->_submit_depot.add("Texture",
-      {}, nullptr, { _command_buffer_object }, {});
+      {}, nullptr, { cb }, {});
     _queue_object->registSubmitInfoName(1, { "Texture" });
     _queue_object->submit(1, _fence);
+    _fence->waitForFence(_device_object);
+    _command_pool_object->destroyObject(cb);
 
     //
-
-    // Update descriptor sets
-    _descriptor_set->updateDescriptorSetBuffer(_device_object->_vk_device, _descriptor_set_layout_binding_depot.get("Uniform"), _uniform_buffer->_buffer, sizeof(glm::mat4));
-    _descriptor_set->updateDescriptorSetSampler(_device_object->_vk_device, _descriptor_set_layout_binding_depot.get("Sampler"), _sampler_object, _texture_image_view);
-
-    // Create mesh
 
     VkPipelineStageFlags pipe_stage_flags = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
     _queue_object->_submit_depot.add("Submit",
@@ -384,7 +385,7 @@ public:
   }
 
   void uninit() {
-    _fence->waitForFence(_device_object, UINT64_MAX);
+    _fence->waitForFence(_device_object);
 
     _sampler_factory.destroyObject(_sampler_object);
 
@@ -441,7 +442,7 @@ public:
   void update() {
     _camera.update();
 
-    _fence->waitForFence(_device_object, UINT64_MAX);
+    _fence->waitForFence(_device_object);
 
     _fence->resetFence(_device_object);
 

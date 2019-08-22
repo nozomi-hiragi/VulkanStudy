@@ -13,7 +13,7 @@ public:
   ~FenceObject() {
   }
 
-  VkResult waitForFence(const std::shared_ptr<DeviceObject> device, uint64_t timeout);
+  VkResult waitForFence(const std::shared_ptr<DeviceObject> device, uint64_t timeout = UINT64_MAX);
 
   void resetFence(const std::shared_ptr<DeviceObject> device);
 

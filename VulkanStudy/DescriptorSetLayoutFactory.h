@@ -39,7 +39,7 @@ private:
     descriptor_set_layout_info.pBindings = _descriptor_set_layout_bindings.data();
 
     auto vk_descriptoir_set_layout = _createVkDescriptorSetLayout(_parent->_vk_device, descriptor_set_layout_info);
-    return std::make_shared<DescriptorSetLayoutObject>(vk_descriptoir_set_layout);
+    return std::make_shared<DescriptorSetLayoutObject>(vk_descriptoir_set_layout, _descriptor_set_layout_binding_depot);
   }
 
   void _destroyCore(std::shared_ptr<DescriptorSetLayoutObject> object) {
