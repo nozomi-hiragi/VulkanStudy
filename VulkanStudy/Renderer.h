@@ -122,6 +122,10 @@ public:
     _semaphore = _semaphore_factory.createObject(_device_object);
     _fence = _fence_factory.createObject(_device_object);
 
+    _command_buffer_object->setViewSize(_width, _height);
+    _command_buffer_object->setClearColorValue(0, VkClearColorValue({ {0.2f, 0.2f, 0.2f, 0.2f} }));
+    _command_buffer_object->setClearDepthStencilValue(1, VkClearDepthStencilValue({ 1.0f, 0 }));
+
     std::vector<VkDescriptorSetLayoutBinding> descriptor_set_layout_bindings = {
       {
         0,
@@ -139,10 +143,6 @@ public:
       }
     };
     _constant_buffer_layout = _constant_buffer_layout_factory.createObject(_device_object, descriptor_set_layout_bindings);
-
-    _command_buffer_object->setViewSize(_width, _height);
-    _command_buffer_object->setClearColorValue(0, VkClearColorValue({ {0.2f, 0.2f, 0.2f, 0.2f} }));
-    _command_buffer_object->setClearDepthStencilValue(1, VkClearDepthStencilValue({ 1.0f, 0 }));
 
     // Create render pass
     {
@@ -187,17 +187,6 @@ public:
       );
 
       _render_pass = _render_pass_factory.createObject(_device_object, { "ColorDefaultDescription", "DepthDefaultDescription" }, { "SubpassDefault" });
-    }
-
-    // Create Framebuffer
-    {
-      _framebuffers.reserve(_swapchain_object->_swapchain_image_count);
-      for (uint32_t i = 0; i < _swapchain_object->_swapchain_image_count; i++) {
-        _framebuffers.push_back(_framebuffer_factory.createObject(
-          _device_object,
-          _render_pass,
-          { _swapchain_image_view_objects[i], _depth_image_view_object }));
-      }
     }
 
     // Create uniform buffer
@@ -287,7 +276,6 @@ public:
   auto createShaderModule(std::string code, std::string name, VkShaderStageFlagBits stage) {
     shaderc_shader_kind kind;
     switch (stage) {
-
     case VK_SHADER_STAGE_VERTEX_BIT:
       kind = shaderc_vertex_shader;
       break;
@@ -337,6 +325,17 @@ public:
       { vs, ps },
       _constant_buffer_layout->_pipeline_layout,
       _render_pass);
+  }
+
+  void createSwapchainFrameBuffer() {
+    _framebuffers.reserve(_swapchain_object->_swapchain_image_count);
+    for (uint32_t i = 0; i < _swapchain_object->_swapchain_image_count; i++) {
+      _framebuffers.push_back(_framebuffer_factory.createObject(
+        _device_object,
+        _render_pass,
+        { _swapchain_image_view_objects[i], _depth_image_view_object }
+      ));
+    }
   }
 
   auto createMesh(const std::vector<glm::vec3>& position, const std::vector<glm::vec3>& normal, const std::vector<glm::vec4>& color, const std::vector<glm::vec2>& texcoord, const std::vector<uint16_t>& index) {

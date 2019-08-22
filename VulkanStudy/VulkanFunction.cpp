@@ -59,6 +59,7 @@ void initVulkan(GLFWwindow* window, uint32_t width, uint32_t height) {
   ps = _renderer.createShaderModule(ps_code, "ps_code", VK_SHADER_STAGE_FRAGMENT_BIT);
 
   _renderer.createPipeline(vs, ps);
+  _renderer.createSwapchainFrameBuffer();
 
   _renderer._camera._position = glm::vec3(0, 0, -10);
 
