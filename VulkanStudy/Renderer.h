@@ -40,6 +40,7 @@
 #include "Mesh.h"
 #include "DynamicUniformBufferRing.h"
 #include "PosRotCamera.h"
+#include "VertexLayoutBuilder.h"
 
 class MeshStatus {
 public:
@@ -270,30 +271,22 @@ public:
     }
 
     // Define vertex input
-    {
-      _pipeline_factory.getVertexInputBindingDescriptionDepot().add("Vertex", 0, sizeof(glm::vec3), VK_VERTEX_INPUT_RATE_VERTEX);
-      _pipeline_factory.getVertexInputBindingDescriptionDepot().add("Normal", 1, sizeof(glm::vec3), VK_VERTEX_INPUT_RATE_VERTEX);
-      _pipeline_factory.getVertexInputBindingDescriptionDepot().add("Color", 2, sizeof(glm::vec4), VK_VERTEX_INPUT_RATE_VERTEX);
-      _pipeline_factory.getVertexInputBindingDescriptionDepot().add("Texcoord", 3, sizeof(glm::vec2), VK_VERTEX_INPUT_RATE_VERTEX);
-
-      _pipeline_factory.getVertexInputAttributeDescriptionDepot().add("Vertex", 0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0);
-      _pipeline_factory.getVertexInputAttributeDescriptionDepot().add("Normal", 1, 1, VK_FORMAT_R32G32B32_SFLOAT, 0);
-      _pipeline_factory.getVertexInputAttributeDescriptionDepot().add("Color", 2, 2, VK_FORMAT_R32G32B32A32_SFLOAT, 0);
-      _pipeline_factory.getVertexInputAttributeDescriptionDepot().add("Texcoord", 3, 3, VK_FORMAT_R32G32_SFLOAT, 0);
-    }
+    auto vertex_layout = VertexLayoutBuilder()
+      .begin(0, 0).setLayout(VK_FORMAT_R32G32B32_SFLOAT)
+      .begin(1, 1).setLayout(VK_FORMAT_R32G32B32_SFLOAT)
+      .begin(2, 2).setLayout(VK_FORMAT_R32G32B32A32_SFLOAT)
+      .begin(3, 3).setLayout(VK_FORMAT_R32G32_SFLOAT)
+      .build();
 
     // Create pipeline
     {
-      std::vector<std::string> vertex_input_binding_description_names = { "Vertex", "Normal", "Color", "Texcoord" };
-      std::vector<std::string> vertex_input_attribute_description_names = { "Vertex", "Normal", "Color", "Texcoord" };
       std::vector<std::shared_ptr<ShaderModuleObject>> shader_objects = { _vertex_shader, _pixel_shader };
       _pipeline = _pipeline_factory.createObject(_device_object,
         nullptr,
-        vertex_input_binding_description_names,
-        vertex_input_attribute_description_names,
+        vertex_layout,
         shader_objects,
-        _pipeline_layout->_vk_pipeline_layout,
-        _render_pass->_vk_render_pass);
+        _pipeline_layout,
+        _render_pass);
     }
 
     // Create uniform buffer

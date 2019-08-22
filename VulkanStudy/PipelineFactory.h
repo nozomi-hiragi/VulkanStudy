@@ -6,18 +6,19 @@
 #include "PipelineObject.h"
 #include "DeviceObject.h"
 #include "ShaderModuleObject.h"
+#include "PipelineLayoutObject.h"
+#include "RenderPassObject.h"
 
-#include "PipelineVertexInputStateDepot.h"
-
-class PipelineFactory : public AbstractFactory<PipelineObject, DeviceObject, const VkPipelineCache, std::vector<std::string>&, std::vector<std::string>&, const std::vector<std::shared_ptr<ShaderModuleObject>>&, const VkPipelineLayout, const VkRenderPass> {
+class PipelineFactory : public AbstractFactory<
+  PipelineObject,
+  DeviceObject,
+  const VkPipelineCache,
+  std::tuple<std::vector<VkVertexInputBindingDescription>, std::vector<VkVertexInputAttributeDescription>>&,
+  const std::vector<std::shared_ptr<ShaderModuleObject>>&,
+  std::shared_ptr<PipelineLayoutObject>,
+  std::shared_ptr<RenderPassObject>
+> {
 public:
-  auto& getVertexInputBindingDescriptionDepot() {
-    return _vertex_input_binding_descriptor_depot;
-  }
-  auto& getVertexInputAttributeDescriptionDepot() {
-    return _vertex_input_attribute_description_depot;
-  }
-
 protected:
 private:
   static VkPipeline _createVkGraphicsPipeline(VkDevice device, const VkPipelineCache pipeline_cache, VkPipelineShaderStageCreateInfo* shader_stages, VkPipelineVertexInputStateCreateInfo& vertex_input_info, VkPipelineLayout pipeline_layout, VkRenderPass render_pass) {
@@ -104,7 +105,13 @@ private:
     vkDestroyPipeline(device, pipeline, nullptr);
   }
 
-  std::shared_ptr<PipelineObject> _createCore(const VkPipelineCache pipeline_cache, std::vector<std::string>& vertex_input_binding_description_names, std::vector<std::string>& vertex_input_attribute_description_names, const std::vector<std::shared_ptr<ShaderModuleObject>>& shader_modules, const VkPipelineLayout pipeline_layout, const VkRenderPass render_pass) {
+  std::shared_ptr<PipelineObject> _createCore(
+    const VkPipelineCache pipeline_cache,
+    std::tuple<std::vector<VkVertexInputBindingDescription>, std::vector<VkVertexInputAttributeDescription>>& vertex_layout,
+    const std::vector<std::shared_ptr<ShaderModuleObject>>& shader_modules,
+    std::shared_ptr<PipelineLayoutObject> pipeline_layout,
+    std::shared_ptr<RenderPassObject> render_pass
+  ) {
     std::vector<VkPipelineShaderStageCreateInfo> shader_stages;
     shader_stages.reserve(shader_modules.size());
     for (const auto& it : shader_modules) {
@@ -115,17 +122,8 @@ private:
       shader_stages.push_back(shader_stage_info);
     }
 
-    std::vector<VkVertexInputBindingDescription> vertex_binding_descriptions;
-    vertex_binding_descriptions.reserve(vertex_input_binding_description_names.size());
-    for (const auto& it : vertex_input_binding_description_names) {
-      vertex_binding_descriptions.push_back(_vertex_input_binding_descriptor_depot.get(it));
-    }
-
-    std::vector<VkVertexInputAttributeDescription> vertex_attribute_descriptions;
-    vertex_attribute_descriptions.reserve(vertex_input_attribute_description_names.size());
-    for (const auto& it : vertex_input_attribute_description_names) {
-      vertex_attribute_descriptions.push_back(_vertex_input_attribute_description_depot.get(it));
-    }
+    std::vector<VkVertexInputBindingDescription>& vertex_binding_descriptions = std::get<0>(vertex_layout);
+    std::vector<VkVertexInputAttributeDescription>& vertex_attribute_descriptions = std::get<1>(vertex_layout);
 
     VkPipelineVertexInputStateCreateInfo vertex_input_info = { VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO };
     vertex_input_info.vertexBindingDescriptionCount = static_cast<uint32_t>(vertex_binding_descriptions.size());
@@ -133,14 +131,11 @@ private:
     vertex_input_info.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertex_attribute_descriptions.size());
     vertex_input_info.pVertexAttributeDescriptions = vertex_attribute_descriptions.data();
 
-    auto vk_descriptor_pool = _createVkGraphicsPipeline(_parent->_vk_device, pipeline_cache, shader_stages.data(), vertex_input_info, pipeline_layout, render_pass);
+    auto vk_descriptor_pool = _createVkGraphicsPipeline(_parent->_vk_device, pipeline_cache, shader_stages.data(), vertex_input_info, pipeline_layout->_vk_pipeline_layout, render_pass->_vk_render_pass);
     return std::make_shared<PipelineObject>(vk_descriptor_pool);
   }
 
   void _destroyCore(std::shared_ptr<PipelineObject> object) {
     _destroyVkPipeline(_parent->_vk_device, object->_vk_pipeline);
   }
-
-  VertexInputBindingDescriptionDepot _vertex_input_binding_descriptor_depot;
-  VertexInputAttributeDescriptionDepot _vertex_input_attribute_description_depot;
 };

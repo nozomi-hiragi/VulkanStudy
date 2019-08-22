@@ -188,9 +188,6 @@
     <ClInclude Include="Mesh.h">
       <Filter>header</Filter>
     </ClInclude>
-    <ClInclude Include="PipelineVertexInputStateDepot.h">
-      <Filter>header</Filter>
-    </ClInclude>
     <ClInclude Include="RenderPassDeport.h">
       <Filter>header</Filter>
     </ClInclude>
@@ -211,6 +208,9 @@
     </ClInclude>
     <ClInclude Include="PosRotCamera.h">
       <Filter>header</Filter>
+    </ClInclude>
+    <ClInclude Include="VertexLayoutBuilder.h">
+      <Filter>header\wrap</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

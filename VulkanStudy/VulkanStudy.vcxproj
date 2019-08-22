@@ -122,7 +122,6 @@
     <ClInclude Include="PipelineLayoutFactory.h" />
     <ClInclude Include="PipelineLayoutObject.h" />
     <ClInclude Include="PipelineObject.h" />
-    <ClInclude Include="PipelineVertexInputStateDepot.h" />
     <ClInclude Include="PosRotCamera.h" />
     <ClInclude Include="QueueDepot.h" />
     <ClInclude Include="QueueObject.h" />
@@ -141,6 +140,7 @@
     <ClInclude Include="SwapchainFactory.h" />
     <ClInclude Include="SwapchainObject.h" />
     <ClInclude Include="Transporter.h" />
+    <ClInclude Include="VertexLayoutBuilder.h" />
     <ClInclude Include="VulkanFunction.h" />
     <ClInclude Include="WindowManager.h" />
   </ItemGroup>
