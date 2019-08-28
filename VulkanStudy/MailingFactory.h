@@ -2,7 +2,7 @@
 
 #include <functional>
 #include <iostream>
-#include <initializer_list>
+#include <vector>
 
 template<class Object, class... ReturnParams>
 class Borrowed {
@@ -53,6 +53,11 @@ public:
   }
 
   void borrowingRgequests(std::initializer_list<Order<Object, CreateParams, ReturnParams...>> orders) {
+    for (auto it : orders) {
+      borrowingRgequest(it);
+    }
+  }
+  void borrowingRgequests(std::vector<Order<Object, CreateParams, ReturnParams...>> orders) {
     for (auto it : orders) {
       borrowingRgequest(it);
     }

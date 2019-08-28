@@ -11,7 +11,7 @@
 class DynamicUniformBufferRing {
 public:
   DynamicUniformBufferRing(std::shared_ptr<DeviceObject> device,
-    std::shared_ptr<PhysicalDeviceObject> physical_device,
+    MemoryProperties memory_properties,
     BufferFactory& buffer_factory,
     DeviceMemoryFactory& device_memory_factory,
     const uint32_t size) : _total_size(size), _offset(0), _device(device), _buffer_factory(buffer_factory), _device_memory_factory(device_memory_factory)
@@ -22,7 +22,7 @@ public:
       _buffer = borrowed;
     };
     _buffer_factory.borrowingRgequest(buffer_order);
-    auto memory_type_index = physical_device->findProperties(_buffer.getObject(), VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    auto memory_type_index = memory_properties.findProperties(_buffer.getObject(), VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
     _memory = _device_memory_factory.createObject(device, _buffer.getObject()->_vk_memory_requirements.size, memory_type_index);
     _buffer.getObject()->bindBufferMemory(device, _memory, 0);
 

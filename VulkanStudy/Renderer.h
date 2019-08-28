@@ -127,6 +127,7 @@ public:
     };
     _instance_factory.borrowingRgequest(instance_order);
 
+    auto memory_properties = _physical_device_object->_memory_properties;
 
     _queue_object = _device_object->_queue_object;
     _command_pool_object = _command_pool_factory.createObject(_device_object, _queue_object);
@@ -134,7 +135,7 @@ public:
     _swapchain_object = _swapchain_factory.createObject(_device_object, _physical_device_object, _surface.getObject(), _width, _height);
     _depth_image_object = _image_factory.createObject(_device_object, VK_FORMAT_D16_UNORM, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, _width, _height, 1, VK_SAMPLE_COUNT_1_BIT, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_ASPECT_DEPTH_BIT);
     {
-      auto memory_type_index = _physical_device_object->findProperties(_depth_image_object, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+      auto memory_type_index = memory_properties.findProperties(_depth_image_object, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
       _depth_memory_object = _device_memory_factory.createObject(_device_object, _depth_image_object->_vk_memory_requirements.size, memory_type_index);
     }
     _depth_image_object->bindImageMemory(_device_object, _depth_memory_object, 0);
@@ -216,7 +217,7 @@ public:
     // Create uniform buffer
     {
       uint32_t uniform_size = 16 * 1024 * 1024;
-      _uniform_buffer = std::make_shared<DynamicUniformBufferRing>(_device_object, _physical_device_object, _buffer_factory, _device_memory_factory, uniform_size);
+      _uniform_buffer = std::make_shared<DynamicUniformBufferRing>(_device_object, memory_properties, _buffer_factory, _device_memory_factory, uniform_size);
     }
 
     // Texture
@@ -237,7 +238,7 @@ public:
       VK_IMAGE_ASPECT_COLOR_BIT);
 
     auto memory_property_bits = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-    auto memory_type_index = _physical_device_object->findProperties(_texture_image, memory_property_bits);
+    auto memory_type_index = memory_properties.findProperties(_texture_image, memory_property_bits);
     _texture_memory = _device_memory_factory.createObject(_device_object, _texture_image->_vk_memory_requirements.size, memory_type_index);
     _texture_image->bindImageMemory(_device_object, _texture_memory, 0);
 
@@ -363,7 +364,7 @@ public:
   }
 
   auto createMesh(const std::vector<glm::vec3>& position, const std::vector<glm::vec3>& normal, const std::vector<glm::vec4>& color, const std::vector<glm::vec2>& texcoord, const std::vector<uint16_t>& index) {
-    auto mesh = std::make_shared<Mesh>(position, normal, color, texcoord, index, _buffer_factory, _device_memory_factory, _physical_device_object, _device_object);
+    auto mesh = std::make_shared<Mesh>(position, normal, color, texcoord, index, _buffer_factory, _device_memory_factory, _physical_device_object->_memory_properties, _device_object);
     _mesh_status.push_back(std::make_shared<MeshStatus>(mesh));
     return _mesh_status.back();
   }
