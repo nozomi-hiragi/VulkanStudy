@@ -8,12 +8,24 @@
 #include "DeviceMemoryObject.h"
 #include "DeviceObject.h"
 
-class DeviceMemoryFactory : public StandardFactory<DeviceMemoryObject, DeviceObject, const VkDeviceSize, const uint32_t> {
-public:
-  DeviceMemoryFactory() {
-  }
+struct DeviceMemoryParams {
+  DeviceMemoryParams() {}
+  DeviceMemoryParams(std::shared_ptr<DeviceObject> device, const VkDeviceSize size, const uint32_t type) : device(device), size(size), type(type) {}
+  std::shared_ptr<DeviceObject> device;
+  VkDeviceSize size;
+  uint32_t type;
+};
 
-  ~DeviceMemoryFactory() {
+using DeviceMemoryOrder = Order<DeviceMemoryObject, DeviceMemoryParams>;
+using DeviceMemoryBorrowed = Borrowed<DeviceMemoryObject>;
+
+class DeviceMemoryFactory : public MailingFactory<DeviceMemoryObject, DeviceMemoryParams> {
+public:
+  void executeDestroy(std::shared_ptr<DeviceObject> device) {
+    while (!_destroy_queue.empty()) {
+      _destroyVkDeviceMemory(device->_vk_device, _destroy_queue.front());
+      _destroy_queue.pop();
+    }
   }
 
 protected:
@@ -32,13 +44,14 @@ private:
     vkFreeMemory(device, device_memory, nullptr);
   }
 
-  std::shared_ptr<DeviceMemoryObject> _createCore(VkDeviceSize size, uint32_t type) {
-    auto vk_device_memory = _createVkDeviceMemory(_parent->_vk_device, size, type);
+  std::shared_ptr<DeviceMemoryObject> _createObject(const DeviceMemoryParams& params) {
+    auto vk_device_memory = _createVkDeviceMemory(params.device->_vk_device, params.size, params.type);
     return std::make_shared<DeviceMemoryObject>(vk_device_memory);
   }
 
-  void _destroyCore(std::shared_ptr<DeviceMemoryObject> object) {
-    _destroyVkDeviceMemory(_parent->_vk_device, object->_vk_device_memory);
+  void _returnObject(DeviceMemoryObject* object) {
+    _destroy_queue.push(object->_vk_device_memory);
   }
 
+  std::queue<VkDeviceMemory> _destroy_queue;
 };

@@ -33,7 +33,7 @@ private:
     vkDestroySurfaceKHR(instance, surface, nullptr);
   }
 
-  std::shared_ptr<SurfaceObject> _createObject(SurfaceParams& params) {
+  std::shared_ptr<SurfaceObject> _createObject(const SurfaceParams& params) {
     auto vk_surface = _createVkSurface(params.instiace->_vk_instance, params.window);
     return std::make_shared<SurfaceObject>(vk_surface);
   }

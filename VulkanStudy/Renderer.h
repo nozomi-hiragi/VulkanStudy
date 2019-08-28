@@ -136,9 +136,14 @@ public:
     _depth_image_object = _image_factory.createObject(_device_object, VK_FORMAT_D16_UNORM, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, _width, _height, 1, VK_SAMPLE_COUNT_1_BIT, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_ASPECT_DEPTH_BIT);
     {
       auto memory_type_index = memory_properties.findProperties(_depth_image_object, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-      _depth_memory_object = _device_memory_factory.createObject(_device_object, _depth_image_object->_vk_memory_requirements.size, memory_type_index);
+      DeviceMemoryOrder order;
+      order.params = DeviceMemoryParams(_device_object, _depth_image_object->_vk_memory_requirements.size, memory_type_index);
+      order.address = [this](DeviceMemoryBorrowed borrowed) {
+        _depth_memory = borrowed;
+      };
+      _device_memory_factory.borrowingRgequest(order);
     }
-    _depth_image_object->bindImageMemory(_device_object, _depth_memory_object, 0);
+    _depth_image_object->bindImageMemory(_device_object, _depth_memory.getObject(), 0);
     _swapchain_image_view_objects.reserve(_swapchain_object->_swapchain_image_count);
     for (auto image : _swapchain_object->_swapchain_images) {
       _swapchain_image_view_objects.push_back(_image_view_factory.createObject(_device_object, image));
@@ -239,8 +244,13 @@ public:
 
     auto memory_property_bits = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
     auto memory_type_index = memory_properties.findProperties(_texture_image, memory_property_bits);
-    _texture_memory = _device_memory_factory.createObject(_device_object, _texture_image->_vk_memory_requirements.size, memory_type_index);
-    _texture_image->bindImageMemory(_device_object, _texture_memory, 0);
+    DeviceMemoryOrder order;
+    order.params = DeviceMemoryParams(_device_object, _texture_image->_vk_memory_requirements.size, memory_type_index);
+    order.address = [this](DeviceMemoryBorrowed borrowed) {
+      _texture_memory = borrowed;
+    };
+    _device_memory_factory.borrowingRgequest(order);
+    _texture_image->bindImageMemory(_device_object, _texture_memory.getObject(), 0);
 
     VkImageSubresource image_subresource = {};
     image_subresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -249,12 +259,12 @@ public:
     VkSubresourceLayout layout;
     vkGetImageSubresourceLayout(_device_object->_vk_device, _texture_image->_vk_image, &image_subresource, &layout);
 
-    char* data = (char*)_texture_memory->mapMemory(_device_object, 0, static_cast<uint32_t>(raw_texture.size() * sizeof(uint8_t)));
+    char* data = (char*)_texture_memory.getObject()->mapMemory(_device_object, 0, static_cast<uint32_t>(raw_texture.size() * sizeof(uint8_t)));
     auto row_size = sizeof(uint8_t) * 4 * 4;
     for (uint32_t i = 0; i < 3; i++) {
       memcpy(data + i * layout.rowPitch, raw_texture.data() + row_size * i, row_size);
     }
-    _texture_memory->unmapMemory(_device_object);
+    _texture_memory.getObject()->unmapMemory(_device_object);
 
     _texture_image_view = _image_view_factory.createObject(_device_object, _texture_image);
 
@@ -364,7 +374,11 @@ public:
   }
 
   auto createMesh(const std::vector<glm::vec3>& position, const std::vector<glm::vec3>& normal, const std::vector<glm::vec4>& color, const std::vector<glm::vec2>& texcoord, const std::vector<uint16_t>& index) {
-    auto mesh = std::make_shared<Mesh>(position, normal, color, texcoord, index, _buffer_factory, _device_memory_factory, _physical_device_object->_memory_properties, _device_object);
+    auto mesh = std::make_shared<Mesh>(position, normal, color, texcoord, index, _physical_device_object->_memory_properties);
+    _buffer_factory.borrowingRgequests(mesh->createBufferOrders(_device_object, [this, &mesh]() {
+      _device_memory_factory.borrowingRgequest(mesh->createMemoryOrder(_device_object));
+    }));
+
     _mesh_status.push_back(std::make_shared<MeshStatus>(mesh));
     return _mesh_status.back();
   }
@@ -378,7 +392,7 @@ public:
 
     _image_view_factory.destroyObject(_texture_image_view);
 
-    _device_memory_factory.destroyObject(_texture_memory);
+    _texture_memory.returnObject();
 
     _image_factory.destroyObject(_texture_image);
 
@@ -400,6 +414,9 @@ public:
 
     _uniform_buffer.reset();
 
+    _depth_memory.returnObject();
+
+    _device_memory_factory.executeDestroy(_device_object);
     _buffer_factory.executeDestroy(_device_object);
 
     _constant_buffer_layout_factory.destroyObject(_constant_buffer_layout);
@@ -412,7 +429,6 @@ public:
       _image_view_factory.destroyObject(image_view);
     }
     _swapchain_image_view_objects.clear();
-    _device_memory_factory.destroyObject(_depth_memory_object);
     _image_factory.destroyObject(_depth_image_object);
     _swapchain_factory.destroyObject(_swapchain_object);
     _command_pool_object->destroyObject(_command_buffer_object);
@@ -431,6 +447,7 @@ public:
     _swapchain_object->acquireNextImage(_device_object, UINT64_MAX, _semaphore, nullptr, &g_current_buffer);
 
     _buffer_factory.executeDestroy(_device_object);
+    _device_memory_factory.executeDestroy(_device_object);
 
     _command_buffer_object->begin(VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT);
 
@@ -510,7 +527,7 @@ private:
   std::vector<std::shared_ptr<FramebufferObject>> _framebuffers;
   std::shared_ptr<PipelineObject> _pipeline;
   std::shared_ptr<ImageObject> _texture_image;
-  std::shared_ptr<DeviceMemoryObject> _texture_memory;
+  DeviceMemoryBorrowed _texture_memory;
   std::shared_ptr<ImageViewObject> _texture_image_view;
   std::shared_ptr<SamplerObject> _sampler_object;
 
@@ -519,7 +536,7 @@ private:
   std::shared_ptr<CommandBufferObject> _command_buffer_object;
   std::shared_ptr<SwapchainObject> _swapchain_object;
   std::shared_ptr<ImageObject> _depth_image_object;
-  std::shared_ptr<DeviceMemoryObject> _depth_memory_object;
+  DeviceMemoryBorrowed _depth_memory;
   std::vector<std::shared_ptr<ImageViewObject>> _swapchain_image_view_objects;
   std::shared_ptr<ImageViewObject> _depth_image_view_object;
   std::shared_ptr<SemaphoreObject> _semaphore;

@@ -54,7 +54,7 @@ private:
     return std::move(memory_requirements);
   }
 
-  std::shared_ptr<BufferObject> _createObject(BufferParams& params) {
+  std::shared_ptr<BufferObject> _createObject(const BufferParams& params) {
     auto vk_buffer = _createVkBuffer(params.device->_vk_device, params.size, params.usage, params.sharing_mode);
     auto memory_requirements = _getVkBufferMemoryRequirements(params.device->_vk_device, vk_buffer);
     return std::make_shared<BufferObject>(vk_buffer, std::move(memory_requirements));

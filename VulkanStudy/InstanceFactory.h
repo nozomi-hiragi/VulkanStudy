@@ -35,7 +35,7 @@ private:
     return std::move(physical_devices);
   }
 
-  std::shared_ptr<InstanceObject> _createObject(InstanceParams& params) {
+  std::shared_ptr<InstanceObject> _createObject(const InstanceParams& params) {
     auto vk_instance = _createVkInstance(params.app_name, params.app_version, params.extensions);
     auto vk_physical_devices = _getVkPhysicalDevices(vk_instance);
 

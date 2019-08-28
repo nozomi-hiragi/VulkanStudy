@@ -18,11 +18,12 @@ public:
     const std::vector<glm::vec4>& color,
     const std::vector<glm::vec2>& texcoord,
     const std::vector<glm::uint16>& index,
-    BufferFactory& buffer_factory,
-    DeviceMemoryFactory& memory_factory,
-    MemoryProperties memory_properties,
-    std::shared_ptr<DeviceObject> device)
-    : _memory_factory(memory_factory)
+    MemoryProperties memory_properties)
+    : _position(position)
+    , _normal(normal)
+    , _color(color)
+    , _texcoord(texcoord)
+    , _index(index)
     , _vertex_count(static_cast<uint32_t>(position.size()))
     , _index_count(static_cast<uint32_t>(index.size()))
     , _size_position(_vertex_count * sizeof(glm::vec3))
@@ -32,15 +33,10 @@ public:
     , _size_index(_index_count * sizeof(uint16_t))
     , _memory_properties(memory_properties)
   {
-    buffer_factory.borrowingRgequests(createBufferOrders(device));
-
-    createMemory(device);
-
-    setBuffer(device, position, normal, color, texcoord, index);
   }
 
   ~Mesh() {
-    _memory_factory.destroyObject(_vertex_memory);
+    _vertex_memory.returnObject();
 
     _buffer_index.returnObject();
     _buffer_texcoord.returnObject();
@@ -49,7 +45,7 @@ public:
     _buffer_position.returnObject();
   }
 
-  std::vector<BufferOrder> createBufferOrders(std::shared_ptr<DeviceObject> device) {
+  std::vector<BufferOrder> createBufferOrders(std::shared_ptr<DeviceObject> device, std::function<void()> callback) {
     BufferOrder borrowed_position;
     BufferOrder borrowed_normal;
     BufferOrder borrowed_color;
@@ -66,7 +62,7 @@ public:
     borrowed_normal.address   = [this](BufferBorrowed borrowed) { _buffer_normal = borrowed; };
     borrowed_color.address    = [this](BufferBorrowed borrowed) { _buffer_color = borrowed; };
     borrowed_texcoord.address = [this](BufferBorrowed borrowed) { _buffer_texcoord = borrowed; };
-    borrowed_index.address    = [this](BufferBorrowed borrowed) {
+    borrowed_index.address    = [this, callback](BufferBorrowed borrowed) {
       _buffer_index = borrowed;
 
       _memory_size
@@ -75,6 +71,8 @@ public:
         + _buffer_color.getObject()->_vk_memory_requirements.size
         + _buffer_texcoord.getObject()->_vk_memory_requirements.size
         + _buffer_index.getObject()->_vk_memory_requirements.size;
+
+      callback();
     };
 
     std::vector<BufferOrder> orders;
@@ -86,34 +84,35 @@ public:
     return std::move(orders);
   }
 
-  void createMemory(std::shared_ptr<DeviceObject> device) {
+  const DeviceMemoryOrder createMemoryOrder(std::shared_ptr<DeviceObject> device) {
     auto memory_property_bits = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
     auto memory_type_index = _memory_properties.findProperties(_buffer_position.getObject(), memory_property_bits);
 
-    _vertex_memory = _memory_factory.createObject(device, _memory_size, memory_type_index);
+    DeviceMemoryOrder order;
+    order.params = DeviceMemoryParams(device, _memory_size, memory_type_index);
+    order.address = [this, device](DeviceMemoryBorrowed borrowed) {
+      _vertex_memory = borrowed;
 
-    uint64_t offset = 0;
-    _buffer_position.getObject()->bindBufferMemory(device, _vertex_memory, offset += 0);
-    _buffer_normal  .getObject()->bindBufferMemory(device, _vertex_memory, offset += _buffer_position.getObject()->_vk_memory_requirements.size);
-    _buffer_color   .getObject()->bindBufferMemory(device, _vertex_memory, offset += _buffer_normal  .getObject()->_vk_memory_requirements.size);
-    _buffer_texcoord.getObject()->bindBufferMemory(device, _vertex_memory, offset += _buffer_color   .getObject()->_vk_memory_requirements.size);
-    _buffer_index   .getObject()->bindBufferMemory(device, _vertex_memory, offset += _buffer_texcoord.getObject()->_vk_memory_requirements.size);
+      uint64_t offset = 0;
+      _buffer_position.getObject()->bindBufferMemory(device, _vertex_memory.getObject(), offset += 0);
+      _buffer_normal  .getObject()->bindBufferMemory(device, _vertex_memory.getObject(), offset += _buffer_position.getObject()->_vk_memory_requirements.size);
+      _buffer_color   .getObject()->bindBufferMemory(device, _vertex_memory.getObject(), offset += _buffer_normal  .getObject()->_vk_memory_requirements.size);
+      _buffer_texcoord.getObject()->bindBufferMemory(device, _vertex_memory.getObject(), offset += _buffer_color   .getObject()->_vk_memory_requirements.size);
+      _buffer_index   .getObject()->bindBufferMemory(device, _vertex_memory.getObject(), offset += _buffer_texcoord.getObject()->_vk_memory_requirements.size);
+
+      setBuffer(device);
+    };
+    return order;
   }
 
-  void setBuffer(std::shared_ptr<DeviceObject> device,
-    const std::vector<glm::vec3>& position,
-    const std::vector<glm::vec3>& normal,
-    const std::vector<glm::vec4>& color,
-    const std::vector<glm::vec2>& texcoord,
-    const std::vector<glm::uint16>& index
-  ) {
-    char* vertex_map = static_cast<char*>(_vertex_memory->mapMemory(device, 0, _memory_size));
-    memcpy(vertex_map +=                                                          0, position.data(), _size_position);
-    memcpy(vertex_map += _buffer_position.getObject()->_vk_memory_requirements.size, normal  .data(), _size_normal);
-    memcpy(vertex_map += _buffer_normal  .getObject()->_vk_memory_requirements.size, color   .data(), _size_color);
-    memcpy(vertex_map += _buffer_color   .getObject()->_vk_memory_requirements.size, texcoord.data(), _size_texcoord);
-    memcpy(vertex_map += _buffer_texcoord.getObject()->_vk_memory_requirements.size, index   .data(), _size_index);
-    _vertex_memory->unmapMemory(device);
+  void setBuffer(std::shared_ptr<DeviceObject> device) {
+    char* vertex_map = static_cast<char*>(_vertex_memory.getObject()->mapMemory(device, 0, _memory_size));
+    memcpy(vertex_map +=                                                          0, _position.data(), _size_position);
+    memcpy(vertex_map += _buffer_position.getObject()->_vk_memory_requirements.size, _normal  .data(), _size_normal);
+    memcpy(vertex_map += _buffer_normal  .getObject()->_vk_memory_requirements.size, _color   .data(), _size_color);
+    memcpy(vertex_map += _buffer_color   .getObject()->_vk_memory_requirements.size, _texcoord.data(), _size_texcoord);
+    memcpy(vertex_map += _buffer_texcoord.getObject()->_vk_memory_requirements.size, _index   .data(), _size_index);
+    _vertex_memory.getObject()->unmapMemory(device);
 
     _vk_buffers[0] = _buffer_position.getObject()->_vk_buffer;
     _vk_buffers[1] = _buffer_normal.getObject()->_vk_buffer;
@@ -149,7 +148,11 @@ public:
 
 protected:
 private:
-  DeviceMemoryFactory& _memory_factory;
+  const std::vector<glm::vec3>& _position;
+  const std::vector<glm::vec3>& _normal;
+  const std::vector<glm::vec4>& _color;
+  const std::vector<glm::vec2>& _texcoord;
+  const std::vector<glm::uint16>& _index;
 
   const uint32_t _vertex_count;
   const uint32_t _index_count;
@@ -168,7 +171,7 @@ private:
   BufferBorrowed _buffer_texcoord;
   BufferBorrowed _buffer_index;
 
-  std::shared_ptr<DeviceMemoryObject> _vertex_memory;
+  DeviceMemoryBorrowed _vertex_memory;
 
   VkBuffer _vk_buffers[4];
   uint64_t _buffer_offsets[4];

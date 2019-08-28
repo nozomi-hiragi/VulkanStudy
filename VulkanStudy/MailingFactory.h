@@ -42,7 +42,7 @@ public:
     std::cerr << _borrowing_count << " objects have not been returned." << std::endl;;
   }
 
-  void borrowingRgequest(Order<Object, CreateParams, ReturnParams...>& order) {
+  void borrowingRgequest(const Order<Object, CreateParams, ReturnParams...>& order) {
     auto object = _createObject(order.params);
     Borrowed<Object, ReturnParams...> borrowed(object, [this](Object* ptr, ReturnParams... params) {
       _returnObject(ptr, params...);
@@ -52,19 +52,15 @@ public:
     _borrowing_count++;
   }
 
-  void borrowingRgequests(std::initializer_list<Order<Object, CreateParams, ReturnParams...>> orders) {
-    for (auto it : orders) {
-      borrowingRgequest(it);
-    }
-  }
-  void borrowingRgequests(std::vector<Order<Object, CreateParams, ReturnParams...>> orders) {
+  template<class Array>
+  void borrowingRgequests(const Array& orders) {
     for (auto it : orders) {
       borrowingRgequest(it);
     }
   }
 
 protected:
-  virtual std::shared_ptr<Object> _createObject(CreateParams& params) = 0;
+  virtual std::shared_ptr<Object> _createObject(const CreateParams& params) = 0;
   virtual void _returnObject(Object*, ReturnParams...) = 0;
 private:
   uint32_t _borrowing_count;
