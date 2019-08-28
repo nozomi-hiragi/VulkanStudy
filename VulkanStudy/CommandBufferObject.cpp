@@ -1,6 +1,7 @@
 #include "CommandBufferObject.h"
 
 #include "ImageObject.h"
+#include "ConstantBufferLayoutObject.h"
 
 void CommandBufferObject::pipelineImageMemoryBarrier(VkPipelineStageFlags src_stage, VkPipelineStageFlags dst_stage, std::shared_ptr<ImageObject> image, VkAccessFlags src_access, VkAccessFlags dst_access, VkImageLayout new_layout) {
   VkImageMemoryBarrier image_memory_barrier = { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
@@ -27,4 +28,8 @@ void CommandBufferObject::pipelineImageMemoryBarrier(VkPipelineStageFlags src_st
     1, &image_memory_barrier);
 
   image->_vk_layout = image_memory_barrier.newLayout;
+}
+
+void CommandBufferObject::bindDescriptorSets(VkPipelineBindPoint bind_point, std::shared_ptr<ConstantBufferLayoutObject> constant_buffer_layout, uint32_t dynamic_offset_count, const uint32_t* dynamic_offsets) {
+  vkCmdBindDescriptorSets(_vk_command_buffer, bind_point, constant_buffer_layout->_pipeline_layout->_vk_pipeline_layout, 0, 1, &constant_buffer_layout->_descriptor_set->_vk_descriptor_set, dynamic_offset_count, dynamic_offsets);
 }

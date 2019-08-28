@@ -506,7 +506,7 @@ private:
   std::shared_ptr<ImageViewObject> _depth_image_view_object;
   std::shared_ptr<SemaphoreObject> _semaphore;
   std::shared_ptr<FenceObject> _fence;
-  std::shared_ptr<ConstantBufferLayout> _constant_buffer_layout;
+  std::shared_ptr<ConstantBufferLayoutObject> _constant_buffer_layout;
 
   std::shared_ptr<DynamicUniformBufferRing> _uniform_buffer;
 

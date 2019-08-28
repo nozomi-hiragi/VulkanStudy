@@ -4,11 +4,11 @@
 
 #include "DescriptorSetLayoutObject.h"
 #include "DescriptorSetObject.h"
-#include "PipelineObject.h"
+#include "PipelineLayoutObject.h"
 
-class ConstantBufferLayout {
+class ConstantBufferLayoutObject {
 public:
-  ConstantBufferLayout(std::shared_ptr<DescriptorSetLayoutObject> descriptor_set_layout, std::shared_ptr<DescriptorSetObject> descriptor_set, std::shared_ptr<PipelineLayoutObject> pipeline_layout)
+  ConstantBufferLayoutObject(std::shared_ptr<DescriptorSetLayoutObject> descriptor_set_layout, std::shared_ptr<DescriptorSetObject> descriptor_set, std::shared_ptr<PipelineLayoutObject> pipeline_layout)
     : _descriptor_set_layout(descriptor_set_layout)
     , _descriptor_set(descriptor_set)
     , _pipeline_layout(pipeline_layout) {

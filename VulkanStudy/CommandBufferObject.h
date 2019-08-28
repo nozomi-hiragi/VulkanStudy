@@ -7,6 +7,7 @@
 #include "PipelineObject.h"
 
 class ImageObject;
+class ConstantBufferLayoutObject;
 
 class CommandBufferObject {
 public:
@@ -54,9 +55,7 @@ public:
     vkCmdBindPipeline(_vk_command_buffer, bind_point, pipeline->_vk_pipeline);
   }
 
-  void bindDescriptorSets(VkPipelineBindPoint bind_point, VkPipelineLayout layout, uint32_t first, uint32_t count, const VkDescriptorSet* descriptor_sets, uint32_t dynamic_offset_count, const uint32_t* dynamic_offsets) {
-    vkCmdBindDescriptorSets(_vk_command_buffer, bind_point, layout, first, count, descriptor_sets, dynamic_offset_count, dynamic_offsets);
-  }
+  void bindDescriptorSets(VkPipelineBindPoint bind_point, std::shared_ptr<ConstantBufferLayoutObject> constant_buffer_layout, uint32_t dynamic_offset_count, const uint32_t* dynamic_offsets);
 
   void setViewport(uint32_t first, uint32_t count, const VkViewport* viewports) {
     vkCmdSetViewport(_vk_command_buffer,first, count, viewports);
