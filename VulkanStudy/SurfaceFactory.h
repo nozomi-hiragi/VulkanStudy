@@ -16,6 +16,9 @@ struct SurfaceParams {
   GLFWwindow* window;
 };
 
+using SurfaceOrder = Order<SurfaceObject, SurfaceParams, std::shared_ptr<InstanceObject>>;
+using SurfaceBorrowed = Borrowed<SurfaceObject, std::shared_ptr<InstanceObject>>;
+
 class SurfaceFactory : public MailingFactory<SurfaceObject, SurfaceParams, std::shared_ptr<InstanceObject>> {
 public:
 protected:

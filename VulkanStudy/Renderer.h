@@ -107,25 +107,25 @@ public:
     _width = width;
     _height = height;
 
-    Order<InstanceObject, InstanceParams> instance_order;
+    InstanceOrder instance_order;
     instance_order.params.app_name = app_name;
     instance_order.params.app_version = app_version;
-    instance_order.address = [this, &window](Borrowed<InstanceObject> borrowed) {
+    instance_order.address = [this, &window](InstanceBorrowed borrowed) {
       _instance = borrowed;
 
       _physical_device_object = borrowed.getObject()->_physical_devices[0];
 
-      Order<SurfaceObject, SurfaceParams, std::shared_ptr<InstanceObject>> surface_order;
+      SurfaceOrder surface_order;
       surface_order.params.instiace = borrowed.getObject();
       surface_order.params.window = window;
-      surface_order.address = [this](Borrowed<SurfaceObject, std::shared_ptr<InstanceObject>> borrowed) {
+      surface_order.address = [this](SurfaceBorrowed borrowed) {
         _surface = borrowed;
       };
-      _surface_factory.borrowinRgequest(surface_order);
+      _surface_factory.borrowingRgequest(surface_order);
 
       _device_object = _device_factory.createObject(nullptr, _physical_device_object, _surface.getObject());
     };
-    _instance_factory.borrowinRgequest(instance_order);
+    _instance_factory.borrowingRgequest(instance_order);
 
 
     _queue_object = _device_object->_queue_object;
@@ -260,7 +260,7 @@ public:
     _sampler_object = _sampler_factory.createObject(_device_object, VK_FILTER_NEAREST, VK_FILTER_NEAREST, VK_SAMPLER_MIPMAP_MODE_NEAREST, 0, 0.f);
 
     // Update descriptor sets
-    _constant_buffer_layout->_descriptor_set->updateDescriptorSetBuffer(_device_object, 0, _uniform_buffer->_buffer, sizeof(glm::mat4));
+    _constant_buffer_layout->_descriptor_set->updateDescriptorSetBuffer(_device_object, 0, _uniform_buffer->_buffer.getObject(), sizeof(glm::mat4));
     _constant_buffer_layout->_descriptor_set->updateDescriptorSetSampler(_device_object, 1, _sampler_object, _texture_image_view);
 
     // Texture convert?
@@ -399,7 +399,7 @@ public:
 
     _uniform_buffer.reset();
 
-    _buffer_factory.executeDestroy();
+    _buffer_factory.executeDestroy(_device_object);
 
     _constant_buffer_layout_factory.destroyObject(_constant_buffer_layout);
     _constant_buffer_layout_factory.destroyAll();
@@ -418,7 +418,6 @@ public:
     _command_pool_factory.destroyObject(_command_pool_object);
 
     _device_factory.destroyObject(_device_object);
-    //_surface_factory.destroyObject(_surface_object);
     _surface.returnObject(_instance.getObject());
     _instance.returnObject();
   }
@@ -430,7 +429,7 @@ public:
 
     _swapchain_object->acquireNextImage(_device_object, UINT64_MAX, _semaphore, nullptr, &g_current_buffer);
 
-    _buffer_factory.executeDestroy();
+    _buffer_factory.executeDestroy(_device_object);
 
     _command_buffer_object->begin(VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT);
 
@@ -500,10 +499,9 @@ private:
   FenceFactory _fence_factory;
   ConstantBufferLayoutFactory _constant_buffer_layout_factory;
 
-  Borrowed<InstanceObject> _instance;
+  InstanceBorrowed _instance;
   std::shared_ptr<PhysicalDeviceObject> _physical_device_object;
-  //std::shared_ptr<SurfaceObject> _surface_object;
-  Borrowed<SurfaceObject, std::shared_ptr<InstanceObject>> _surface;
+  SurfaceBorrowed _surface;
   std::shared_ptr<DeviceObject> _device_object;
 
   std::vector<std::shared_ptr<MeshStatus>> _mesh_status;

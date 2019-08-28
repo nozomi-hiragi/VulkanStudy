@@ -1,6 +1,8 @@
 #pragma once
 
 #include <functional>
+#include <iostream>
+#include <initializer_list>
 
 template<class Object, class... ReturnParams>
 class Borrowed {
@@ -32,16 +34,33 @@ struct Order {
 template<class Object, class CreateParams, class... ReturnParams>
 class MailingFactory {
 public:
-  void borrowinRgequest(Order<Object, CreateParams, ReturnParams...>& order) {
+  MailingFactory() : _borrowing_count(0) {}
+  ~MailingFactory() {
+    if (_borrowing_count == 0) {
+      return;
+    }
+    std::cerr << _borrowing_count << " objects have not been returned." << std::endl;;
+  }
+
+  void borrowingRgequest(Order<Object, CreateParams, ReturnParams...>& order) {
     auto object = _createObject(order.params);
     Borrowed<Object, ReturnParams...> borrowed(object, [this](Object* ptr, ReturnParams... params) {
       _returnObject(ptr, params...);
+      _borrowing_count--;
     });
     order.address(borrowed);
+    _borrowing_count++;
+  }
+
+  void borrowingRgequests(std::initializer_list<Order<Object, CreateParams, ReturnParams...>> orders) {
+    for (auto it : orders) {
+      borrowingRgequest(it);
+    }
   }
 
 protected:
   virtual std::shared_ptr<Object> _createObject(CreateParams& params) = 0;
   virtual void _returnObject(Object*, ReturnParams...) = 0;
 private:
+  uint32_t _borrowing_count;
 };

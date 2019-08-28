@@ -13,14 +13,11 @@ struct InstanceParams {
   std::vector<const char*> extensions;
 };
 
+using InstanceOrder = Order<InstanceObject, InstanceParams>;
+using InstanceBorrowed = Borrowed<InstanceObject>;
+
 class InstanceFactory : public MailingFactory<InstanceObject, InstanceParams> {
 public:
-  InstanceFactory() {
-  }
-
-  ~InstanceFactory() {
-  }
-
 protected:
 private:
   static const VkInstance _createVkInstance(const char* app_name, const uint32_t app_version, const std::vector<const char*>& extensions);
