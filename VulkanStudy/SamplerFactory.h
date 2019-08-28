@@ -4,11 +4,11 @@
 #include <memory>
 #include <set>
 
-#include "AbstractFactory.h"
+#include "StandardFactory.h"
 #include "SamplerObject.h"
 #include "DeviceObject.h"
 
-class SamplerFactory : public AbstractFactory<SamplerObject, DeviceObject, VkFilter, VkFilter, VkSamplerMipmapMode, float, float> {
+class SamplerFactory : public StandardFactory<SamplerObject, DeviceObject, VkFilter, VkFilter, VkSamplerMipmapMode, float, float> {
 public:
 protected:
 private:

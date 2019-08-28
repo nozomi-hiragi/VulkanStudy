@@ -5,11 +5,11 @@
 #include <set>
 #include <queue>
 
-#include "AbstractFactory.h"
+#include "StandardFactory.h"
 #include "BufferObject.h"
 #include "DeviceObject.h"
 
-class BufferFactory : public AbstractFactory<BufferObject, DeviceObject, const VkDeviceSize, const VkBufferUsageFlags, const VkSharingMode> {
+class BufferFactory : public StandardFactory<BufferObject, DeviceObject, const VkDeviceSize, const VkBufferUsageFlags, const VkSharingMode> {
 public:
   BufferFactory() {
   }

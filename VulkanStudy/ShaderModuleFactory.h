@@ -4,11 +4,11 @@
 #include <memory>
 #include <set>
 
-#include "AbstractFactory.h"
+#include "StandardFactory.h"
 #include "ShaderModuleObject.h"
 #include "DeviceObject.h"
 
-class ShaderModuleFactory : public AbstractFactory<ShaderModuleObject, DeviceObject, const size_t, const uint32_t*, const VkShaderStageFlagBits, const char*const> {
+class ShaderModuleFactory : public StandardFactory<ShaderModuleObject, DeviceObject, const size_t, const uint32_t*, const VkShaderStageFlagBits, const char*const> {
 public:
 protected:
 private:

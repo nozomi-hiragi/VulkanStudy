@@ -4,11 +4,11 @@
 #include <memory>
 #include <set>
 
-#include "AbstractFactory.h"
+#include "StandardFactory.h"
 #include "ImageObject.h"
 #include "DeviceObject.h"
 
-class ImageFactory : public AbstractFactory<ImageObject, DeviceObject, const VkFormat, const VkImageUsageFlags, const uint32_t, const uint32_t, const uint32_t, const VkSampleCountFlagBits, const VkImageTiling, const VkImageAspectFlags> {
+class ImageFactory : public StandardFactory<ImageObject, DeviceObject, const VkFormat, const VkImageUsageFlags, const uint32_t, const uint32_t, const uint32_t, const VkSampleCountFlagBits, const VkImageTiling, const VkImageAspectFlags> {
 public:
   ImageFactory() {
   }

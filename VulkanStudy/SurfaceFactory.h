@@ -7,11 +7,11 @@
 #include <set>
 #include <GLFW/glfw3.h>
 
-#include "AbstractFactory.h"
+#include "StandardFactory.h"
 #include "SurfaceObject.h"
 #include "InstanceObject.h"
 
-class SurfaceFactory : public AbstractFactory<SurfaceObject, InstanceObject, GLFWwindow*> {
+class SurfaceFactory : public StandardFactory<SurfaceObject, InstanceObject, GLFWwindow*> {
 public:
   SurfaceFactory() {
   }

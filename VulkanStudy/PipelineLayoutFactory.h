@@ -4,11 +4,11 @@
 #include <memory>
 #include <set>
 
-#include "AbstractFactory.h"
+#include "StandardFactory.h"
 #include "PipelineLayoutObject.h"
 #include "DeviceObject.h"
 
-class PipelineLayoutFactory : public AbstractFactory<PipelineLayoutObject, DeviceObject, const std::vector<VkDescriptorSetLayout>& > {
+class PipelineLayoutFactory : public StandardFactory<PipelineLayoutObject, DeviceObject, const std::vector<VkDescriptorSetLayout>& > {
 public:
 protected:
 private:

@@ -56,9 +56,6 @@
     <ClInclude Include="Renderer.h">
       <Filter>header</Filter>
     </ClInclude>
-    <ClInclude Include="AbstractFactory.h">
-      <Filter>header\wrap</Filter>
-    </ClInclude>
     <ClInclude Include="BufferFactory.h">
       <Filter>header\wrap</Filter>
     </ClInclude>
@@ -213,6 +210,9 @@
       <Filter>header\wrap</Filter>
     </ClInclude>
     <ClInclude Include="ConstantBufferLayoutFactory.h">
+      <Filter>header\wrap</Filter>
+    </ClInclude>
+    <ClInclude Include="StandardFactory.h">
       <Filter>header\wrap</Filter>
     </ClInclude>
   </ItemGroup>

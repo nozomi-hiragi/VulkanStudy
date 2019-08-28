@@ -3,11 +3,11 @@
 #include <vulkan/vulkan.h>
 #include <iostream>
 
-#include "AbstractFactory.h"
+#include "StandardFactory.h"
 #include "instanceObject.h"
 #include "PhysicalDeviceObject.h"
 
-class InstanceFactory : public AbstractFactory<InstanceObject, void, const char*, const uint32_t, const std::vector<const char*>&> {
+class InstanceFactory : public StandardFactory<InstanceObject, void, const char*, const uint32_t, const std::vector<const char*>&> {
 public:
   InstanceFactory() {
   }
@@ -16,7 +16,7 @@ public:
   }
 
   auto createObject(const std::shared_ptr<void> parent, const char* app_name, const uint32_t app_version, const std::vector<const char*>& extensions = std::vector<const char*>()) {
-    return AbstractFactory::createObject(parent, app_name, app_version, extensions);
+    return StandardFactory::createObject(parent, app_name, app_version, extensions);
   }
 
 protected:

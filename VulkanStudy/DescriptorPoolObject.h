@@ -4,12 +4,12 @@
 #include <memory>
 #include <set>
 
-#include "AbstractFactory.h"
+#include "StandardFactory.h"
 #include "DescriptorSetObject.h"
 #include "DeviceObject.h"
 #include "DescriptorSetLayoutObject.h"
 
-class DescriptorPoolObject : public AbstractFactory<DescriptorSetObject, DeviceObject, const std::shared_ptr<DescriptorSetLayoutObject>> {
+class DescriptorPoolObject : public StandardFactory<DescriptorSetObject, DeviceObject, const std::shared_ptr<DescriptorSetLayoutObject>> {
 public:
   DescriptorPoolObject(const VkDescriptorPool descriptor_pool) : _vk_descriptor_pool(descriptor_pool) {
   }

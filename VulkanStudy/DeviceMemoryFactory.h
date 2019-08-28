@@ -4,11 +4,11 @@
 #include <memory>
 #include <set>
 
-#include "AbstractFactory.h"
+#include "StandardFactory.h"
 #include "DeviceMemoryObject.h"
 #include "DeviceObject.h"
 
-class DeviceMemoryFactory : public AbstractFactory<DeviceMemoryObject, DeviceObject, const VkDeviceSize, const uint32_t> {
+class DeviceMemoryFactory : public StandardFactory<DeviceMemoryObject, DeviceObject, const VkDeviceSize, const uint32_t> {
 public:
   DeviceMemoryFactory() {
   }

@@ -4,11 +4,11 @@
 #include <memory>
 #include <set>
 
-#include "AbstractFactory.h"
+#include "StandardFactory.h"
 #include "SemaphoreObject.h"
 #include "DeviceObject.h"
 
-class SemaphoreFactory : public AbstractFactory<SemaphoreObject, DeviceObject> {
+class SemaphoreFactory : public StandardFactory<SemaphoreObject, DeviceObject> {
 public:
 protected:
 private:

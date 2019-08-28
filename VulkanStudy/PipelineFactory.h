@@ -2,14 +2,14 @@
 
 #include <vulkan/vulkan.h>
 
-#include "AbstractFactory.h"
+#include "StandardFactory.h"
 #include "PipelineObject.h"
 #include "DeviceObject.h"
 #include "ShaderModuleObject.h"
 #include "PipelineLayoutObject.h"
 #include "RenderPassObject.h"
 
-class PipelineFactory : public AbstractFactory<
+class PipelineFactory : public StandardFactory<
   PipelineObject,
   DeviceObject,
   const VkPipelineCache,

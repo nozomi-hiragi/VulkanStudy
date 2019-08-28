@@ -2,12 +2,12 @@
 
 #include <vulkan/vulkan.h>
 
-#include "AbstractFactory.h"
+#include "StandardFactory.h"
 #include "ImageViewObject.h"
 #include "ImageObject.h"
 #include "DeviceObject.h"
 
-class ImageViewFactory : public AbstractFactory<ImageViewObject, DeviceObject, const std::shared_ptr<ImageObject>> {
+class ImageViewFactory : public StandardFactory<ImageViewObject, DeviceObject, const std::shared_ptr<ImageObject>> {
 public:
   ImageViewFactory() {
   }

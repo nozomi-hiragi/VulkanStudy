@@ -4,9 +4,9 @@
 #include <set>
 
 template<class Object, class Parent, class... Params>
-class AbstractFactory {
+class StandardFactory {
 public:
-  virtual ~AbstractFactory() {
+  virtual ~StandardFactory() {
     for (auto it : _container) {
       destroyObject(it);
     }

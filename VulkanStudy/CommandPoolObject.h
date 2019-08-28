@@ -2,11 +2,11 @@
 
 #include <vulkan/vulkan.h>
 
-#include "AbstractFactory.h"
+#include "StandardFactory.h"
 #include "CommandBufferObject.h"
 #include "DeviceObject.h"
 
-class CommandPoolObject : public AbstractFactory<CommandBufferObject, DeviceObject> {
+class CommandPoolObject : public StandardFactory<CommandBufferObject, DeviceObject> {
 public:
   CommandPoolObject(const VkCommandPool command_pool) : _vk_command_pool(command_pool) {
   }

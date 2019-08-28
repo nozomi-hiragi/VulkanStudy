@@ -4,16 +4,16 @@
 #include <memory>
 #include <set>
 
-#include "AbstractFactory.h"
+#include "StandardFactory.h"
 #include "DeviceObject.h"
 #include "PhysicalDeviceObject.h"
 #include "SurfaceObject.h"
 #include "QueueObject.h"
 
-class DeviceFactory : public AbstractFactory<DeviceObject, void, const std::shared_ptr<PhysicalDeviceObject>, const std::shared_ptr<SurfaceObject>, const std::vector<const char*>&> {
+class DeviceFactory : public StandardFactory<DeviceObject, void, const std::shared_ptr<PhysicalDeviceObject>, const std::shared_ptr<SurfaceObject>, const std::vector<const char*>&> {
 public:
   auto createObject(const std::shared_ptr<void> parent, const std::shared_ptr<PhysicalDeviceObject> physical_device, const std::shared_ptr<SurfaceObject> surface, const std::vector<const char*>& extensions = std::vector<const char*>()) {
-    return AbstractFactory::createObject(parent, physical_device, surface, extensions);
+    return StandardFactory::createObject(parent, physical_device, surface, extensions);
   }
 
 protected:

@@ -4,12 +4,12 @@
 #include <memory>
 #include <set>
 
-#include "AbstractFactory.h"
+#include "StandardFactory.h"
 #include "CommandPoolObject.h"
 #include "DeviceObject.h"
 #include "QueueObject.h"
 
-class CommandPoolFactory : public AbstractFactory<CommandPoolObject, DeviceObject, const std::shared_ptr<QueueObject>> {
+class CommandPoolFactory : public StandardFactory<CommandPoolObject, DeviceObject, const std::shared_ptr<QueueObject>> {
   static auto _createVkCommandPool(VkDevice device, uint32_t queue_family_index) {
     VkCommandPoolCreateInfo command_pool_info = {};
     command_pool_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;

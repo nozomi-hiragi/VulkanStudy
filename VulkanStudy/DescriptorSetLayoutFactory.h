@@ -4,11 +4,11 @@
 #include <memory>
 #include <set>
 
-#include "AbstractFactory.h"
+#include "StandardFactory.h"
 #include "DescriptorSetLayoutObject.h"
 #include "DeviceObject.h"
 
-class DescriptorSetLayoutFactory : public AbstractFactory<DescriptorSetLayoutObject, DeviceObject, const std::vector<VkDescriptorSetLayoutBinding>&> {
+class DescriptorSetLayoutFactory : public StandardFactory<DescriptorSetLayoutObject, DeviceObject, const std::vector<VkDescriptorSetLayoutBinding>&> {
 public:
 
 protected:

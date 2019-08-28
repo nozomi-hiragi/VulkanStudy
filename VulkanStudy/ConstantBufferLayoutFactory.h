@@ -3,13 +3,13 @@
 #include <vulkan/vulkan.h>
 #include <memory>
 
-#include "AbstractFactory.h"
+#include "StandardFactory.h"
 #include "ConstantBufferLayoutObject.h"
 #include "DescriptorSetLayoutFactory.h"
 #include "DescriptorPoolFactory.h"
 #include "PipelineLayoutFactory.h"
 
-class ConstantBufferLayoutFactory : public AbstractFactory<ConstantBufferLayout, DeviceObject, std::vector<VkDescriptorSetLayoutBinding>&> {
+class ConstantBufferLayoutFactory : public StandardFactory<ConstantBufferLayout, DeviceObject, std::vector<VkDescriptorSetLayoutBinding>&> {
 public:
 
   std::shared_ptr<ConstantBufferLayout> _createCore(std::vector<VkDescriptorSetLayoutBinding>& descriptor_set_layout_bindings) {
@@ -31,7 +31,7 @@ public:
   }
 
   void destroyAll() override {
-    AbstractFactory::destroyAll();
+    StandardFactory::destroyAll();
     _descriptor_pool_factory.destroyAll();
   }
 

@@ -4,13 +4,13 @@
 #include <memory>
 #include <set>
 
-#include "AbstractFactory.h"
+#include "StandardFactory.h"
 #include "SwapchainObject.h"
 #include "DeviceObject.h"
 #include "PhysicalDeviceObject.h"
 #include "SurfaceObject.h"
 
-class SwapchainFactory : public AbstractFactory<SwapchainObject, DeviceObject, const std::shared_ptr<PhysicalDeviceObject>, const std::shared_ptr<SurfaceObject>, const uint32_t, const uint32_t, const bool> {
+class SwapchainFactory : public StandardFactory<SwapchainObject, DeviceObject, const std::shared_ptr<PhysicalDeviceObject>, const std::shared_ptr<SurfaceObject>, const uint32_t, const uint32_t, const bool> {
 public:
   SwapchainFactory() {
   }
@@ -19,7 +19,7 @@ public:
   }
 
   auto createObject(const std::shared_ptr<DeviceObject> parent, const std::shared_ptr<PhysicalDeviceObject> physical_device, const std::shared_ptr<SurfaceObject> surface, const uint32_t width, const uint32_t height, const bool is_srgb = false) {
-    return AbstractFactory::createObject(parent, physical_device, surface, width, height, is_srgb);
+    return StandardFactory::createObject(parent, physical_device, surface, width, height, is_srgb);
   }
 
 protected:

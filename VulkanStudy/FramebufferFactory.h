@@ -4,14 +4,14 @@
 #include <memory>
 #include <set>
 
-#include "AbstractFactory.h"
+#include "StandardFactory.h"
 #include "FramebufferObject.h"
 #include "DeviceObject.h"
 #include "RenderPassObject.h"
 #include "ImageViewObject.h"
 #include "ImageObject.h"
 
-class FramebufferFactory : public AbstractFactory<FramebufferObject, DeviceObject, const std::shared_ptr<RenderPassObject>, const std::vector<std::shared_ptr<ImageViewObject>>&> {
+class FramebufferFactory : public StandardFactory<FramebufferObject, DeviceObject, const std::shared_ptr<RenderPassObject>, const std::vector<std::shared_ptr<ImageViewObject>>&> {
   static VkFramebuffer _createVkFramebuffer(VkDevice device, VkRenderPass render_pass, const std::vector<std::shared_ptr<ImageViewObject>>& image_views) {
     if (image_views.size() <= 0) {
       return nullptr;

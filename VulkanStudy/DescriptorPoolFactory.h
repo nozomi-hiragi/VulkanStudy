@@ -5,11 +5,11 @@
 #include <set>
 #include <array>
 
-#include "AbstractFactory.h"
+#include "StandardFactory.h"
 #include "DescriptorPoolObject.h"
 #include "DeviceObject.h"
 
-class DescriptorPoolFactory : public AbstractFactory<DescriptorPoolObject, DeviceObject> {
+class DescriptorPoolFactory : public StandardFactory<DescriptorPoolObject, DeviceObject> {
 public:
 protected:
 private:

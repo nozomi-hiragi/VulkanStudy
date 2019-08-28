@@ -2,13 +2,13 @@
 
 #include <vulkan/vulkan.h>
 
-#include "AbstractFactory.h"
+#include "StandardFactory.h"
 #include "RenderPassObject.h"
 #include "DeviceObject.h"
 
 #include "RenderPassDeport.h"
 
-class RenderPassFactory : public AbstractFactory<RenderPassObject, DeviceObject, const std::vector<std::string>&, const std::vector<std::string>&> {
+class RenderPassFactory : public StandardFactory<RenderPassObject, DeviceObject, const std::vector<std::string>&, const std::vector<std::string>&> {
 public:
   RenderPassFactory(
     AttachmentDescriptionDepot& attachment_description_depot,

@@ -4,11 +4,11 @@
 #include <memory>
 #include <set>
 
-#include "AbstractFactory.h"
+#include "StandardFactory.h"
 #include "FenceObject.h"
 #include "DeviceObject.h"
 
-class FenceFactory : public AbstractFactory<FenceObject, DeviceObject> {
+class FenceFactory : public StandardFactory<FenceObject, DeviceObject> {
 public:
 protected:
 private:
