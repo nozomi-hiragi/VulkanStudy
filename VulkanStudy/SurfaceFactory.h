@@ -7,18 +7,17 @@
 #include <set>
 #include <GLFW/glfw3.h>
 
-#include "StandardFactory.h"
+#include "MailingFactory.h"
 #include "SurfaceObject.h"
 #include "InstanceObject.h"
 
-class SurfaceFactory : public StandardFactory<SurfaceObject, InstanceObject, GLFWwindow*> {
+struct SurfaceParams {
+  std::shared_ptr<InstanceObject> instiace;
+  GLFWwindow* window;
+};
+
+class SurfaceFactory : public MailingFactory<SurfaceObject, SurfaceParams, std::shared_ptr<InstanceObject>> {
 public:
-  SurfaceFactory() {
-  }
-
-  ~SurfaceFactory() {
-  }
-
 protected:
 private:
   static const VkSurfaceKHR _createVkSurface(VkInstance instance, GLFWwindow* window) {
@@ -31,12 +30,12 @@ private:
     vkDestroySurfaceKHR(instance, surface, nullptr);
   }
 
-  std::shared_ptr<SurfaceObject> _createCore(GLFWwindow* window) {
-    auto vk_surface = _createVkSurface(_parent->_vk_instance, window);
+  std::shared_ptr<SurfaceObject> _createObject(SurfaceParams& params) {
+    auto vk_surface = _createVkSurface(params.instiace->_vk_instance, params.window);
     return std::make_shared<SurfaceObject>(vk_surface);
   }
 
-  void _destroyCore(std::shared_ptr<SurfaceObject> object) {
-    _destroyVkSurface(_parent->_vk_instance, object->_vk_surface);
+  void _returnObject(SurfaceObject* object, std::shared_ptr<InstanceObject> parent) {
+    _destroyVkSurface(parent->_vk_instance, object->_vk_surface);
   }
 };

@@ -107,24 +107,31 @@ public:
     _width = width;
     _height = height;
 
-    Order<InstanceObject, InstanceParams> order;
-    order.params.app_name = app_name;
-    order.params.app_version = app_version;
-    order.address = [this, &window](Borrowed<InstanceObject> borrowed) {
+    Order<InstanceObject, InstanceParams> instance_order;
+    instance_order.params.app_name = app_name;
+    instance_order.params.app_version = app_version;
+    instance_order.address = [this, &window](Borrowed<InstanceObject> borrowed) {
       _instance = borrowed;
 
       _physical_device_object = borrowed.getObject()->_physical_devices[0];
-      _surface_object = _surface_factory.createObject(borrowed.getObject(), window);
-      _device_object = _device_factory.createObject(nullptr, _physical_device_object, _surface_object);
-    };
 
-    _instance_factory.borrowinRgequest(order);
+      Order<SurfaceObject, SurfaceParams, std::shared_ptr<InstanceObject>> surface_order;
+      surface_order.params.instiace = borrowed.getObject();
+      surface_order.params.window = window;
+      surface_order.address = [this](Borrowed<SurfaceObject, std::shared_ptr<InstanceObject>> borrowed) {
+        _surface = borrowed;
+      };
+      _surface_factory.borrowinRgequest(surface_order);
+
+      _device_object = _device_factory.createObject(nullptr, _physical_device_object, _surface.getObject());
+    };
+    _instance_factory.borrowinRgequest(instance_order);
 
 
     _queue_object = _device_object->_queue_object;
     _command_pool_object = _command_pool_factory.createObject(_device_object, _queue_object);
     _command_buffer_object = _command_pool_object->createObject(_device_object);
-    _swapchain_object = _swapchain_factory.createObject(_device_object, _physical_device_object, _surface_object, _width, _height);
+    _swapchain_object = _swapchain_factory.createObject(_device_object, _physical_device_object, _surface.getObject(), _width, _height);
     _depth_image_object = _image_factory.createObject(_device_object, VK_FORMAT_D16_UNORM, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, _width, _height, 1, VK_SAMPLE_COUNT_1_BIT, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_ASPECT_DEPTH_BIT);
     {
       auto memory_type_index = _physical_device_object->findProperties(_depth_image_object, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
@@ -411,7 +418,8 @@ public:
     _command_pool_factory.destroyObject(_command_pool_object);
 
     _device_factory.destroyObject(_device_object);
-    _surface_factory.destroyObject(_surface_object);
+    //_surface_factory.destroyObject(_surface_object);
+    _surface.returnObject(_instance.getObject());
     _instance.returnObject();
   }
 
@@ -494,7 +502,8 @@ private:
 
   Borrowed<InstanceObject> _instance;
   std::shared_ptr<PhysicalDeviceObject> _physical_device_object;
-  std::shared_ptr<SurfaceObject> _surface_object;
+  //std::shared_ptr<SurfaceObject> _surface_object;
+  Borrowed<SurfaceObject, std::shared_ptr<InstanceObject>> _surface;
   std::shared_ptr<DeviceObject> _device_object;
 
   std::vector<std::shared_ptr<MeshStatus>> _mesh_status;

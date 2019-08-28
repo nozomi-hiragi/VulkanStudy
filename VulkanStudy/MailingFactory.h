@@ -2,11 +2,11 @@
 
 #include <functional>
 
-template<class Object>
+template<class Object, class... ReturnParams>
 class Borrowed {
 public:
   Borrowed() {}
-  Borrowed(std::shared_ptr<Object> object, std::function<void(Object*)>return_func)
+  Borrowed(std::shared_ptr<Object> object, std::function<void(Object*, ReturnParams...)>return_func)
     : _object(object)
     , _return_func(return_func) {}
 
@@ -14,34 +14,34 @@ public:
     return _object;
   }
 
-  void returnObject() {
-    _return_func(_object.get());
+  void returnObject(ReturnParams... params) {
+    _return_func(_object.get(), params...);
   }
 
 private:
   std::shared_ptr<Object> _object;
-  std::function<void(Object*)> _return_func;
+  std::function<void(Object*, ReturnParams...)> _return_func;
 };
 
-template<class Object, class Params>
+template<class Object, class CreateParams, class... ReturnParams>
 struct Order {
-  Params params;
-  std::function<void(Borrowed<Object>)> address;
+  CreateParams params;
+  std::function<void(Borrowed<Object, ReturnParams...>)> address;
 };
 
-template<class Object, class Params>
+template<class Object, class CreateParams, class... ReturnParams>
 class MailingFactory {
 public:
-  void borrowinRgequest(Order<Object, Params>& order) {
+  void borrowinRgequest(Order<Object, CreateParams, ReturnParams...>& order) {
     auto object = _createObject(order.params);
-    Borrowed<Object> borrowed(object, [this](Object* ptr) {
-      _returnObject(ptr);
+    Borrowed<Object, ReturnParams...> borrowed(object, [this](Object* ptr, ReturnParams... params) {
+      _returnObject(ptr, params...);
     });
     order.address(borrowed);
   }
 
 protected:
-  virtual std::shared_ptr<Object> _createObject(Params& params) = 0;
-  virtual void _returnObject(Object* object) = 0;
+  virtual std::shared_ptr<Object> _createObject(CreateParams& params) = 0;
+  virtual void _returnObject(Object*, ReturnParams...) = 0;
 private:
 };
