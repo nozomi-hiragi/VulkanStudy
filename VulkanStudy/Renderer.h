@@ -40,7 +40,6 @@
 
 #include "Mesh.h"
 #include "DynamicUniformBufferRing.h"
-#include "PosRotCamera.h"
 #include "VertexLayoutBuilder.h"
 
 class MeshStatus {
@@ -72,6 +71,18 @@ public:
     _instance.reset();
   }
 
+  auto createMatrix(const glm::mat4& vp) {
+    return glm::scale(
+      glm::translate(
+        vp,
+        _position
+      ) * glm::yawPitchRoll(
+        _rotation.y, _rotation.x, _rotation.z
+      ),
+      _scale
+    );
+  }
+
   glm::vec3 _position;
   glm::vec3 _rotation;
   glm::vec3 _scale;
@@ -95,9 +106,6 @@ public:
   void init(const char* app_name, const uint32_t app_version, const uint32_t width, const uint32_t height, GLFWwindow* window) {
     _width = width;
     _height = height;
-
-    _camera._width = static_cast<float>(_width);
-    _camera._height = static_cast<float>(_height);
 
     _instance_object = _instance_factory.createObject(nullptr, app_name, app_version);
     _physical_device_object = _instance_object->_physical_devices[0];
@@ -398,9 +406,7 @@ public:
     _instance_factory.destroyObject(_instance_object);
   }
 
-  void update() {
-    _camera.update();
-
+  void beginCommand() {
     _fence->waitForFence(_device_object);
 
     _fence->resetFence(_device_object);
@@ -416,27 +422,9 @@ public:
     _command_buffer_object->beginRenderPass(_render_pass, _framebuffers[g_current_buffer], VK_SUBPASS_CONTENTS_INLINE);
 
     _command_buffer_object->bindPipeline(VK_PIPELINE_BIND_POINT_GRAPHICS, _pipeline);
+  }
 
-    for (const auto& it : _mesh_status) {
-      if (!it->isExist()) { continue; }
-      auto mvp = glm::scale(
-        glm::translate(
-          _camera.getViewProjection(),
-          it->_position
-        ) * glm::yawPitchRoll(
-            it->_rotation.y, it->_rotation.x, it->_rotation.z
-        ),
-        it->_scale
-      );
-
-      uint32_t offset;
-      auto data = _uniform_buffer->getPointer(sizeof(mvp), &offset);
-      memcpy(data, &mvp, sizeof(mvp));
-
-      _command_buffer_object->bindDescriptorSets(VK_PIPELINE_BIND_POINT_GRAPHICS, _constant_buffer_layout->_pipeline_layout->_vk_pipeline_layout, 0, 1, &_constant_buffer_layout->_descriptor_set->_vk_descriptor_set, 1, &offset);
-      it->getInstance()->draw(_command_buffer_object);
-    }
-
+  void endCommand() {
     _command_buffer_object->endRenderPass();
 
     _command_buffer_object->end();
@@ -453,7 +441,20 @@ public:
     _queue_object->present(present_info);
   }
 
-  PosRotCamera _camera;
+  void update(glm::mat4 vp) {
+    for (const auto& it : _mesh_status) {
+      if (!it->isExist()) { continue; }
+      auto mvp = it->createMatrix(vp);
+
+      uint32_t offset;
+      auto data = _uniform_buffer->getPointer(sizeof(mvp), &offset);
+      memcpy(data, &mvp, sizeof(mvp));
+
+      _command_buffer_object->bindDescriptorSets(VK_PIPELINE_BIND_POINT_GRAPHICS, _constant_buffer_layout, 1, &offset);
+      it->getInstance()->draw(_command_buffer_object);
+    }
+  }
+
 protected:
 private:
   shaderc_compiler_t _shader_compiler;
