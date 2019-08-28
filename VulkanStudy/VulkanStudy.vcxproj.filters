@@ -215,5 +215,8 @@
     <ClInclude Include="StandardFactory.h">
       <Filter>header\wrap</Filter>
     </ClInclude>
+    <ClInclude Include="MailingFactory.h">
+      <Filter>header\wrap</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

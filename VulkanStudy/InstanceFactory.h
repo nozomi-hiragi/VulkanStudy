@@ -3,20 +3,22 @@
 #include <vulkan/vulkan.h>
 #include <iostream>
 
-#include "StandardFactory.h"
+#include "MailingFactory.h"
 #include "instanceObject.h"
 #include "PhysicalDeviceObject.h"
 
-class InstanceFactory : public StandardFactory<InstanceObject, void, const char*, const uint32_t, const std::vector<const char*>&> {
+struct InstanceParams {
+  const char* app_name;
+  uint32_t app_version;
+  std::vector<const char*> extensions;
+};
+
+class InstanceFactory : public MailingFactory<InstanceObject, InstanceParams> {
 public:
   InstanceFactory() {
   }
 
   ~InstanceFactory() {
-  }
-
-  auto createObject(const std::shared_ptr<void> parent, const char* app_name, const uint32_t app_version, const std::vector<const char*>& extensions = std::vector<const char*>()) {
-    return StandardFactory::createObject(parent, app_name, app_version, extensions);
   }
 
 protected:
@@ -36,8 +38,8 @@ private:
     return std::move(physical_devices);
   }
 
-  std::shared_ptr<InstanceObject> _createCore(const char* app_name, const uint32_t app_version, const std::vector<const char*>& extensions) {
-    auto vk_instance = _createVkInstance(app_name, app_version, extensions);
+  std::shared_ptr<InstanceObject> _createObject(InstanceParams& params) {
+    auto vk_instance = _createVkInstance(params.app_name, params.app_version, params.extensions);
     auto vk_physical_devices = _getVkPhysicalDevices(vk_instance);
 
     std::vector<std::shared_ptr<PhysicalDeviceObject>> devices;
@@ -103,7 +105,7 @@ private:
     return std::make_shared<InstanceObject>(vk_instance, std::move(devices));
   }
 
-  void _destroyCore(std::shared_ptr<InstanceObject> object) {
+  void _returnObject(InstanceObject* object) {
 #ifdef _DEBUG
     _vkDestroyDebugReportCallbackEXT(object->_vk_instance, _vk_debug_report_callback, nullptr);
 #endif // DEBUG

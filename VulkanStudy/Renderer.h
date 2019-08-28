@@ -107,10 +107,19 @@ public:
     _width = width;
     _height = height;
 
-    _instance_object = _instance_factory.createObject(nullptr, app_name, app_version);
-    _physical_device_object = _instance_object->_physical_devices[0];
-    _surface_object = _surface_factory.createObject(_instance_object, window);
-    _device_object = _device_factory.createObject(nullptr, _physical_device_object, _surface_object);
+    Order<InstanceObject, InstanceParams> order;
+    order.params.app_name = app_name;
+    order.params.app_version = app_version;
+    order.address = [this, &window](Borrowed<InstanceObject> borrowed) {
+      _instance = borrowed;
+
+      _physical_device_object = borrowed.getObject()->_physical_devices[0];
+      _surface_object = _surface_factory.createObject(borrowed.getObject(), window);
+      _device_object = _device_factory.createObject(nullptr, _physical_device_object, _surface_object);
+    };
+
+    _instance_factory.borrowinRgequest(order);
+
 
     _queue_object = _device_object->_queue_object;
     _command_pool_object = _command_pool_factory.createObject(_device_object, _queue_object);
@@ -403,7 +412,7 @@ public:
 
     _device_factory.destroyObject(_device_object);
     _surface_factory.destroyObject(_surface_object);
-    _instance_factory.destroyObject(_instance_object);
+    _instance.returnObject();
   }
 
   void beginCommand() {
@@ -483,7 +492,7 @@ private:
   FenceFactory _fence_factory;
   ConstantBufferLayoutFactory _constant_buffer_layout_factory;
 
-  std::shared_ptr<InstanceObject> _instance_object;
+  Borrowed<InstanceObject> _instance;
   std::shared_ptr<PhysicalDeviceObject> _physical_device_object;
   std::shared_ptr<SurfaceObject> _surface_object;
   std::shared_ptr<DeviceObject> _device_object;
