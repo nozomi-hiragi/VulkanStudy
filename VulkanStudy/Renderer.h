@@ -441,7 +441,6 @@ public:
 
   void beginCommand() {
     _fence->waitForFence(_device_object);
-
     _fence->resetFence(_device_object);
 
     _swapchain_object->acquireNextImage(_device_object, UINT64_MAX, _semaphore, nullptr, &g_current_buffer);
@@ -450,19 +449,11 @@ public:
     _device_memory_factory.executeDestroy(_device_object);
 
     _command_buffer_object->begin(VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT);
-
     _command_buffer_object->applyViewSize();
-
-    _command_buffer_object->beginRenderPass(_render_pass, _framebuffers[g_current_buffer], VK_SUBPASS_CONTENTS_INLINE);
-
-    _command_buffer_object->bindPipeline(VK_PIPELINE_BIND_POINT_GRAPHICS, _pipeline);
   }
 
   void endCommand() {
-    _command_buffer_object->endRenderPass();
-
     _command_buffer_object->end();
-
     _queue_object->submit(0, _fence);
 
     VkPresentInfoKHR present_info = { VK_STRUCTURE_TYPE_PRESENT_INFO_KHR };
@@ -473,6 +464,18 @@ public:
     present_info.pImageIndices = &g_current_buffer;
 
     _queue_object->present(present_info);
+  }
+
+  void beginRenderPass() {
+    _command_buffer_object->beginRenderPass(_render_pass, _framebuffers[g_current_buffer], VK_SUBPASS_CONTENTS_INLINE);
+  }
+
+  void endRenderPass() {
+    _command_buffer_object->endRenderPass();
+  }
+
+  void bindPipeline() {
+    _command_buffer_object->bindPipeline(VK_PIPELINE_BIND_POINT_GRAPHICS, _pipeline);
   }
 
   void update(glm::mat4 vp) {

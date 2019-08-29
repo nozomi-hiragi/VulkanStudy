@@ -14,25 +14,26 @@ public:
     MemoryProperties memory_properties,
     BufferFactory& buffer_factory,
     DeviceMemoryFactory& device_memory_factory,
-    const uint32_t size) : _total_size(size), _offset(0), _device(device), _buffer_factory(buffer_factory), _device_memory_factory(device_memory_factory)
+    const uint32_t size) : _total_size(size), _offset(0), _device(device)
   {
     BufferOrder buffer_order;
     buffer_order.params = BufferParams(device, size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE);
     buffer_order.address = [this](BufferBorrowed borrowed) {
       _buffer = borrowed;
     };
-    _buffer_factory.borrowingRgequest(buffer_order);
+    buffer_factory.borrowingRgequest(buffer_order);
     auto memory_type_index = memory_properties.findProperties(_buffer.getObject(), VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
     DeviceMemoryOrder order;
     order.params = DeviceMemoryParams(device, _buffer.getObject()->_vk_memory_requirements.size, memory_type_index);
-    order.address = [this](DeviceMemoryBorrowed borrowed) {
+    order.address = [this, device](DeviceMemoryBorrowed borrowed) {
       _memory = borrowed;
+
+      _buffer.getObject()->bindBufferMemory(device, _memory.getObject(), 0);
+      _pointer = reinterpret_cast<char*>(_memory.getObject()->mapMemory(device, 0, _buffer.getObject()->_vk_memory_requirements.size));
     };
 
-    _device_memory_factory.borrowingRgequest(order);
-    _buffer.getObject()->bindBufferMemory(device, _memory.getObject(), 0);
-
-    _pointer = reinterpret_cast<char*>(_memory.getObject()->mapMemory(device, 0, _buffer.getObject()->_vk_memory_requirements.size));
+    device_memory_factory.borrowingRgequest(order);
   }
 
   ~DynamicUniformBufferRing() {
@@ -66,7 +67,4 @@ private:
   char* _pointer;
 
   std::shared_ptr<DeviceObject> _device; // TODO?
-
-  BufferFactory& _buffer_factory;
-  DeviceMemoryFactory& _device_memory_factory;
 };

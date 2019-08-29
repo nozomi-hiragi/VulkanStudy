@@ -154,7 +154,10 @@ void updateVulkan() {
 
   camera.update();
   _renderer.beginCommand();
+  _renderer.beginRenderPass();
+  _renderer.bindPipeline();
   _renderer.update(camera.getViewProjection());
+  _renderer.endRenderPass();
   _renderer.endCommand();
 }
 
