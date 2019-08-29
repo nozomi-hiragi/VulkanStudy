@@ -3,35 +3,37 @@
 #include <functional>
 #include <iostream>
 #include <vector>
+#include <memory>
 
-template<class Object, class... ReturnParams>
+template<class Object>
 class Borrowed {
 public:
   Borrowed() {}
-  Borrowed(std::shared_ptr<Object> object, std::function<void(Object*, ReturnParams...)>return_func)
+  Borrowed(std::shared_ptr<Object> object, std::function<void(Object*)>return_func)
     : _object(object)
-    , _return_func(return_func) {}
+    , _return_func(return_func)
+  {}
+
+  ~Borrowed() {
+    _return_func(_object.get());
+  }
 
   auto getObject() {
     return _object;
   }
 
-  void returnObject(ReturnParams... params) {
-    _return_func(_object.get(), params...);
-  }
-
 private:
   std::shared_ptr<Object> _object;
-  std::function<void(Object*, ReturnParams...)> _return_func;
+  std::function<void(Object*)> _return_func;
 };
 
-template<class Object, class CreateParams, class... ReturnParams>
+template<class Object, class Params>
 struct Order {
-  CreateParams params;
-  std::function<void(Borrowed<Object, ReturnParams...>)> address;
+  Params params;
+  std::function<void(std::unique_ptr<Borrowed<Object>>)> address;
 };
 
-template<class Object, class CreateParams, class... ReturnParams>
+template<class Object, class Params>
 class MailingFactory {
 public:
   MailingFactory() : _borrowing_count(0) {}
@@ -42,13 +44,13 @@ public:
     std::cerr << _borrowing_count << " objects have not been returned." << std::endl;;
   }
 
-  void borrowingRgequest(const Order<Object, CreateParams, ReturnParams...>& order) {
+  void borrowingRgequest(const Order<Object, Params>& order) {
     auto object = _createObject(order.params);
-    Borrowed<Object, ReturnParams...> borrowed(object, [this](Object* ptr, ReturnParams... params) {
-      _returnObject(ptr, params...);
+    auto borrowed = std::make_unique<Borrowed<Object>>(object, [this](Object* ptr) {
+      _returnObject(ptr);
       _borrowing_count--;
     });
-    order.address(borrowed);
+    order.address(std::move(borrowed));
     _borrowing_count++;
   }
 
@@ -60,8 +62,8 @@ public:
   }
 
 protected:
-  virtual std::shared_ptr<Object> _createObject(const CreateParams& params) = 0;
-  virtual void _returnObject(Object*, ReturnParams...) = 0;
+  virtual std::shared_ptr<Object> _createObject(const Params& params) = 0;
+  virtual void _returnObject(Object*) = 0;
 private:
   uint32_t _borrowing_count;
 };

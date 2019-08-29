@@ -129,7 +129,6 @@
     <ClInclude Include="QueueObject.h" />
     <ClInclude Include="Renderer.h" />
     <ClInclude Include="RenderPassFactory.h" />
-    <ClInclude Include="RenderPassDeport.h" />
     <ClInclude Include="RenderPassObject.h" />
     <ClInclude Include="SamplerFactory.h" />
     <ClInclude Include="SamplerObject.h" />

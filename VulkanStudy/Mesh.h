@@ -36,13 +36,13 @@ public:
   }
 
   ~Mesh() {
-    _vertex_memory.returnObject();
+    _vertex_memory.reset();
 
-    _buffer_index.returnObject();
-    _buffer_texcoord.returnObject();
-    _buffer_color.returnObject();
-    _buffer_normal.returnObject();
-    _buffer_position.returnObject();
+    _buffer_index   .reset();
+    _buffer_texcoord.reset();
+    _buffer_color   .reset();
+    _buffer_normal  .reset();
+    _buffer_position.reset();
   }
 
   std::vector<BufferOrder> createBufferOrders(std::shared_ptr<DeviceObject> device, std::function<void()> callback) {
@@ -58,19 +58,19 @@ public:
     borrowed_texcoord.params = BufferParams(device, _size_texcoord, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_SHARING_MODE_EXCLUSIVE);
     borrowed_index.params    = BufferParams(device, _size_index   , VK_BUFFER_USAGE_INDEX_BUFFER_BIT,  VK_SHARING_MODE_EXCLUSIVE);
 
-    borrowed_position.address = [this](BufferBorrowed borrowed) { _buffer_position = borrowed; };
-    borrowed_normal.address   = [this](BufferBorrowed borrowed) { _buffer_normal = borrowed; };
-    borrowed_color.address    = [this](BufferBorrowed borrowed) { _buffer_color = borrowed; };
-    borrowed_texcoord.address = [this](BufferBorrowed borrowed) { _buffer_texcoord = borrowed; };
+    borrowed_position.address = [this](BufferBorrowed borrowed) { _buffer_position = std::move(borrowed); };
+    borrowed_normal.address   = [this](BufferBorrowed borrowed) { _buffer_normal = std::move(borrowed); };
+    borrowed_color.address    = [this](BufferBorrowed borrowed) { _buffer_color = std::move(borrowed); };
+    borrowed_texcoord.address = [this](BufferBorrowed borrowed) { _buffer_texcoord = std::move(borrowed); };
     borrowed_index.address    = [this, callback](BufferBorrowed borrowed) {
-      _buffer_index = borrowed;
+      _buffer_index = std::move(borrowed);
 
       _memory_size
-        = _buffer_position.getObject()->_vk_memory_requirements.size
-        + _buffer_normal.getObject()->_vk_memory_requirements.size
-        + _buffer_color.getObject()->_vk_memory_requirements.size
-        + _buffer_texcoord.getObject()->_vk_memory_requirements.size
-        + _buffer_index.getObject()->_vk_memory_requirements.size;
+        = _buffer_position->getObject()->_vk_memory_requirements.size
+        + _buffer_normal  ->getObject()->_vk_memory_requirements.size
+        + _buffer_color   ->getObject()->_vk_memory_requirements.size
+        + _buffer_texcoord->getObject()->_vk_memory_requirements.size
+        + _buffer_index   ->getObject()->_vk_memory_requirements.size;
 
       callback();
     };
@@ -86,19 +86,19 @@ public:
 
   const DeviceMemoryOrder createMemoryOrder(std::shared_ptr<DeviceObject> device) {
     auto memory_property_bits = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-    auto memory_type_index = _memory_properties.findProperties(_buffer_position.getObject(), memory_property_bits);
+    auto memory_type_index = _memory_properties.findProperties(_buffer_position->getObject(), memory_property_bits);
 
     DeviceMemoryOrder order;
     order.params = DeviceMemoryParams(device, _memory_size, memory_type_index);
     order.address = [this, device](DeviceMemoryBorrowed borrowed) {
-      _vertex_memory = borrowed;
+      _vertex_memory = std::move(borrowed);
 
       uint64_t offset = 0;
-      _buffer_position.getObject()->bindBufferMemory(device, _vertex_memory.getObject(), offset += 0);
-      _buffer_normal  .getObject()->bindBufferMemory(device, _vertex_memory.getObject(), offset += _buffer_position.getObject()->_vk_memory_requirements.size);
-      _buffer_color   .getObject()->bindBufferMemory(device, _vertex_memory.getObject(), offset += _buffer_normal  .getObject()->_vk_memory_requirements.size);
-      _buffer_texcoord.getObject()->bindBufferMemory(device, _vertex_memory.getObject(), offset += _buffer_color   .getObject()->_vk_memory_requirements.size);
-      _buffer_index   .getObject()->bindBufferMemory(device, _vertex_memory.getObject(), offset += _buffer_texcoord.getObject()->_vk_memory_requirements.size);
+      _buffer_position->getObject()->bindBufferMemory(device, _vertex_memory->getObject(), offset += 0);
+      _buffer_normal  ->getObject()->bindBufferMemory(device, _vertex_memory->getObject(), offset += _buffer_position->getObject()->_vk_memory_requirements.size);
+      _buffer_color   ->getObject()->bindBufferMemory(device, _vertex_memory->getObject(), offset += _buffer_normal  ->getObject()->_vk_memory_requirements.size);
+      _buffer_texcoord->getObject()->bindBufferMemory(device, _vertex_memory->getObject(), offset += _buffer_color   ->getObject()->_vk_memory_requirements.size);
+      _buffer_index   ->getObject()->bindBufferMemory(device, _vertex_memory->getObject(), offset += _buffer_texcoord->getObject()->_vk_memory_requirements.size);
 
       setBuffer(device);
     };
@@ -106,18 +106,18 @@ public:
   }
 
   void setBuffer(std::shared_ptr<DeviceObject> device) {
-    char* vertex_map = static_cast<char*>(_vertex_memory.getObject()->mapMemory(device, 0, _memory_size));
+    char* vertex_map = static_cast<char*>(_vertex_memory->getObject()->mapMemory(device, 0, _memory_size));
     memcpy(vertex_map +=                                                          0, _position.data(), _size_position);
-    memcpy(vertex_map += _buffer_position.getObject()->_vk_memory_requirements.size, _normal  .data(), _size_normal);
-    memcpy(vertex_map += _buffer_normal  .getObject()->_vk_memory_requirements.size, _color   .data(), _size_color);
-    memcpy(vertex_map += _buffer_color   .getObject()->_vk_memory_requirements.size, _texcoord.data(), _size_texcoord);
-    memcpy(vertex_map += _buffer_texcoord.getObject()->_vk_memory_requirements.size, _index   .data(), _size_index);
-    _vertex_memory.getObject()->unmapMemory(device);
+    memcpy(vertex_map += _buffer_position->getObject()->_vk_memory_requirements.size, _normal  .data(), _size_normal);
+    memcpy(vertex_map += _buffer_normal  ->getObject()->_vk_memory_requirements.size, _color   .data(), _size_color);
+    memcpy(vertex_map += _buffer_color   ->getObject()->_vk_memory_requirements.size, _texcoord.data(), _size_texcoord);
+    memcpy(vertex_map += _buffer_texcoord->getObject()->_vk_memory_requirements.size, _index   .data(), _size_index);
+    _vertex_memory->getObject()->unmapMemory(device);
 
-    _vk_buffers[0] = _buffer_position.getObject()->_vk_buffer;
-    _vk_buffers[1] = _buffer_normal.getObject()->_vk_buffer;
-    _vk_buffers[2] = _buffer_color.getObject()->_vk_buffer;
-    _vk_buffers[3] = _buffer_texcoord.getObject()->_vk_buffer;
+    _vk_buffers[0] = _buffer_position->getObject()->_vk_buffer;
+    _vk_buffers[1] = _buffer_normal  ->getObject()->_vk_buffer;
+    _vk_buffers[2] = _buffer_color   ->getObject()->_vk_buffer;
+    _vk_buffers[3] = _buffer_texcoord->getObject()->_vk_buffer;
 
     _buffer_offsets[0] = 0;
     _buffer_offsets[1] = 0;
@@ -128,7 +128,7 @@ public:
   void draw(std::shared_ptr<CommandBufferObject> command_buffer) {
 
     command_buffer->bindVertexBuffers(0, 4, _vk_buffers, _buffer_offsets);
-    command_buffer->bindIndexBuffer(_buffer_index.getObject()->_vk_buffer, 0);
+    command_buffer->bindIndexBuffer(_buffer_index->getObject()->_vk_buffer, 0);
 
     constexpr uint32_t instance_count = 1;
     constexpr uint32_t first_index = 0;

@@ -17,7 +17,7 @@ struct DeviceMemoryParams {
 };
 
 using DeviceMemoryOrder = Order<DeviceMemoryObject, DeviceMemoryParams>;
-using DeviceMemoryBorrowed = Borrowed<DeviceMemoryObject>;
+using DeviceMemoryBorrowed = std::unique_ptr<Borrowed<DeviceMemoryObject>>;
 
 class DeviceMemoryFactory : public MailingFactory<DeviceMemoryObject, DeviceMemoryParams> {
 public:

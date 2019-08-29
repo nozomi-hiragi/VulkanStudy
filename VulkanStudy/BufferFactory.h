@@ -20,7 +20,7 @@ struct BufferParams {
 };
 
 using BufferOrder = Order<BufferObject, BufferParams>;
-using BufferBorrowed = Borrowed<BufferObject>;
+using BufferBorrowed = std::unique_ptr<Borrowed<BufferObject>>;
 
 class BufferFactory : public MailingFactory<BufferObject, BufferParams> {
 public:

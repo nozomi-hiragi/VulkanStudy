@@ -18,12 +18,15 @@ std::shared_ptr<MeshStatus> mesh2;
 std::shared_ptr<ShaderModuleObject> vs;
 std::shared_ptr<ShaderModuleObject> ps;
 
+RenderPassBorrowed render_pass;
+
 PosRotCamera camera;
 
 void initVulkan(GLFWwindow* window, uint32_t width, uint32_t height) {
   camera._width = static_cast<float>(width);
   camera._height = static_cast<float>(height);
   _renderer.init(APP_NAME, APP_VERSION, width, height, window);
+  render_pass = _renderer.createRenderPass();
 
   std::string vs_code =
     "#version 450\n"
@@ -63,8 +66,8 @@ void initVulkan(GLFWwindow* window, uint32_t width, uint32_t height) {
   vs = _renderer.createShaderModule(vs_code, "vs_code", VK_SHADER_STAGE_VERTEX_BIT);
   ps = _renderer.createShaderModule(ps_code, "ps_code", VK_SHADER_STAGE_FRAGMENT_BIT);
 
-  _renderer.createPipeline(vs, ps);
-  _renderer.createSwapchainFrameBuffer();
+  _renderer.createPipeline(vs, ps, render_pass->getObject());
+  _renderer.createSwapchainFrameBuffer(render_pass->getObject());
 
   camera._position = glm::vec3(0, 0, -10);
 
@@ -154,7 +157,7 @@ void updateVulkan() {
 
   camera.update();
   _renderer.beginCommand();
-  _renderer.beginRenderPass();
+  _renderer.beginRenderPass(render_pass->getObject());
   _renderer.bindPipeline();
   _renderer.update(camera.getViewProjection());
   _renderer.endRenderPass();
@@ -164,5 +167,6 @@ void updateVulkan() {
 void uninitVulkan() {
   _renderer.destroyShaderModule(vs);
   _renderer.destroyShaderModule(ps);
+  render_pass.reset();
   _renderer.uninit();
 }

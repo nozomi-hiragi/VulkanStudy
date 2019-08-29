@@ -14,7 +14,7 @@ struct InstanceParams {
 };
 
 using InstanceOrder = Order<InstanceObject, InstanceParams>;
-using InstanceBorrowed = Borrowed<InstanceObject>;
+using InstanceBorrowed = std::unique_ptr<Borrowed<InstanceObject>>;
 
 class InstanceFactory : public MailingFactory<InstanceObject, InstanceParams> {
 public:

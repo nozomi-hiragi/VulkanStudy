@@ -95,9 +95,7 @@ private:
 
 class Renderer {
 public:
-  Renderer()
-    :_render_pass_factory(_attachment_description_depot, _attachment_reference_depot, _subpass_description_depot)
-  {
+  Renderer() {
   }
 
   ~Renderer() {
@@ -111,19 +109,19 @@ public:
     instance_order.params.app_name = app_name;
     instance_order.params.app_version = app_version;
     instance_order.address = [this, &window](InstanceBorrowed borrowed) {
-      _instance = borrowed;
+      _instance = std::move(borrowed);
 
-      _physical_device_object = borrowed.getObject()->_physical_devices[0];
+      _physical_device_object = _instance->getObject()->_physical_devices[0];
 
       SurfaceOrder surface_order;
-      surface_order.params.instiace = borrowed.getObject();
+      surface_order.params.instiace = _instance->getObject();
       surface_order.params.window = window;
       surface_order.address = [this](SurfaceBorrowed borrowed) {
-        _surface = borrowed;
+        _surface = std::move(borrowed);
       };
       _surface_factory.borrowingRgequest(surface_order);
 
-      _device_object = _device_factory.createObject(nullptr, _physical_device_object, _surface.getObject());
+      _device_object = _device_factory.createObject(nullptr, _physical_device_object, _surface->getObject());
     };
     _instance_factory.borrowingRgequest(instance_order);
 
@@ -132,18 +130,18 @@ public:
     _queue_object = _device_object->_queue_object;
     _command_pool_object = _command_pool_factory.createObject(_device_object, _queue_object);
     _command_buffer_object = _command_pool_object->createObject(_device_object);
-    _swapchain_object = _swapchain_factory.createObject(_device_object, _physical_device_object, _surface.getObject(), _width, _height);
+    _swapchain_object = _swapchain_factory.createObject(_device_object, _physical_device_object, _surface->getObject(), _width, _height);
     _depth_image_object = _image_factory.createObject(_device_object, VK_FORMAT_D16_UNORM, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, _width, _height, 1, VK_SAMPLE_COUNT_1_BIT, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_ASPECT_DEPTH_BIT);
     {
       auto memory_type_index = memory_properties.findProperties(_depth_image_object, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
       DeviceMemoryOrder order;
       order.params = DeviceMemoryParams(_device_object, _depth_image_object->_vk_memory_requirements.size, memory_type_index);
       order.address = [this](DeviceMemoryBorrowed borrowed) {
-        _depth_memory = borrowed;
+        _depth_memory = std::move(borrowed);
       };
       _device_memory_factory.borrowingRgequest(order);
     }
-    _depth_image_object->bindImageMemory(_device_object, _depth_memory.getObject(), 0);
+    _depth_image_object->bindImageMemory(_device_object, _depth_memory->getObject(), 0);
     _swapchain_image_view_objects.reserve(_swapchain_object->_swapchain_image_count);
     for (auto image : _swapchain_object->_swapchain_images) {
       _swapchain_image_view_objects.push_back(_image_view_factory.createObject(_device_object, image));
@@ -174,51 +172,6 @@ public:
     };
     _constant_buffer_layout = _constant_buffer_layout_factory.createObject(_device_object, descriptor_set_layout_bindings);
 
-    // Create render pass
-    {
-      _attachment_description_depot.add("ColorDefaultDescription",
-        _swapchain_object->_vk_format,
-        VK_SAMPLE_COUNT_1_BIT,
-        VK_ATTACHMENT_LOAD_OP_CLEAR,
-        VK_ATTACHMENT_STORE_OP_STORE,
-        VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-        VK_ATTACHMENT_STORE_OP_DONT_CARE,
-        VK_IMAGE_LAYOUT_UNDEFINED,
-        VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
-      );
-      _attachment_description_depot.add("DepthDefaultDescription",
-        _depth_image_object->_vk_format,
-        VK_SAMPLE_COUNT_1_BIT,
-        VK_ATTACHMENT_LOAD_OP_CLEAR,
-        VK_ATTACHMENT_STORE_OP_DONT_CARE,
-        VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-        VK_ATTACHMENT_STORE_OP_DONT_CARE,
-        VK_IMAGE_LAYOUT_UNDEFINED,
-        VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
-      );
-
-      _attachment_reference_depot.add("ColorDefault",
-        "ColorDefaultDescription",
-        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-      _attachment_reference_depot.add("DepthDefault",
-        "DepthDefaultDescription",
-        VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
-
-      std::vector<const char*> color_attachment_names = { "ColorDefault" };
-      _subpass_description_depot.add("SubpassDefault",
-        0,
-        nullptr,
-        static_cast<uint32_t>(color_attachment_names.size()),
-        color_attachment_names.data(),
-        nullptr,
-        "DepthDefault",
-        0,
-        nullptr
-      );
-
-      _render_pass = _render_pass_factory.createObject(_device_object, { "ColorDefaultDescription", "DepthDefaultDescription" }, { "SubpassDefault" });
-    }
-
     // Create uniform buffer
     {
       uint32_t uniform_size = 16 * 1024 * 1024;
@@ -247,10 +200,10 @@ public:
     DeviceMemoryOrder order;
     order.params = DeviceMemoryParams(_device_object, _texture_image->_vk_memory_requirements.size, memory_type_index);
     order.address = [this](DeviceMemoryBorrowed borrowed) {
-      _texture_memory = borrowed;
+      _texture_memory = std::move(borrowed);
     };
     _device_memory_factory.borrowingRgequest(order);
-    _texture_image->bindImageMemory(_device_object, _texture_memory.getObject(), 0);
+    _texture_image->bindImageMemory(_device_object, _texture_memory->getObject(), 0);
 
     VkImageSubresource image_subresource = {};
     image_subresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -259,19 +212,19 @@ public:
     VkSubresourceLayout layout;
     vkGetImageSubresourceLayout(_device_object->_vk_device, _texture_image->_vk_image, &image_subresource, &layout);
 
-    char* data = (char*)_texture_memory.getObject()->mapMemory(_device_object, 0, static_cast<uint32_t>(raw_texture.size() * sizeof(uint8_t)));
+    char* data = (char*)_texture_memory->getObject()->mapMemory(_device_object, 0, static_cast<uint32_t>(raw_texture.size() * sizeof(uint8_t)));
     auto row_size = sizeof(uint8_t) * 4 * 4;
     for (uint32_t i = 0; i < 3; i++) {
       memcpy(data + i * layout.rowPitch, raw_texture.data() + row_size * i, row_size);
     }
-    _texture_memory.getObject()->unmapMemory(_device_object);
+    _texture_memory->getObject()->unmapMemory(_device_object);
 
     _texture_image_view = _image_view_factory.createObject(_device_object, _texture_image);
 
     _sampler_object = _sampler_factory.createObject(_device_object, VK_FILTER_NEAREST, VK_FILTER_NEAREST, VK_SAMPLER_MIPMAP_MODE_NEAREST, 0, 0.f);
 
     // Update descriptor sets
-    _constant_buffer_layout->_descriptor_set->updateDescriptorSetBuffer(_device_object, 0, _uniform_buffer->_buffer.getObject(), sizeof(glm::mat4));
+    _constant_buffer_layout->_descriptor_set->updateDescriptorSetBuffer(_device_object, 0, _uniform_buffer->_buffer->getObject(), sizeof(glm::mat4));
     _constant_buffer_layout->_descriptor_set->updateDescriptorSetSampler(_device_object, 1, _sampler_object, _texture_image_view);
 
     // Texture convert?
@@ -306,6 +259,64 @@ public:
     _queue_object->registSubmitInfoName(0, { "Submit" });
 
     _shader_compiler = shaderc_compiler_initialize();
+  }
+
+  auto createRenderPass() {
+    VkAttachmentDescription color_description = {};
+    color_description.format = _swapchain_object->_vk_format;
+    color_description.samples = VK_SAMPLE_COUNT_1_BIT;
+    color_description.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    color_description.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+    color_description.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    color_description.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    color_description.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    color_description.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+    VkAttachmentDescription depth_description = {};
+    depth_description.format = _depth_image_object->_vk_format;
+    depth_description.samples = VK_SAMPLE_COUNT_1_BIT;
+    depth_description.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    depth_description.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    depth_description.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    depth_description.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    depth_description.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    depth_description.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+    VkAttachmentDescription descriptions[] = { color_description , depth_description };
+
+    VkAttachmentReference color_reference = {};
+    color_reference.attachment = 0;
+    color_reference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+    VkAttachmentReference depth_reference = {};
+    depth_reference.attachment = 1;
+    depth_reference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+    VkSubpassDescription subpass = {};
+    subpass.flags;
+    subpass.pipelineBindPoint;
+    subpass.inputAttachmentCount;
+    subpass.pInputAttachments;
+    subpass.colorAttachmentCount = 1;
+    subpass.pColorAttachments = &color_reference;
+    subpass.pResolveAttachments;
+    subpass.pDepthStencilAttachment = &depth_reference;
+    subpass.preserveAttachmentCount;
+    subpass.pPreserveAttachments;
+
+    RenderPassOrder order;
+    order.params.device = _device_object;
+    order.params.description_count = 2;
+    order.params.descriptions = descriptions;
+    order.params.subpass_count = 1;
+    order.params.subpasses = &subpass;
+
+    RenderPassBorrowed render_pass;
+    order.address = [this, &render_pass](RenderPassBorrowed borrowed) {
+      render_pass = std::move(borrowed);
+    };
+    _render_pass_factory.borrowingRgequest(order);
+    return std::move(render_pass);
   }
 
   auto createShaderModule(std::string code, std::string name, VkShaderStageFlagBits stage) {
@@ -352,22 +363,22 @@ public:
     _shader_module_factory.destroyObject(shader);
   }
 
-  void createPipeline(std::shared_ptr<ShaderModuleObject> vs, std::shared_ptr<ShaderModuleObject> ps) {
+  void createPipeline(std::shared_ptr<ShaderModuleObject> vs, std::shared_ptr<ShaderModuleObject> ps, std::shared_ptr<RenderPassObject> render_pass) {
     auto vertex_layout = Mesh::createVertexLayout();
     _pipeline = _pipeline_factory.createObject(_device_object,
       nullptr,
       vertex_layout,
       { vs, ps },
       _constant_buffer_layout->_pipeline_layout,
-      _render_pass);
+      render_pass);
   }
 
-  void createSwapchainFrameBuffer() {
+  void createSwapchainFrameBuffer(std::shared_ptr<RenderPassObject> render_pass) {
     _framebuffers.reserve(_swapchain_object->_swapchain_image_count);
     for (uint32_t i = 0; i < _swapchain_object->_swapchain_image_count; i++) {
       _framebuffers.push_back(_framebuffer_factory.createObject(
         _device_object,
-        _render_pass,
+        render_pass,
         { _swapchain_image_view_objects[i], _depth_image_view_object }
       ));
     }
@@ -392,7 +403,7 @@ public:
 
     _image_view_factory.destroyObject(_texture_image_view);
 
-    _texture_memory.returnObject();
+    _texture_memory.reset();
 
     _image_factory.destroyObject(_texture_image);
 
@@ -410,14 +421,13 @@ public:
 
     _shader_module_factory.destroyAll();
 
-    _render_pass_factory.destroyObject(_render_pass);
-
     _uniform_buffer.reset();
 
-    _depth_memory.returnObject();
+    _depth_memory.reset();
 
-    _device_memory_factory.executeDestroy(_device_object);
     _buffer_factory.executeDestroy(_device_object);
+    _device_memory_factory.executeDestroy(_device_object);
+    _render_pass_factory.executeDestroy(_device_object);
 
     _constant_buffer_layout_factory.destroyObject(_constant_buffer_layout);
     _constant_buffer_layout_factory.destroyAll();
@@ -435,8 +445,9 @@ public:
     _command_pool_factory.destroyObject(_command_pool_object);
 
     _device_factory.destroyObject(_device_object);
-    _surface.returnObject(_instance.getObject());
-    _instance.returnObject();
+    _surface.reset();
+    _surface_factory.executeDestroy(_instance->getObject());
+    _instance.reset();
   }
 
   void beginCommand() {
@@ -447,6 +458,7 @@ public:
 
     _buffer_factory.executeDestroy(_device_object);
     _device_memory_factory.executeDestroy(_device_object);
+    _render_pass_factory.executeDestroy(_device_object);
 
     _command_buffer_object->begin(VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT);
     _command_buffer_object->applyViewSize();
@@ -466,8 +478,8 @@ public:
     _queue_object->present(present_info);
   }
 
-  void beginRenderPass() {
-    _command_buffer_object->beginRenderPass(_render_pass, _framebuffers[g_current_buffer], VK_SUBPASS_CONTENTS_INLINE);
+  void beginRenderPass(std::shared_ptr<RenderPassObject> render_pass) {
+    _command_buffer_object->beginRenderPass(render_pass, _framebuffers[g_current_buffer], VK_SUBPASS_CONTENTS_INLINE);
   }
 
   void endRenderPass() {
@@ -496,10 +508,6 @@ protected:
 private:
   shaderc_compiler_t _shader_compiler;
 
-  AttachmentDescriptionDepot _attachment_description_depot;
-  AttachmentReferenceDepot _attachment_reference_depot;
-  SubpassDescriptionDepot _subpass_description_depot;
-
   InstanceFactory _instance_factory;
   SurfaceFactory _surface_factory;
   DeviceFactory _device_factory;
@@ -526,7 +534,6 @@ private:
   std::shared_ptr<DeviceObject> _device_object;
 
   std::vector<std::shared_ptr<MeshStatus>> _mesh_status;
-  std::shared_ptr<RenderPassObject> _render_pass;
   std::vector<std::shared_ptr<FramebufferObject>> _framebuffers;
   std::shared_ptr<PipelineObject> _pipeline;
   std::shared_ptr<ImageObject> _texture_image;
