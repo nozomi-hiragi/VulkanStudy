@@ -26,6 +26,8 @@ void initVulkan(GLFWwindow* window, uint32_t width, uint32_t height) {
   camera._width = static_cast<float>(width);
   camera._height = static_cast<float>(height);
   _renderer.init(APP_NAME, APP_VERSION, width, height, window);
+  _renderer.createUniformBuffer();
+  _renderer.updateDescriptorSet();
   render_pass = _renderer.createRenderPass();
 
   std::string vs_code =

@@ -110,20 +110,19 @@ public:
     instance_order.params.app_version = app_version;
     instance_order.address = [this, &window](InstanceBorrowed borrowed) {
       _instance = std::move(borrowed);
-
       _physical_device_object = _instance->getObject()->_physical_devices[0];
-
-      SurfaceOrder surface_order;
-      surface_order.params.instiace = _instance->getObject();
-      surface_order.params.window = window;
-      surface_order.address = [this](SurfaceBorrowed borrowed) {
-        _surface = std::move(borrowed);
-      };
-      _surface_factory.borrowingRgequest(surface_order);
-
-      _device_object = _device_factory.createObject(nullptr, _physical_device_object, _surface->getObject());
     };
     _instance_factory.borrowingRgequest(instance_order);
+
+    SurfaceOrder surface_order;
+    surface_order.params.instiace = _instance->getObject();
+    surface_order.params.window = window;
+    surface_order.address = [this](SurfaceBorrowed borrowed) {
+      _surface = std::move(borrowed);
+    };
+    _surface_factory.borrowingRgequest(surface_order);
+
+    _device_object = _device_factory.createObject(nullptr, _physical_device_object, _surface->getObject());
 
     auto memory_properties = _physical_device_object->_memory_properties;
 
@@ -172,12 +171,6 @@ public:
     };
     _constant_buffer_layout = _constant_buffer_layout_factory.createObject(_device_object, descriptor_set_layout_bindings);
 
-    // Create uniform buffer
-    {
-      uint32_t uniform_size = 16 * 1024 * 1024;
-      _uniform_buffer = std::make_shared<DynamicUniformBufferRing>(_device_object, memory_properties, _buffer_factory, _device_memory_factory, uniform_size);
-    }
-
     // Texture
     std::vector<uint8_t> raw_texture = {
       0xff, 0x00, 0x00, 0xff,  0x00, 0xff, 0x00, 0xff,  0x00, 0x00, 0xff, 0xff,  0xff, 0xff, 0xff, 0xff,
@@ -222,10 +215,6 @@ public:
     _texture_image_view = _image_view_factory.createObject(_device_object, _texture_image);
 
     _sampler_object = _sampler_factory.createObject(_device_object, VK_FILTER_NEAREST, VK_FILTER_NEAREST, VK_SAMPLER_MIPMAP_MODE_NEAREST, 0, 0.f);
-
-    // Update descriptor sets
-    _constant_buffer_layout->_descriptor_set->updateDescriptorSetBuffer(_device_object, 0, _uniform_buffer->_buffer->getObject(), sizeof(glm::mat4));
-    _constant_buffer_layout->_descriptor_set->updateDescriptorSetSampler(_device_object, 1, _sampler_object, _texture_image_view);
 
     // Texture convert?
     {
@@ -382,6 +371,21 @@ public:
         { _swapchain_image_view_objects[i], _depth_image_view_object }
       ));
     }
+  }
+
+  void createUniformBuffer() {
+    uint32_t uniform_size = 16 * 1024 * 1024;
+    _uniform_buffer = std::make_shared<DynamicUniformBufferRing>(
+      _device_object,
+      _physical_device_object->_memory_properties,
+      uniform_size,
+      [this](BufferOrder order) { _buffer_factory.borrowingRgequest(order); },
+      [this](DeviceMemoryOrder order) { _device_memory_factory.borrowingRgequest(order); });
+  }
+
+  void updateDescriptorSet() {
+    _constant_buffer_layout->_descriptor_set->updateDescriptorSetBuffer(_device_object, 0, _uniform_buffer->_buffer->getObject(), sizeof(glm::mat4));
+    _constant_buffer_layout->_descriptor_set->updateDescriptorSetSampler(_device_object, 1, _sampler_object, _texture_image_view);
   }
 
   auto createMesh(const std::vector<glm::vec3>& position, const std::vector<glm::vec3>& normal, const std::vector<glm::vec4>& color, const std::vector<glm::vec2>& texcoord, const std::vector<uint16_t>& index) {
